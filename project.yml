@@ -1,0 +1,57 @@
+name: TalkingHeads
+options:
+  bundleIdPrefix: com.talkingheads
+  deploymentTarget:
+    iOS: "26.0"
+  generateEmptyDirectories: true
+
+# SPM dependencies — external packages fetched from GitHub
+packages:
+  # LLM inference (Qwen3.5 on-device)
+  mlx-swift-lm:
+    url: https://github.com/ml-explore/mlx-swift-lm
+    branch: main
+  # Text-to-speech (CosyVoice / Soprano)
+  mlx-audio-swift:
+    url: https://github.com/Blaizzy/mlx-audio-swift
+    branch: main
+  # Voice activity detection (Silero v5)
+  RealTimeCutVADLibrary:
+    url: https://github.com/helloooideeeeea/RealTimeCutVADLibrary
+    from: "1.0.14"
+
+targets:
+  TalkingHeads:
+    type: application
+    platform: iOS
+    sources:
+      - TalkingHeads
+    settings:
+      base:
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Talking Heads needs microphone access for voice conversations."
+        INFOPLIST_KEY_UILaunchScreen_Generation: true
+        INFOPLIST_KEY_CFBundleDisplayName: "Talking Heads"
+        SWIFT_VERSION: "6.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+        SUPPORTS_MACCATALYST: false
+    dependencies:
+      # SPM product names — these are the importable modules
+      - package: mlx-swift-lm
+        product: MLXLLM
+      - package: mlx-swift-lm
+        product: MLXLMCommon
+      - package: mlx-audio-swift
+        product: MLXAudioTTS
+      - package: mlx-audio-swift
+        product: MLXAudioCore
+      - package: RealTimeCutVADLibrary
+
+# Scheme definition — tells Xcode how to build/run the app
+schemes:
+  TalkingHeads:
+    build:
+      targets:
+        TalkingHeads: all
+    run:
+      config: Debug
