@@ -13,3 +13,6 @@ DerivedData/
 # macOS
 .DS_Store
 *.swp
+
+# Claude Code (personal local overrides)
+.claude/settings.local.json

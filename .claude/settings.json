@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git add .)",
+      "Bash(git add -A:*)",
+      "Bash(git add --all:*)",
+      "Bash(git checkout:*)",
+      "Bash(git*--no-verify*)"
+    ]
+  }
+}
