@@ -167,6 +167,14 @@ TalkingHeads/
 - 500ms silence threshold for turn-completion detection (tunable)
 - Pre-warm LLM on app launch (dummy token to force load into memory)
 
+## Setup (once per clone)
+
+```
+./scripts/setup.sh
+```
+
+Installs the pre-commit hook, runs `xcodegen generate`, and verifies `xcodegen` + `xcodebuild` are on PATH.
+
 ## LGTM Workflow
 
 CRITICAL: NEVER start without explicit user request. PR must be clean — don't ignore failures.
@@ -174,7 +182,6 @@ CRITICAL: NEVER start without explicit user request. PR must be clean — don't 
 1. `git fetch origin main && git merge origin/main`
 2. `git commit -m "<one-liner subject>"` — user has already run `git add` before saying "lgtm"
    - Pre-commit hook runs automatically (see `scripts/git/pre_commit_hook.sh`): `xcodegen generate` if `project.yml` staged, then `xcodebuild` build if any `.swift` or `project.yml` staged
-   - Install hook once per clone: `ln -sf ../../scripts/git/pre_commit_hook.sh .git/hooks/pre-commit`
    - One-liner subject only. No body paragraphs. PR body carries long-form context.
    - NO co-author lines, NO `[skip ci]`
    - If hook fails: fix, re-stage, commit again. Don't stage other sessions' files.
