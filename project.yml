@@ -1,9 +1,17 @@
-name: TalkingHeads
+name: PalkieTalkie
 options:
-  bundleIdPrefix: com.talkingheads
+  bundleIdPrefix: com.palkietalkie
   deploymentTarget:
     iOS: "26.0"
   generateEmptyDirectories: true
+
+# Files visible in Xcode's project navigator but not compiled
+fileGroups:
+  - .claude
+  - .gitignore
+  - CLAUDE.md
+  - project.yml
+  - scripts
 
 # SPM dependencies — external packages fetched from GitHub
 packages:
@@ -21,16 +29,17 @@ packages:
     from: "1.0.14"
 
 targets:
-  TalkingHeads:
+  PalkieTalkie:
     type: application
     platform: iOS
     sources:
-      - TalkingHeads
+      - PalkieTalkie
     settings:
       base:
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Talking Heads needs microphone access for voice conversations."
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Palkie Talkie needs microphone access for voice conversations."
         INFOPLIST_KEY_UILaunchScreen_Generation: true
-        INFOPLIST_KEY_CFBundleDisplayName: "Talking Heads"
+        INFOPLIST_KEY_CFBundleDisplayName: "Palkie Talkie"
         SWIFT_VERSION: "6.0"
         TARGETED_DEVICE_FAMILY: "1"
         SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
@@ -49,9 +58,9 @@ targets:
 
 # Scheme definition — tells Xcode how to build/run the app
 schemes:
-  TalkingHeads:
+  PalkieTalkie:
     build:
       targets:
-        TalkingHeads: all
+        PalkieTalkie: all
     run:
       config: Debug

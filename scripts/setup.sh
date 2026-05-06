@@ -19,6 +19,15 @@ echo "[setup] installed .git/hooks/pre-commit → scripts/git/pre_commit_hook.sh
 
 # Generate Xcode project from project.yml
 xcodegen generate
-echo "[setup] generated TalkingHeads.xcodeproj"
+echo "[setup] generated PalkieTalkie.xcodeproj"
 
-echo "[setup] done. Open TalkingHeads.xcodeproj in Xcode."
+# Download iOS simulator runtime if missing (matches project.yml deployment target)
+TARGET_MAJOR=$(awk '/iOS:/ {gsub(/"/, "", $2); split($2, v, "."); print v[1]; exit}' project.yml)
+if ! xcrun simctl list runtimes | grep -q "iOS ${TARGET_MAJOR}"; then
+  echo "[setup] iOS ${TARGET_MAJOR} simulator runtime missing — downloading (~7GB, 10–30 min)…"
+  xcodebuild -downloadPlatform iOS
+else
+  echo "[setup] iOS ${TARGET_MAJOR} simulator runtime already installed"
+fi
+
+echo "[setup] done. Open PalkieTalkie.xcodeproj in Xcode."
