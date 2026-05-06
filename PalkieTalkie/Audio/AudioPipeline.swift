@@ -18,7 +18,9 @@ import Foundation
 
 /// Manages AVAudioEngine for continuous mic capture and TTS playback.
 /// Engine stays running at all times — never stop/start between turns.
-final class AudioPipeline {
+/// `@unchecked Sendable`: AVAudioEngine has its own real-time audio thread; the
+/// `installTap` callback fires off-main. We trust AVAudioEngine's threading.
+final class AudioPipeline: @unchecked Sendable {
     let engine = AVAudioEngine()
     let playerNode = AVAudioPlayerNode()
 

@@ -15,10 +15,10 @@ fi
 
 # Build sanity check if any Swift file or project.yml is staged
 if echo "$STAGED" | grep -qE "(\.swift$|^project\.yml$)"; then
-  echo "[pre-commit] Building TalkingHeads…"
+  echo "[pre-commit] Building PalkieTalkie…"
   xcodebuild \
-    -project TalkingHeads.xcodeproj \
-    -scheme TalkingHeads \
+    -project PalkieTalkie.xcodeproj \
+    -scheme PalkieTalkie \
     -destination 'generic/platform=iOS Simulator' \
     build -quiet
 fi

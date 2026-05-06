@@ -13,7 +13,7 @@ import SwiftUI
 // - `.task` = runs an async function when the view appears (like useEffect in React).
 
 @main
-struct TalkingHeadsApp: App {
+struct PalkieTalkieApp: App {
     // `@StateObject` = creates and owns an observable object for the lifetime of this view.
     // Like useRef + useState combined — persists across re-renders, owned by this component.
     @StateObject private var orchestrator = VoiceOrchestrator()
