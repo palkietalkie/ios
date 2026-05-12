@@ -20,3 +20,5 @@ DerivedData/
 # Secrets / API tokens
 .env
 .env.local
+
+.pr-bodies/
