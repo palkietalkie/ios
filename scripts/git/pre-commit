@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Pre-commit hook for palkietalkie/ios.
+# Installed by `scripts/setup.sh` via `git config core.hooksPath scripts/git`.
+set -e
+
+cd "$(git rev-parse --show-toplevel)"
+
+# Block direct commits to main — feature work always lives on a branch.
+CURRENT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+if [ "$CURRENT_BRANCH" = "main" ]; then
+	echo "[pre-commit] don't commit directly to main — branch off first" >&2
+	exit 1
+fi
+
+# Fast-forward local main from origin so it stays in sync (silent on offline / no remote).
+git fetch --quiet origin main:main 2>/dev/null || true
+
+require() {
+	local tool=$1 install=$2
+	if ! command -v "$tool" >/dev/null 2>&1; then
+		echo "[pre-commit] missing $tool. Install: $install" >&2
+		exit 1
+	fi
+}
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+
+# Markdown lint (staged files only — markdownlint walks the directory otherwise).
+MD_STAGED=$(echo "$STAGED" | grep -E "\.md$" || true)
+if [ -n "$MD_STAGED" ]; then
+	require markdownlint "brew install markdownlint-cli"
+	echo "[pre-commit] markdownlint..."
+	echo "$MD_STAGED" | xargs markdownlint
+fi
+
+# Shell format (auto-fix) + lint (fail on violations).
+SH_STAGED=$(echo "$STAGED" | grep -E "\.sh$" || true)
+if [ -n "$SH_STAGED" ]; then
+	require shfmt "brew install shfmt"
+	require shellcheck "brew install shellcheck"
+
+	echo "[pre-commit] shfmt (auto-fix)..."
+	echo "$SH_STAGED" | xargs shfmt -w
+	echo "$SH_STAGED" | xargs git add
+
+	echo "[pre-commit] shellcheck..."
+	echo "$SH_STAGED" | xargs shellcheck
+fi
+
+# Regenerate Swift Codable types from the backend's OpenAPI spec — only if a backend is reachable. Skip silently otherwise (most pre-commit runs happen without the backend up); CI regenerates explicitly.
+OPENAPI_URL="${OPENAPI_URL:-http://localhost:8000/openapi.json}"
+if curl -fsS "$OPENAPI_URL" >/dev/null 2>&1; then
+	GENERATED="PalkieTalkie/Generated/APITypes.swift"
+	echo "[pre-commit] regenerate $GENERATED from $OPENAPI_URL"
+	BEFORE=$(cat "$GENERATED" 2>/dev/null || true)
+	./scripts/generate_api_types.py --url "$OPENAPI_URL" --out "$GENERATED" >/dev/null
+	swiftformat --quiet "$GENERATED"
+	AFTER=$(cat "$GENERATED")
+	if [ "$BEFORE" != "$AFTER" ]; then
+		echo "[pre-commit] $GENERATED drifted — re-stage it and re-commit" >&2
+		exit 1
+	fi
+fi
+
+require swiftformat "brew install swiftformat"
+require swiftlint "brew install swiftlint"
+
+# Swift: auto-format whole repo, then lint strictly. Whole-repo so a stray un-formatted file lingering from another tool can't slip in.
+echo "[pre-commit] swiftformat (auto-fix, whole repo)..."
+swiftformat --quiet .
+
+# Re-stage anything swiftformat changed that was already staged so the commit picks up the fixes.
+CHANGED=$(git diff --name-only)
+if [ -n "$CHANGED" ]; then
+	echo "$CHANGED" | while read -r f; do
+		if echo "$STAGED" | grep -qx "$f"; then
+			git add "$f"
+		fi
+	done
+fi
+
+echo "[pre-commit] swiftlint --strict (whole repo)..."
+swiftlint lint --strict --quiet
+
+# Regenerate Xcode project if project.yml changed.
+if echo "$STAGED" | grep -qx "project.yml"; then
+	require xcodegen "brew install xcodegen"
+	echo "[pre-commit] project.yml changed → xcodegen generate"
+	xcodegen generate
+fi
+
+# Build sanity check if any Swift file or project.yml is staged.
+if echo "$STAGED" | grep -qE "(\.swift$|^project\.yml$)"; then
+	require xcodebuild "install Xcode"
+	echo "[pre-commit] xcodebuild..."
+	xcodebuild \
+		-project PalkieTalkie.xcodeproj \
+		-scheme PalkieTalkie \
+		-destination 'generic/platform=iOS Simulator' \
+		build -quiet
+fi

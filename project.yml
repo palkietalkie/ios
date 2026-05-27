@@ -13,20 +13,16 @@ fileGroups:
   - project.yml
   - scripts
 
-# SPM dependencies — external packages fetched from GitHub
+# Thin streaming client only — inference runs server-side. Provider switches via the backend's INFERENCE_PROVIDER env var: OpenAI Realtime (gpt-realtime-mini, current default) or PersonaPlex on Modal (alternative). iOS picks the WS wire protocol based on the `provider` field returned by /conversation/start.
 packages:
-  # LLM inference (Qwen3.5 on-device)
-  mlx-swift-lm:
-    url: https://github.com/ml-explore/mlx-swift-lm
-    branch: main
-  # Text-to-speech (CosyVoice / Soprano)
-  mlx-audio-swift:
-    url: https://github.com/Blaizzy/mlx-audio-swift
-    branch: main
-  # Voice activity detection (Silero v5)
-  RealTimeCutVADLibrary:
-    url: https://github.com/helloooideeeeea/RealTimeCutVADLibrary
-    from: "1.0.14"
+  Clerk:
+    url: https://github.com/clerk/clerk-ios
+    from: "1.1.3"
+  # alta/swift-opus is the canonical type-safe Opus binding for Apple platforms.
+  # Builds against AVAudioPCMBuffer, which matches our AVAudioEngine pipeline.
+  Opus:
+    url: https://github.com/alta/swift-opus
+    revision: 6f3cb6bd3ffed1fe5f06d00a962d5c191a50daf8
 
 targets:
   PalkieTalkie:
@@ -36,25 +32,68 @@ targets:
       - PalkieTalkie
     settings:
       base:
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Palkie Talkie needs microphone access for voice conversations."
-        INFOPLIST_KEY_UILaunchScreen_Generation: true
-        INFOPLIST_KEY_CFBundleDisplayName: "Palkie Talkie"
-        SWIFT_VERSION: "6.0"
+        SWIFT_VERSION: "6.2"
         TARGETED_DEVICE_FAMILY: "1"
         SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
         SUPPORTS_MACCATALYST: false
+        # Override xcodegen's default (`{prefix}.{target}` → `com.palkietalkie.PalkieTalkie`) to the shorter, all-lowercase canonical form. Lock in now before any Apple Developer / TestFlight / IAP / APNs registration — changing later is painful.
+        PRODUCT_BUNDLE_IDENTIFIER: com.palkietalkie.app
+        CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        # Personal Team ID for wesnishio@gmail.com — captured from the working build that registered "Let's go Wes" iPhone with the team. When the paid Apple Developer Program account is approved, replace with that Team ID.
+        DEVELOPMENT_TEAM: 7P7YY88H3V
+    # Explicit Info.plist (xcodegen writes it) so we can add the OAuth URL scheme cleanly. Runtime values read via Bundle.main.object(forInfoDictionaryKey:).
+    info:
+      path: PalkieTalkie/Info.plist
+      properties:
+        CFBundleDisplayName: "Palkie Talkie"
+        # Portrait-only. The mic UI is portrait-anchored and landscape adds no value.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+        NSMicrophoneUsageDescription: "Palkie Talkie needs microphone access for voice conversations."
+        NSLocationWhenInUseUsageDescription: "Palkie Talkie uses your location so the AI shares the same place and weather as you."
+        NSCalendarsUsageDescription: "Palkie Talkie reads today's events so the AI can ask about them naturally."
+        UIBackgroundModes:
+          - audio
+        UILaunchScreen:
+          UIColorName: ""
+        # xcodegen interpolates ${ENV} from the shell at `xcodegen generate` time.
+        # boot.sh exports BACKEND_URL before running xcodegen; defaults below match prd.
+        BACKEND_URL: "${BACKEND_URL:-https://api.palkietalkie.com}"
+        PERSONAPLEX_HOST: "${PERSONAPLEX_HOST:-wss://palkietalkie--api.modal.run}"
+        CLERK_PUBLISHABLE_KEY: "${CLERK_PUBLISHABLE_KEY:-pk_test_Y3V0ZS10aWNrLTQxLmNsZXJrLmFjY291bnRzLmRldiQ}"
+        CFBundleURLTypes:
+          - CFBundleURLName: com.palkietalkie.oauth
+            CFBundleURLSchemes:
+              - palkietalkie
     dependencies:
-      # SPM product names — these are the importable modules
-      - package: mlx-swift-lm
-        product: MLXLLM
-      - package: mlx-swift-lm
-        product: MLXLMCommon
-      - package: mlx-audio-swift
-        product: MLXAudioTTS
-      - package: mlx-audio-swift
-        product: MLXAudioCore
-      - package: RealTimeCutVADLibrary
+      - package: Clerk
+        product: ClerkKit
+      - package: Opus
+        product: Opus
+
+  PalkieTalkieTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - PalkieTalkieTests
+    settings:
+      base:
+        SWIFT_VERSION: "6.2"
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+        SUPPORTS_MACCATALYST: false
+        GENERATE_INFOPLIST_FILE: YES
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/PalkieTalkie.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PalkieTalkie"
+    dependencies:
+      - target: PalkieTalkie
+      - package: Opus
+        product: Opus
 
 # Scheme definition — tells Xcode how to build/run the app
 schemes:
@@ -62,5 +101,10 @@ schemes:
     build:
       targets:
         PalkieTalkie: all
+        PalkieTalkieTests: [test]
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - PalkieTalkieTests
