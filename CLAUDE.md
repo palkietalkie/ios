@@ -1,147 +1,110 @@
 # Palkie Talkie — iOS
 
-iOS app repo. Shared product positioning, ICP, GTM, business model, and team/fundraising live in the parent `../CLAUDE.md`.
+Terminology: see /JARGON.md at the repo root.
+
+iOS client repo. Pure streaming client — no on-device inference, no on-device DB. Shared product positioning, business model, cost simulation, GTM, team/fundraising, infrastructure accounts, end-to-end voice loop (which spans iOS + backend + provider) live in the parent `../CLAUDE.md`. Server-side concerns live in `../backend/CLAUDE.md`.
 
 ## #1 Design Principle: Latency Is Everything
 
-Every architectural decision must prioritize minimizing latency. Real-time voice conversation cannot tolerate delays, if the user finishes speaking and waits even a beat too long, the experience is broken. This applies to LLM inference, STT, TTS, and every layer in between.
+Real-time voice conversation cannot tolerate delays. If the user finishes speaking and waits even a beat too long, the experience is broken. Every iOS-side choice (audio session config, WS framing, scheduling, UI re-renders) must hold to a 1.5s "open → first AI audio" budget and zero perceptible gap during the conversation.
 
 ## Tech Stack
 
-| Layer         | Choice                              | Package                                  |
-| ------------- | ----------------------------------- | ---------------------------------------- |
-| Platform      | Swift / SwiftUI, iOS 26+            | —                                        |
-| Audio         | AVAudioEngine + AVAudioPlayerNode   | AVFoundation                             |
-| Audio Session | `.playAndRecord`, `.voiceChat` mode | Built-in echo cancellation               |
-| Networking    | URLSessionWebSocketTask             | Foundation (built-in)                    |
-| Auth          | Clerk iOS SDK                       | clerk.com                                |
-| Local cache   | SwiftData                           | Built-in (iOS 17+)                       |
-| Payments      | StoreKit 2                          | Built-in                                 |
-| Push          | UNUserNotificationCenter + APNs     | Built-in; APNs via backend               |
-| Inference     | PersonaPlex on Lambda Labs A100     | Server-side (see `../backend/`)          |
+| Layer         | Choice                              | Package                                                         |
+| ------------- | ----------------------------------- | --------------------------------------------------------------- |
+| Platform      | Swift / SwiftUI, iOS 26+            | —                                                               |
+| State         | `@State` / `@Observable` in memory  | Backend is the only durable store (Neon + AuraDB + Pinecone). No on-device DB. |
+| Audio         | AVAudioEngine + AVAudioPlayerNode   | AVFoundation                                                    |
+| Audio Session | `.playAndRecord` + `.default` mode  | Session-wide voice processing OFF; mic-input AEC enabled surgically via `inputNode.setVoiceProcessingEnabled(true)`. See `Audio/AudioSession.swift` for the rationale (the `.videoChat` mode's AGC noise-gate silences sub-`-11dBFS` output, which killed OpenAI's quieter TTS). |
+| Networking    | URLSessionWebSocketTask             | Foundation (built-in)                                           |
+| Opus codec    | swift-opus                          | github.com/alta/swift-opus (pinned `revision:` — PersonaPlex audio path only) |
+| Auth          | Clerk iOS SDK (`ClerkKit`)          | clerk.com                                                       |
+| Payments      | StoreKit 2                          | Built-in                                                        |
+| Push          | UNUserNotificationCenter + APNs     | Built-in; APNs payloads minted server-side                      |
 
-## Architecture
+Inference / provider switch / pricing live server-side. iOS knows about it only via the `provider` field on `/conversation/start` response and picks the correct WS wire protocol from that.
 
-iOS app is a thin streaming client to PersonaPlex on a cloud A100. Full-duplex audio in and out — no on-device VAD / STT / LLM / TTS pipeline. PersonaPlex handles listen + speak concurrently in one model.
+## Architecture (iOS as client)
+
+iOS does NOT run any inference. The full conversational AI — listen + speak — happens server-side. iOS is purely:
+
+1. Captures mic audio, encodes for the active provider's wire protocol.
+2. Streams it over a WebSocket to the inference server.
+3. Decodes inbound audio frames, plays them on `AVAudioPlayerNode`.
+4. Surfaces the live transcript and conversation state in SwiftUI.
 
 ```text
-iOS app                                  PersonaPlex server (A100)
-─────────                                ───────────────────────
-mic ─→ 24kHz audio chunks ─────────→  PersonaPlex
-                                              ↓
-speaker ←─ 24kHz audio chunks ──────  generated audio (Mimi-decoded)
+mic ─→ encode (Opus | raw PCM16) ─→ WS ─→ [server-side inference]
+                                          │
+speaker ←─ decode (Opus | raw PCM16) ←─ WS ┘
 ```
 
-No client-side state machine. Barge-in / interruption / overlap are handled natively by PersonaPlex's parallel-stream architecture.
+Two provider paths share the `RealtimeClient` protocol (`Network/RealtimeClient.swift`):
 
-## Conversation-start latency budget
+- PersonaPlex (`Network/PersonaPlexClient.swift`, `Network/PersonaPlexSession.swift`) — binary Ogg-Opus frames over WS. Server handshake byte `\x00` gates the audio pump. Barge-in handled server-side.
+- OpenAI Realtime (`Network/OpenAIRealtimeClient.swift`) — JSON event frames over WS. Audio bytes in/out as base64-PCM16. `session.created` event gates the audio pump. Barge-in is iOS-side: `input_audio_buffer.speech_started` event triggers `bargeIn` stream → `streamer.interruptPlayback()` which drops queued buffers.
 
-Time from app open → user hears first audio chunk. Target ceiling: 1.5s. Anything past that feels broken.
-
-Sequence:
-
-1. App restores Clerk session from keychain (~10ms, local).
-2. `POST /conversation/start` to Fly.io backend (~50-100ms RTT).
-3. Backend queries AuraDB + Neon + weather API + calendar API in parallel; assembles text prompt (~200-400ms).
-4. Backend returns text prompt to iOS.
-5. iOS opens WebSocket to Lambda Labs with text prompt + Clerk JWT (~50-100ms).
-6. Lambda spins up the session, PersonaPlex generates first audio chunk (~200-300ms).
-7. iOS plays first audio chunk.
-
-Realistic: 500ms-1s. Instrument every step.
+The orchestrator (`SessionController.swift`) is provider-agnostic — it talks to `RealtimeClient` and lets the concrete implementations handle wire-protocol differences.
 
 ## Conversation flow
 
-1. App opens. Fetch last-used persona for this user (or default if first session).
-2. Gather context the user actually feels right now:
-   - Local date / time / day of week (from device clock).
-   - Location: city, neighborhood (Core Location, with user permission).
-   - Weather + temperature (weather API keyed to location).
-   - Today's calendar events (from the Integrations layer).
-   - From KG + profile: recent life events, frequently-referenced entities, current goals.
-   Reason: the persona inhabits the same moment as the user. Same time, same city, same weather. The AI doesn't observe from outside ("chilly out there in SF") — it shares the moment ("cold one this morning"). The text prompt must frame these as the persona's own here-and-now, not as third-party data about the user.
-3. Build text prompt: persona description + shared situational context (the persona is in the same time / city / weather as the user, not observing from elsewhere) + user-specific context (KG + profile + calendar) + an instruction to initiate the conversation by greeting the user by name.
-4. Build voice prompt: the persona's stock voice (NATM1 / VARF3 / etc.) or custom voice prompt.
-5. Open the audio stream to the PersonaPlex server. Send text prompt + voice prompt + empty user audio (silence).
-6. PersonaPlex generates the opening greeting audio without waiting for user input. Stream plays through the iPhone speaker. User hears "Hey Wes, how was your 2pm sync with the engineering team?" the moment the app is ready.
-7. User responds whenever ready. Mic audio streams to the server continuously.
-8. PersonaPlex listens and generates in parallel. Audio chunks stream back continuously.
-9. Pauses / interruptions / overlap handled by the model. No client logic.
-10. Session ends on close or explicit stop. Server signals session boundary. Post-session batch jobs (transcript analysis, vocab and phrase aggregation, mistake detection, KG updates) run async on the backend.
+iOS-side behavior + state machine. Cross-cutting protocol (WS framing, provider handshakes, server-side steps) lives in root `/CLAUDE.md` § End-to-end voice loop.
 
-## Project Structure
+1. App opens. Talk is the default tab. `ConversationView.task` fires `SessionController.start()` — no button press. Same trigger fires whenever user switches back to Talk from another tab AND `phase == .idle`.
+2. `ContextGatherer` collects the user's here-and-now in parallel:
+   - Local date / time / day-of-week (device clock)
+   - Location + city (Core Location, permission-gated)
+   - Weather + temperature (open-meteo, keyed by location)
+   - Today's calendar events (Integrations → Google Calendar)
+   The persona inhabits the same moment as the user. Same time, same city, same weather. The AI shares the moment ("cold one this morning"), not observes from outside ("chilly out there in SF"). Backend's `prompt_assembler` frames these as the persona's here-and-now.
+3. `POST /conversation/start` to Fly with Clerk JWT (~50-100ms RTT + ~200-400ms backend context assembly). Backend assembles the system prompt (persona + situational context + KG + profile + last-session recall + instruction to OPEN the conversation in character) and returns `{provider, wsUrl, voiceId, ephemeralToken, textPrompt, sessionId}`.
+4. iOS opens the WS using `response.wsUrl` (~50-100ms TLS + upgrade). Wires the right `RealtimeClient` based on `response.provider` (PersonaPlex or OpenAI).
+5. Wait for server-ready signal (`\x00` byte for PersonaPlex; `session.created` event for OpenAI). Until then, "Loading your tutor..." `LoadingTipsView` flippable tips screen — also hides cold-start latency on PersonaPlex's Modal scale-to-zero path.
+6. Server-ready → start `AudioStreamer` (AVAudioEngine + mic tap + playerNode). On the OpenAI path, also send `response.create` so the AI opens immediately without waiting for user audio.
+7. AI speaks the opening turn — addressing user by name, callback to recent context, full first turn (not a "hello"). Audio streams to playerNode, transcript deltas aggregate into the captions UI.
+8. User responds whenever ready. Mic audio streams continuously.
+9. Full-duplex: AI listens + generates in parallel. Barge-in: PersonaPlex handles server-side (Inner Monologue); OpenAI emits `input_audio_buffer.speech_started`, iOS yields `bargeIn` → `streamer.interruptPlayback()` drops queued AI audio.
+10. Each speaker block (one continuous turn from user OR persona) flushes as a single `POST /conversation/<session_id>/transcript` row on speaker switch — one row per TURN, not per stream emission. Live transcript UI still shows incremental deltas.
+11. ConversationView disappears (tab switch or backgrounding) or app closes → `SessionController.end()` flushes the pending turn, calls `POST /conversation/<session_id>/end`. Backend queues post-session NLP pipelines (transcript_analysis, phrase_extraction, mistake_detection, kg_extraction).
+
+Phase machine (`SessionController.Phase`):
 
 ```text
-PalkieTalkie/
-├── PalkieTalkieApp.swift            # App entry point
-├── Models/                          # SwiftData
-│   ├── User.swift
-│   ├── Persona.swift
-│   ├── ConversationSession.swift
-│   └── KGEntity.swift               # local cache of server KG
-├── Audio/
-│   ├── AudioStreamer.swift          # AVAudioEngine, 24kHz mic in / speaker out, chunking
-│   └── AudioSession.swift           # AVAudioSession config
-├── Network/
-│   ├── PersonaPlexClient.swift      # WebSocket protocol to PersonaPlex (text + voice prompt + audio stream)
-│   ├── BackendAPI.swift             # REST to FastAPI backend
-│   └── ClerkAuth.swift              # Clerk wrapper
-├── Views/
-│   ├── ConversationView.swift       # Feature 1: main mic screen
-│   ├── HistoryView.swift            # Past sessions
-│   ├── PersonaPickerView.swift      # Feature 3: preset library
-│   ├── PersonaCustomizeView.swift   # Feature 3: customize / override
-│   ├── TalkAboutTodayView.swift     # Feature 4: quiz + news prompts
-│   ├── StatsView.swift              # Feature 5: stats summary
-│   ├── MistakesView.swift           # Feature 5 detail
-│   ├── PhrasesView.swift            # Feature 5 detail
-│   ├── CEFRDetailView.swift         # Feature 5 detail
-│   ├── IntegrationsView.swift       # Feature 6
-│   └── ProfileView.swift            # Feature 7: profile + KG editor
-└── Resources/
-    └── Personas/                    # preset persona definitions (voice id + text prompt)
+.idle → .gatheringContext → .startingSession → .connecting → .live → .ending → .idle
+                                                         ↘ .error(reason)
 ```
+
+Error states surface in the mic view (red mic + error string). User can tap to retry; SessionController re-enters `.idle` and `.task` re-fires.
+
+Latency budget: app open → first AI audio. Target 1.5s on a warm server. Per-phase ms (gather_context, backend_start, websocket_connect, first_audio) are POSTed to backend `/events` via `SessionController.scheduleColdStartReport` for p50 / p95 tracking. Cold starts on PersonaPlex Modal scale-to-zero (~5-8s) are user-visible only as the "Loading your tutor..." tips; OpenAI has no cold start.
+
+## Reading the iPhone screen / device logs
+
+Reading device logs from the connected iPhone is the default debugging move, not a fallback. Don't guess at iOS errors when an iPhone is on the cable — pull the logs first.
+
+```bash
+# Stream live (Ctrl-C to stop). Filter by Swift Logger subsystem.
+log stream --device --predicate 'subsystem == "com.palkietalkie"' --level info
+
+# One-shot capture via libimobiledevice (more lines, less filtering):
+idevicesyslog -p PalkieTalkie -o /tmp/pt.log --no-colors
+
+# Filter for our custom Logger emissions:
+grep "PalkieTalkie.debug.dylib" /tmp/pt.log
+```
+
+Caveats:
+
+- Only `os.Logger.error(...)` consistently surfaces in `idevicesyslog`. `.info` / `.debug` get filtered out by default. When debugging on device, temporarily promote diagnostics to `.error`, then back to `.info` once fixed.
+- `String(describing: error)` rendered into a SwiftUI view does NOT automatically land in oslog. Wire explicit `Logger(subsystem: "com.palkietalkie", category: "...").error("...")` in `catch` blocks where `phase = .error(...)` is set.
+- `log stream --device` requires the device to be paired and Xcode-trusted. `xcrun devicectl list devices` should show `State=connected`.
 
 ## Development Notes
 
-- Founder background: Wes is new to iOS / Swift. Strong in TypeScript/JavaScript, Python, and PostgreSQL. When suggesting Swift patterns, explain Swift-isms vs their TS/Python equivalents in chat, NOT in source-file comments. Wes wants education, but not basic-language explanation comments inside `.swift` files.
-- Comment policy: comments explain WHY (intent, hidden constraint, non-obvious reason), never WHAT (mechanics, syntax, what code does). Well-named identifiers cover WHAT. Long TERMINOLOGY-style block comments don't belong in source files.
-- UI language: default = device locale; user can override in app settings (independent of device locale, but flexible to user preference)
-- Architecture: PersonaPlex (NVIDIA, Jan 2026, built on Moshi). Server-side speech-to-speech with persona conditioning (voice prompt + text prompt). 17 pre-built voices. Personas = stock voice + text-prompt character (Jimmy Carr is a character, not a voice — pair a stock British-male voice with a text prompt for his style). Commercial license. Cost simulation: section below. Sources: `./architecture-research.md`.
-- PersonaPlex runs on a Lambda Labs A100 (~$1.10/hr).
-- AVAudioEngine stays running at all times, never stop/start between turns.
-
-## Inference cost simulation
-
-PersonaPlex on Lambda Labs A100s.
-
-Assumptions:
-
-- A100 80GB on Lambda Labs (chosen provider): ~$1.10/hr.
-- PersonaPlex 7B BF16, A100 ~150 effective TFLOPS at 40-50% MFU.
-- Per-session compute: 17 streams × 12.5 Hz × 14e9 FLOPs/token ≈ 3 TFLOPS.
-- Theoretical concurrent: 50/A100. Realistic in production (idle gaps, KV cache, cold start): 10-15/A100. Using 12.
-- Per-session cost: $1.10 / 12 = $0.092/hr.
-
-Per-user monthly inference cost by usage tier:
-
-| Usage               | Hours/month | Inference cost |
-| ------------------- | ----------- | -------------- |
-| Light (15 min/day)  | 7.5         | $0.69          |
-| Medium (30 min/day) | 15          | $1.38          |
-| Heavy (60 min/day)  | 30          | $2.76          |
-| Very heavy (90/d)   | 45          | $4.14          |
-
-Add-ons at medium usage: bandwidth ~$0.03, storage ~$0.10, ops overhead ~$0.20. All-in: ~$2.20/mo.
-
-Gross margin at $12.99/mo Individual:
-
-- Year 1 (App Store 30%): net $9.09 → 76% margin at medium usage.
-- Year 2+ (App Store 15%): net $11.04 → 80% margin.
-- Heavy users (1h/day): margin drops to 59% / 66%. Needs a fair-use cap.
-- Free tier (10 min/day): ~$0.45/mo inference, pure CAC.
-
-Healthy SaaS economics.
+- UI language: default = device locale; user can override in app settings.
+- AVAudioEngine stays running for the entire conversation — never stop/start between turns. Engine startup costs ~200ms and triggers audio glitches.
+- Audio session mode is `.default`, NOT `.voiceChat` / `.videoChat`. Those modes apply iOS's voice-processing AGC + noise gate at the session level, which silences sub-`-11dBFS` output as "background noise" and killed OpenAI's quieter TTS in earlier builds. AEC for the mic side is enabled surgically via `inputNode.setVoiceProcessingEnabled(true)` in `AudioStreamer.start()`.
+- Clerk iOS SDK is `ClerkKit` (v1.x — import via `import ClerkKit`, not `import Clerk`). `Clerk.configure(publishableKey:)` is a static method now (not on `.shared`); `clerk.auth.signOut()` replaces `Clerk.shared.signOut()`.
 
 ## Setup (once per clone)
 

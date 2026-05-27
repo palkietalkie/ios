@@ -1,0 +1,62 @@
+excluded:
+  - .build
+  - PalkieTalkie/Generated
+  - PalkieTalkieTests
+  - build
+
+line_length:
+  warning: 250
+  error: 500
+  ignores_urls: true
+  ignores_comments: true
+  ignores_function_declarations: true
+  ignores_interpolated_strings: true
+
+type_body_length:
+  warning: 350
+  error: 500
+
+file_length:
+  warning: 500
+  error: 800
+
+function_body_length:
+  warning: 100
+  error: 200
+
+function_parameter_count:
+  warning: 10
+  error: 15
+
+cyclomatic_complexity:
+  warning: 15
+  error: 25
+
+opening_brace:
+  ignore_multiline_function_signatures: true
+  ignore_multiline_type_headers: true
+  ignore_multiline_statement_conditions: true
+
+identifier_name:
+  min_length:
+    warning: 1
+  excluded:
+    - id
+    - i
+    - x
+    - y
+    - z
+    - n
+    - v
+    - p
+    - f
+    - r
+    - w
+    - c
+    - lat
+    - lon
+
+disabled_rules:
+  - multiple_closures_with_trailing_closure
+  - implicit_optional_initialization
+  - large_tuple

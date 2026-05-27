@@ -1,0 +1,164 @@
+# TestFlight deploy. Runs after the `test` workflow succeeds on main.
+#
+# Required GitHub secrets (add via Settings → Secrets and variables → Actions):
+#   APPLE_ASC_API_KEY_ID         App Store Connect API key ID (e.g. ABC123XYZ).
+#   APPLE_ASC_API_ISSUER_ID      App Store Connect API issuer UUID.
+#   APPLE_ASC_API_KEY_BASE64     The .p8 private key, base64-encoded
+#                                (`base64 -i AuthKey_XXXX.p8`).
+#   BUILD_CERTIFICATE_BASE64     Distribution certificate (.p12), base64-encoded.
+#   P12_PASSWORD                 Password used to export the .p12.
+#   KEYCHAIN_PASSWORD            Temporary password for the runner keychain
+#                                (any random string; only used inside the job).
+#   PROVISIONING_PROFILE_BASE64  App Store provisioning profile (.mobileprovision),
+#                                base64-encoded.
+#
+# If any signing secret is missing the deploy step short-circuits so the workflow
+# stays green during early development. Add the secrets once and the next run
+# ships the build.
+
+name: deploy
+
+on:
+  workflow_run:
+    workflows: [test]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: macos-26
+    env:
+      SCHEME: PalkieTalkie
+      ARCHIVE_PATH: build/PalkieTalkie.xcarchive
+      EXPORT_PATH: build/export
+      EXPORT_OPTIONS: build/ExportOptions.plist
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Homebrew tools
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Check deploy secrets present
+        id: check-secrets
+        env:
+          APPLE_ASC_API_KEY_ID: ${{ secrets.APPLE_ASC_API_KEY_ID }}
+          APPLE_ASC_API_ISSUER_ID: ${{ secrets.APPLE_ASC_API_ISSUER_ID }}
+          APPLE_ASC_API_KEY_BASE64: ${{ secrets.APPLE_ASC_API_KEY_BASE64 }}
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          missing=0
+          for var in APPLE_ASC_API_KEY_ID APPLE_ASC_API_ISSUER_ID APPLE_ASC_API_KEY_BASE64 \
+                     BUILD_CERTIFICATE_BASE64 P12_PASSWORD KEYCHAIN_PASSWORD \
+                     PROVISIONING_PROFILE_BASE64; do
+            if [ -z "${!var}" ]; then
+              echo "missing secret: $var"
+              missing=1
+            fi
+          done
+          if [ "$missing" = "1" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::TestFlight deploy skipped — required secrets not set."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Import signing certificate
+        if: steps.check-secrets.outputs.ready == 'true'
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          CERT_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o "$CERT_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$P12_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list \
+            -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+
+      - name: Install provisioning profile
+        if: steps.check-secrets.outputs.ready == 'true'
+        env:
+          PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILE_DIR"
+          echo -n "$PROVISIONING_PROFILE_BASE64" \
+            | base64 --decode -o "$PROFILE_DIR/PalkieTalkie.mobileprovision"
+
+      - name: Write ExportOptions.plist
+        if: steps.check-secrets.outputs.ready == 'true'
+        run: |
+          mkdir -p build
+          cat > "$EXPORT_OPTIONS" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>uploadBitcode</key><false/>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Archive
+        if: steps.check-secrets.outputs.ready == 'true'
+        run: |
+          xcodebuild archive \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            -quiet
+
+      - name: Export .ipa
+        if: steps.check-secrets.outputs.ready == 'true'
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportOptionsPlist "$EXPORT_OPTIONS" \
+            -exportPath "$EXPORT_PATH" \
+            -quiet
+
+      - name: Upload to TestFlight
+        if: steps.check-secrets.outputs.ready == 'true'
+        env:
+          APPLE_ASC_API_KEY_ID: ${{ secrets.APPLE_ASC_API_KEY_ID }}
+          APPLE_ASC_API_ISSUER_ID: ${{ secrets.APPLE_ASC_API_ISSUER_ID }}
+          APPLE_ASC_API_KEY_BASE64: ${{ secrets.APPLE_ASC_API_KEY_BASE64 }}
+        run: |
+          # altool reads the private key from ~/.appstoreconnect/private_keys/AuthKey_<id>.p8
+          KEY_DIR="$HOME/.appstoreconnect/private_keys"
+          mkdir -p "$KEY_DIR"
+          echo -n "$APPLE_ASC_API_KEY_BASE64" \
+            | base64 --decode -o "$KEY_DIR/AuthKey_${APPLE_ASC_API_KEY_ID}.p8"
+
+          IPA=$(find "$EXPORT_PATH" -name '*.ipa' | head -n 1)
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA" \
+            --apiKey "$APPLE_ASC_API_KEY_ID" \
+            --apiIssuer "$APPLE_ASC_API_ISSUER_ID"
+
+      - name: Clean up keychain
+        if: always() && steps.check-secrets.outputs.ready == 'true'
+        run: |
+          security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" || true

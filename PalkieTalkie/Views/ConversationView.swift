@@ -1,119 +1,80 @@
 import SwiftUI
 
-// TERMINOLOGY:
-// - `struct ... : View` = A SwiftUI view component (like a React functional component).
-//   The `body` property returns the UI tree (like JSX / render()).
-// - `@EnvironmentObject` = Dependency injection from a parent view.
-//   Like React Context — the parent provides it, children consume it.
-// - `@State` = Local component state (like useState in React).
-// - `.modifier()` methods chain onto views (like CSS-in-JS / Tailwind classes).
-// - `VStack` = vertical flex container, `HStack` = horizontal flex container.
-// - `ZStack` = layers views on top of each other (like position: absolute).
-
-/// Main conversation screen — shows state indicator and transcript.
+/// Talk tab. Composes mic + status (tips during cold start, error retry on failure) + optional captions.
+///
+/// Single responsibility: layout the conversation screen and drive the SessionController lifecycle (start on appear,
+/// end on disappear). Captions UI lives in `CaptionsView.swift`; loading tips in `LoadingTipsView.swift`.
 struct ConversationView: View {
-    // Reads the VoiceOrchestrator from the environment (injected by parent)
-    @EnvironmentObject var orchestrator: VoiceOrchestrator
+    @Environment(SessionController.self) private var session
+    /// Captions = on-screen text of what the AI is saying, in the same language as the audio. Off by default — the
+    /// product is voice-first. User can toggle on per-session via the CC button below the mic. Persisted across
+    /// sessions in UserDefaults.
+    @AppStorage("captionsEnabled") private var captionsEnabled: Bool = false
 
     var body: some View {
-        // `NavigationStack` = navigation container with a title bar (like React Router's layout)
         NavigationStack {
             VStack(spacing: 24) {
                 Spacer()
-
-                // State indicator — visual feedback for what the app is doing
-                stateIndicator
-
-                // Show last transcript and response
-                if !orchestrator.lastTranscript.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label("You", systemImage: "person.fill")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text(orchestrator.lastTranscript)
-                            .font(.body)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
-                }
-
-                if !orchestrator.lastResponse.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Label(orchestrator.selectedPersona?.name ?? "Tutor", systemImage: "bubble.left.fill")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text(orchestrator.lastResponse)
-                            .font(.body)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal)
-                }
-
+                micIndicator
+                CaptionsToggle(enabled: $captionsEnabled)
+                statusContent
                 Spacer()
-
-                // Start/stop button
-                Button {
-                    if orchestrator.state == .idle {
-                        orchestrator.startConversation()
-                    } else {
-                        orchestrator.stopConversation()
-                    }
-                } label: {
-                    // Circle button — tap to start, tap again to stop
-                    Image(systemName: orchestrator.state == .idle ? "mic.fill" : "stop.fill")
-                        .font(.system(size: 32))
-                        .frame(width: 80, height: 80)
-                        .background(orchestrator.state == .idle ? Color.blue : Color.red)
-                        .foregroundStyle(.white)
-                        .clipShape(Circle())
-                }
-                .padding(.bottom, 40)
+                if captionsEnabled { CaptionsScroll(transcript: session.transcript) }
             }
-            .navigationTitle("Talking Heads")
-            // `toolbar` = top-right buttons in the navigation bar
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(destination: SettingsView()) {
-                        Image(systemName: "gear")
-                    }
+            .padding()
+            .task {
+                // AI starts the conversation the moment the screen appears — no button. If we land here mid-session,
+                // leave it alone.
+                if session.phase == .idle {
+                    await session.start()
                 }
-                ToolbarItem(placement: .topBarLeading) {
-                    NavigationLink(destination: HistoryView()) {
-                        Image(systemName: "clock")
-                    }
-                }
+            }
+            .onDisappear {
+                // Leaving the Talk tab (switching tabs or backgrounding) ends the session — no explicit end button.
+                if case .live = session.phase { Task { await session.end() } }
+                if case .connecting = session.phase { Task { await session.end() } }
             }
         }
     }
 
-    // `@ViewBuilder` lets you return multiple views conditionally (like fragments in React)
-    @ViewBuilder
-    private var stateIndicator: some View {
-        switch orchestrator.state {
-        case .idle:
-            Text("Tap to start")
-                .font(.title2)
-                .foregroundStyle(.secondary)
-        case .listening:
-            // `withAnimation` = applies a transition animation (like CSS transitions)
-            Label("Listening...", systemImage: "waveform")
-                .font(.title2)
-                .foregroundStyle(.blue)
-                .symbolEffect(.variableColor.iterative)
-        case .transcribing:
-            Label("Transcribing...", systemImage: "text.bubble")
-                .font(.title2)
-                .foregroundStyle(.orange)
-        case .thinking:
-            Label("Thinking...", systemImage: "brain")
-                .font(.title2)
-                .foregroundStyle(.purple)
-                .symbolEffect(.pulse)
-        case .speaking:
-            Label("Speaking...", systemImage: "speaker.wave.3.fill")
-                .font(.title2)
-                .foregroundStyle(.green)
-                .symbolEffect(.variableColor.iterative)
+    private var micIndicator: some View {
+        Image(systemName: "mic.fill")
+            .font(.system(size: 32))
+            .frame(width: 80, height: 80)
+            .background(micBackground)
+            .foregroundStyle(.white)
+            .clipShape(Circle())
+            .symbolEffect(.pulse, isActive: session.phase == .live)
+    }
+
+    private var micBackground: Color {
+        switch session.phase {
+        case .live: .green
+        case .error: .red
+        default: .blue
+        }
+    }
+
+    /// Below-mic content: tips during cold start, error + retry on failure, empty otherwise.
+    @ViewBuilder private var statusContent: some View {
+        switch session.phase {
+        case .gatheringContext, .startingSession, .connecting:
+            LoadingTipsView()
+                .transition(.opacity)
+        case let .error(message):
+            VStack(spacing: 12) {
+                Text(message)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+                Button("Try again") {
+                    Task { await session.start() }
+                }
+                .buttonStyle(.bordered)
+            }
+            .transition(.opacity)
+        default:
+            EmptyView()
         }
     }
 }

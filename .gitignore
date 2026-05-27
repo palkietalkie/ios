@@ -10,6 +10,9 @@ DerivedData/
 .build/
 .swiftpm/
 
+# sourcekit-lsp ↔ Xcode bridge (xcode-build-server). Absolute paths, machine-local.
+buildServer.json
+
 # macOS
 .DS_Store
 *.swp
@@ -20,5 +23,6 @@ DerivedData/
 # Secrets / API tokens
 .env
 .env.local
+.env.production
 
 .pr-bodies/
