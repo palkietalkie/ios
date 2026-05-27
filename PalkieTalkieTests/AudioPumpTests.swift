@@ -96,6 +96,10 @@ private actor HandshakeGatedSession: PersonaPlexSessionType {
     nonisolated var errors: AsyncStream<String> {
         get async { errorStream }
     }
+
+    nonisolated var bargeIn: AsyncStream<Void> {
+        get async { AsyncStream { $0.finish() } }
+    }
 }
 
 /// Streamer that yields a fixed list of frames then finishes.

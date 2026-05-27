@@ -30,7 +30,6 @@ actor FakeConversationBackend: ConversationBackend {
                 description: "",
                 voiceId: "NATM1",
                 role: nil,
-                objective: nil,
                 age: nil,
                 background: nil,
                 vocabularyRegister: nil,
@@ -177,6 +176,10 @@ actor FakePersonaPlexSession: PersonaPlexSessionType {
         get async { errorStream }
     }
 
+    nonisolated var bargeIn: AsyncStream<Void> {
+        get async { AsyncStream { $0.finish() } }
+    }
+
     func emit(transcript chunk: TranscriptChunk) {
         transcriptCont.yield(chunk)
     }
@@ -253,7 +256,7 @@ final class SessionControllerTests: XCTestCase {
     func testHappyPathReachesLive() async {
         let rig = makeController()
         await rig.controller.start()
-        XCTAssertEqual(rig.controller.phase, .live)
+        XCTAssertEqual(rig.controller.phase, SessionController.Phase.live)
         let openCount = await rig.session.openCount
         XCTAssertEqual(openCount, 1)
         let url = await rig.session.lastWSURL
@@ -305,7 +308,7 @@ final class SessionControllerTests: XCTestCase {
                     id: freshPresetId,
                     name: "Fresh preset", description: "",
                     voiceId: "NATM1",
-                    role: nil, objective: nil, age: nil, background: nil,
+                    role: nil, age: nil, background: nil,
                     vocabularyRegister: nil, conversationalStyle: nil, topicalPreferences: nil,
                     isPreset: true, isPublic: true, isOwner: false,
                     likeCount: 0, likedByMe: false
@@ -318,7 +321,7 @@ final class SessionControllerTests: XCTestCase {
 
         await rig.controller.start()
 
-        XCTAssertEqual(rig.controller.phase, .live)
+        XCTAssertEqual(rig.controller.phase, SessionController.Phase.live)
         let calls = await backend.startPersonaIds
         XCTAssertEqual(calls, [stalePersonaId, freshPresetId])
         XCTAssertEqual(rig.controller.selectedPersonaId, freshPresetId)
@@ -373,7 +376,7 @@ final class SessionControllerTests: XCTestCase {
         )
         let rig = makeController(backend: backend)
         await rig.controller.start()
-        XCTAssertEqual(rig.controller.phase, .live)
+        XCTAssertEqual(rig.controller.phase, SessionController.Phase.live)
         await rig.controller.end()
         XCTAssertEqual(rig.controller.phase, .idle)
         let endCount = await backend.endCount
