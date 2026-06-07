@@ -23,4 +23,7 @@ protocol RealtimeClient: AnyObject, Sendable {
     /// cancellation feels immediate. PersonaPlex handles barge-in server-side via Inner Monologue (its WS just stops
     /// sending audio frames); for that path this stream is silent.
     var bargeIn: AsyncStream<Void> { get async }
+
+    /// Inject a system hint into the live conversation and trigger the AI to respond. Used by the free-cap wrap-up: ~30s before the user's daily/weekly limit hits, SessionController asks the AI to wind down naturally. Best-effort and no-op for providers that don't support text injection (PersonaPlex today).
+    func injectSystemHint(_ text: String) async
 }

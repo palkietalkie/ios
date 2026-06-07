@@ -4,6 +4,7 @@ import Foundation
 /// AVAudioEngine.
 protocol AudioStreamerType: AnyObject, Sendable {
     var inputChunks: AsyncStream<Data> { get async }
+    nonisolated var pitchTracker: PitchTracker { get }
     func playOutput(_ opusPacket: Data) async
 }
 

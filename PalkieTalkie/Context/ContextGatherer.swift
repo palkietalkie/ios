@@ -13,7 +13,7 @@ actor ContextGatherer {
     init(
         location: LocationContext = LocationContext(),
         weather: WeatherContext = WeatherContext(),
-        calendar: CalendarStoreType = CalendarContext()
+        calendar: CalendarStoreType = CalendarContext(),
     ) {
         self.location = location
         self.weather = weather
@@ -50,7 +50,7 @@ actor ContextGatherer {
             city: city,
             weatherDescription: weatherReading?.description,
             temperatureC: weatherReading?.temperatureC,
-            calendarEvents: events
+            calendarEvents: events,
         )
     }
 }

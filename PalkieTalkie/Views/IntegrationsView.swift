@@ -2,6 +2,7 @@ import EventKit
 import SwiftUI
 
 struct IntegrationsView: View {
+    @Environment(\.backendAPI) private var api
     @State private var appleCalendarGranted = EKEventStore.authorizationStatus(for: .event) == .fullAccess
     @State private var googleConnected = false
     @State private var outlookConnected = false
@@ -60,7 +61,7 @@ struct IntegrationsView: View {
         isLoading = true
         defer { isLoading = false }
         do {
-            let connect = try await BackendAPI.shared.connectGoogleCalendar()
+            let connect = try await api.connectGoogleCalendar()
             guard let url = URL(string: connect.authUrl) else {
                 statusMessage = "Backend returned an invalid auth URL."
                 googleConnected = false
@@ -84,7 +85,7 @@ struct IntegrationsView: View {
         isLoading = true
         defer { isLoading = false }
         do {
-            let connect = try await BackendAPI.shared.connectOutlook()
+            let connect = try await api.connectOutlook()
             guard let url = URL(string: connect.authUrl) else {
                 statusMessage = "Backend returned an invalid auth URL."
                 outlookConnected = false
@@ -106,7 +107,7 @@ struct IntegrationsView: View {
 
     private func refreshIntegrations() async {
         do {
-            let providers = try await BackendAPI.shared.listIntegrations()
+            let providers = try await api.listIntegrations()
             await MainActor.run {
                 googleConnected = providers.first(where: { $0.provider == "google" })?.connected ?? false
                 outlookConnected = providers.first(where: { $0.provider == "outlook" })?.connected ?? false

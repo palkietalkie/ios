@@ -5,6 +5,7 @@ import SwiftUI
 @MainActor
 struct ConsentView: View {
     let onContinue: () -> Void
+    @Environment(\.backendAPI) private var api
     @State private var personalization: Bool = true
     @State private var productImprovement: Bool = true
     @State private var saving: Bool = false
@@ -15,7 +16,7 @@ struct ConsentView: View {
             Form {
                 Section {
                     Text(
-                        "Palkie Talkie remembers what you say so the AI feels like a friend who knows you. We also want to use your conversations to make the product better."
+                        "Palkie Talkie remembers what you say so the AI feels like a friend who knows you. We also want to use your conversations to make the product better.",
                     )
                     .font(.body)
                     Text("You decide. Change either at any time in More → Privacy & Data.")
@@ -26,14 +27,14 @@ struct ConsentView: View {
                     Toggle("Personalize my experience", isOn: $personalization)
                 } footer: {
                     Text(
-                        "Your transcripts feed memory of you (knowledge graph, last-session recall). Off = every conversation starts cold."
+                        "Your transcripts feed memory of you (knowledge graph, last-session recall). Off = every conversation starts cold.",
                     )
                 }
                 Section {
                     Toggle("Help improve Palkie Talkie", isOn: $productImprovement)
                 } footer: {
                     Text(
-                        "Your conversations contribute to model + pipeline improvements. Stored under your account, never sold to third parties."
+                        "Your conversations contribute to model + pipeline improvements. Stored under your account, never sold to third parties.",
                     )
                 }
                 Section {
@@ -56,11 +57,11 @@ struct ConsentView: View {
         saving = true
         defer { saving = false }
         do {
-            _ = try await BackendAPI.shared.setConsent(
+            _ = try await api.setConsent(
                 ConsentUpdatePayload(
                     personalization: personalization,
-                    productImprovement: productImprovement
-                )
+                    productImprovement: productImprovement,
+                ),
             )
             onContinue()
         } catch let err {

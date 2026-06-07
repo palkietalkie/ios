@@ -60,3 +60,5 @@ disabled_rules:
   - multiple_closures_with_trailing_closure
   - implicit_optional_initialization
   - large_tuple
+  # SwiftFormat's `--trailing-commas always` is the source of truth (matches Swift 6's SE-0439 — trailing commas in collections + parameter lists are a first-class language feature). SwiftLint's default rule fights that and produces no-op churn in PRs.
+  - trailing_comma

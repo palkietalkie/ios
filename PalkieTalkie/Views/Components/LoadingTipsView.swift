@@ -43,7 +43,7 @@ struct LoadingTipsView: View {
                         .id(index)
                         .transition(.asymmetric(
                             insertion: .move(edge: .trailing).combined(with: .opacity),
-                            removal: .move(edge: .leading).combined(with: .opacity)
+                            removal: .move(edge: .leading).combined(with: .opacity),
                         ))
                 }
             }
@@ -79,7 +79,7 @@ struct LoadingTipsView: View {
 #Preview {
     LoadingTipsView(tips: [
         "Native speakers say 'I gotta go' more than 'I have to leave'.",
-        "'Kinda' and 'sorta' are everywhere in casual speech."
+        "'Kinda' and 'sorta' are everywhere in casual speech.",
     ])
     .frame(width: 360, height: 400)
 }

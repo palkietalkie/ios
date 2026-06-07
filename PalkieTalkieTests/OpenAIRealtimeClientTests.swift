@@ -12,7 +12,7 @@ final class OpenAIRealtimeClientTests: XCTestCase {
         do {
             try await client.open(
                 wsUrl: "wss://api.openai.com/v1/realtime?model=gpt-realtime-mini",
-                ephemeralToken: nil
+                ephemeralToken: nil,
             )
             XCTFail("expected missingEphemeralToken")
         } catch let OpenAIRealtimeError.missingEphemeralToken {

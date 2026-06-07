@@ -3,8 +3,10 @@ import SwiftUI
 @MainActor
 struct PersonaPickerView: View {
     @Environment(SessionController.self) private var session
+    @Environment(\.backendAPI) private var api
     @Environment(\.dismiss) private var dismiss
-    @State private var personas: [PersonaDTO] = []
+    private static let cacheKey = "cache.personas"
+    @State private var personas: [PersonaDTO] = JSONCache.load([PersonaDTO].self, key: PersonaPickerView.cacheKey) ?? []
     @State private var loadError: String?
     @State private var isLoading = false
     @State private var searchText: String = ""
@@ -147,7 +149,12 @@ struct PersonaPickerView: View {
         isLoading = true
         defer { isLoading = false }
         do {
-            personas = try await BackendAPI.shared.getPersonas(search: searchText, sort: sort.rawValue)
+            let fresh = try await api.getPersonas(search: searchText, sort: sort.rawValue)
+            personas = fresh
+            // Only cache the default view (no search / recommended sort) — search results are query-specific and would clobber the general cache on next launch.
+            if searchText.isEmpty, sort == .recommended {
+                JSONCache.save(fresh, key: Self.cacheKey)
+            }
         } catch {
             loadError = error.localizedDescription
         }
@@ -156,9 +163,9 @@ struct PersonaPickerView: View {
     private func toggleLike(_ persona: PersonaDTO) async {
         do {
             if persona.likedByMe {
-                try await BackendAPI.shared.unlikePersona(id: persona.id)
+                try await api.unlikePersona(id: persona.id)
             } else {
-                try await BackendAPI.shared.likePersona(id: persona.id)
+                try await api.likePersona(id: persona.id)
             }
             await refresh()
         } catch {

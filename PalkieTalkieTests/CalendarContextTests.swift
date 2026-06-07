@@ -28,9 +28,9 @@ final class CalendarContextTests: XCTestCase {
                     title: "Standup",
                     startISO: "2025-01-01T09:00:00Z",
                     endISO: "2025-01-01T09:30:00Z",
-                    location: "Zoom"
-                )
-            ]
+                    location: "Zoom",
+                ),
+            ],
         )
         let events = await store.todaysEvents()
         XCTAssertEqual(events.count, 1)
@@ -39,7 +39,7 @@ final class CalendarContextTests: XCTestCase {
 
     func testNoEventsWhenAccessDenied() async {
         let store = FakeCalendarStore(grantAccess: false, events: [
-            CalendarEventDTO(title: "x", startISO: "a", endISO: "b", location: nil)
+            CalendarEventDTO(title: "x", startISO: "a", endISO: "b", location: nil),
         ])
         let events = await store.todaysEvents()
         XCTAssertTrue(events.isEmpty)

@@ -40,7 +40,7 @@ actor CalendarContext: CalendarStoreType {
                 title: event.title ?? "",
                 startISO: formatter.string(from: event.startDate),
                 endISO: formatter.string(from: event.endDate),
-                location: event.location
+                location: event.location,
             )
         }
     }

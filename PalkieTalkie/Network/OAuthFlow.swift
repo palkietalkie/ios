@@ -23,7 +23,7 @@ final class OAuthFlow: NSObject, ASWebAuthenticationPresentationContextProviding
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let session = ASWebAuthenticationSession(
                 url: authURL,
-                callbackURLScheme: Self.callbackScheme
+                callbackURLScheme: Self.callbackScheme,
             ) { callbackURL, error in
                 if let error {
                     let asError = error as? ASWebAuthenticationSessionError
@@ -45,8 +45,8 @@ final class OAuthFlow: NSObject, ASWebAuthenticationPresentationContextProviding
                     NSError(
                         domain: "OAuthFlow",
                         code: -1,
-                        userInfo: [NSLocalizedDescriptionKey: "Couldn't start session"]
-                    )
+                        userInfo: [NSLocalizedDescriptionKey: "Couldn't start session"],
+                    ),
                 ))
             }
         }

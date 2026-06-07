@@ -16,7 +16,7 @@ final class FakeWeatherFetcher: WeatherHTTPFetcher, @unchecked Sendable {
             url: url,
             statusCode: 200,
             httpVersion: nil,
-            headerFields: nil
+            headerFields: nil,
         )!
         return (responseData, response)
     }
@@ -45,7 +45,7 @@ final class WeatherContextTests: XCTestCase {
     func testNetworkErrorReturnsNil() async {
         let fetcher = FakeWeatherFetcher(
             responseData: Data(),
-            error: URLError(.notConnectedToInternet)
+            error: URLError(.notConnectedToInternet),
         )
         let weather = WeatherContext(fetcher: fetcher)
         let reading = await weather.current(lat: 0, lon: 0)

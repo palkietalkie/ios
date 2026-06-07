@@ -104,6 +104,7 @@ struct CEFRCoverage: Codable, Identifiable {
 }
 
 struct Stats: Codable {
+    let dayStreak: Int
     let sessionTotalSeconds: Int
     let sessionsCount: Int
     let uniqueWords: Int
@@ -138,14 +139,48 @@ struct CEFRWord: Codable, Identifiable {
 struct Entitlement: Codable {
     let isPremium: Bool
     let freeMinutesRemainingToday: Int
-    let resetsAt: Date
+    let freeMinutesRemainingThisWeek: Int
+    /// Caps themselves — backend exposes them so the iOS UI doesn't hard-code numbers that can drift from `app/routers/entitlement/constants.py`.
+    let freeMinutesPerDayCap: Int
+    let freeMinutesPerWeekCap: Int
+    let premiumEndsAt: Date?
 }
 
-struct TalkPrompt: Codable, Identifiable {
+/// One item under a "Today" section. Backend hands every section the same shape regardless of topic (news headline vs quiz question). News items populate `source` and `imageUrl`; quiz items leave both empty.
+struct TalkItem: Codable, Identifiable {
     let id: String
-    let kind: String // "news" | "quiz"
     let title: String
     let summary: String
+    let source: String
+    let imageUrl: String
+}
+
+/// One labeled section on the Today screen. `topic` is the slug ("politics", "business", "sports", "quizzes"); the UI looks up the localized header from xcstrings via `topic.capitalized`.
+struct TalkSection: Codable, Identifiable {
+    let topic: String
+    let items: [TalkItem]
+    var id: String {
+        topic
+    }
+}
+
+/// Mirrors backend's `DailyContentResponse`. New topics can be added server-side (constants.TOPICS) without changing this DTO.
+struct DailyContentDTO: Codable {
+    struct RawItem: Codable {
+        let title: String
+        let summary: String
+        let source: String
+        /// Backend sends snake_case `image_url`; the global JSONDecoder is configured with `convertFromSnakeCase`, which maps that to `imageUrl` automatically — no explicit CodingKeys needed (and adding them here would override the strategy).
+        let imageUrl: String
+    }
+
+    struct RawSection: Codable {
+        let topic: String
+        let items: [RawItem]
+    }
+
+    let day: String
+    let sections: [RawSection]
 }
 
 struct KGEntityDTO: Codable {
@@ -177,8 +212,13 @@ struct ProfileDTO: Codable {
     let email: String?
     let displayName: String?
     let namePronunciation: String?
-    let nativeLanguage: String?
-    let targetAccent: String?
+    /// Placeholder suggestion computed server-side when `namePronunciation` is empty; iOS shows it as the TextField prompt so the user sees the AI's guess without it being committed. Never persisted client-side — only the user typing into the field stores anything.
+    let namePronunciationSuggestion: String?
+    let nativeLanguages: [String]
+    let targetLanguage: String
+    let targetAccents: [String]
+    let proficiency: String
+    let tutorSpeakingSpeed: String
     let goals: String?
     let locationCity: String?
     let timezone: String?
@@ -187,11 +227,28 @@ struct ProfileDTO: Codable {
 struct ProfileUpdate: Codable {
     let displayName: String?
     let namePronunciation: String?
-    let nativeLanguage: String?
-    let targetAccent: String?
+    let nativeLanguages: [String]?
+    let targetLanguage: String?
+    let targetAccents: [String]?
+    let proficiency: String?
+    let tutorSpeakingSpeed: String?
     let goals: String?
     let locationCity: String?
     let timezone: String?
+}
+
+struct LanguageDTO: Codable, Identifiable, Hashable {
+    var id: String {
+        name
+    }
+
+    let name: String
+    let accents: [String]
+}
+
+struct PracticeOptionsDTO: Codable {
+    let proficiency: [String]
+    let tutorSpeakingSpeed: [String]
 }
 
 struct IntegrationStatus: Codable, Identifiable {
@@ -235,45 +292,45 @@ enum BackendError: Error, Equatable, LocalizedError {
     }
 }
 
-/// Pluggable token source. Production wires Clerk's JWT; tests pass a stub.
-/// Throws so callers can distinguish "no session at all" from "session present but token fetch failed transiently" —
-/// those used to be flattened to `nil` and surfaced as an opaque "not signed in" to the user.
-protocol AuthTokenProviding: Sendable {
+/// Auth seam. Production wires Clerk; tests pass a stub. `sessionToken()` throws so callers can distinguish "no session
+/// at all" from "session present but token fetch failed transiently" — those used to be flattened to `nil` and surfaced
+/// as an opaque "not signed in" to the user.
+///
+/// Reference type (`AnyObject`) so SwiftUI can hold it in `@Environment` without copying. Methods are async so the
+/// production conformer (`ClerkAuthAdapter`) can hop to MainActor internally without forcing every callsite onto it.
+/// `userId` / `email` getters are async for the same reason — Clerk's user state lives on `@MainActor`.
+protocol Authing: AnyObject, Sendable {
+    var userId: String? { get async }
+    var email: String? { get async }
     func sessionToken() async throws -> String
+    func signOut() async
 }
 
 struct AuthTokenError: Error {
     let reason: String
 }
 
-/// Wrapper that hops to MainActor to read the Clerk JWT. Keeps `ClerkAuth` `@MainActor`-isolated while still letting
-/// non-isolated callers (the `BackendAPI` actor) ask for a token without spelling out the hop.
-struct ClerkAuthTokenProvider: AuthTokenProviding {
-    func sessionToken() async throws -> String {
-        try await ClerkAuth.shared.sessionToken()
-    }
-}
-
-/// Networking seam — same shape as URLSession.data(for:).
-protocol HTTPTransport: Sendable {
+/// Networking seam — same shape as URLSession.data(for:). Renamed from HTTPTransport to align with the constructor-
+/// injected style introduced when the BackendAPI singleton was removed.
+protocol Transport: Sendable {
     func data(for request: URLRequest) async throws -> (Data, URLResponse)
 }
 
-extension URLSession: HTTPTransport {}
+extension URLSession: Transport {}
 
 /// Pure transport: builds requests, attaches auth, encodes JSON (snake_case), decodes responses. No feature methods —
-/// those live in `BackendEndpoints`.
-actor BackendAPI {
-    static let shared = BackendAPI()
-
+/// those live in `BackendEndpoints`. Used to be an `actor` with a singleton; now a constructor-injected `final class`
+/// so SwiftUI views and tests can hand in their own transport / auth. `Observable` lets it ride in `@Environment`.
+@Observable
+final class BackendAPI: @unchecked Sendable {
     let baseURL: URL
-    private let transport: HTTPTransport
-    private let auth: AuthTokenProviding
+    @ObservationIgnored private let transport: any Transport
+    @ObservationIgnored private let auth: any Authing
 
     init(
         baseURL: URL? = nil,
-        transport: HTTPTransport? = nil,
-        auth: AuthTokenProviding? = nil
+        transport: any Transport,
+        auth: any Authing,
     ) {
         if let baseURL {
             self.baseURL = baseURL
@@ -284,20 +341,8 @@ actor BackendAPI {
             let urlString = (raw?.isEmpty == false ? raw : nil) ?? "https://api.palkietalkie.com"
             self.baseURL = URL(string: urlString)!
         }
-        if let transport {
-            self.transport = transport
-        } else {
-            let config = URLSessionConfiguration.default
-            config.waitsForConnectivity = false
-            // 15s tolerates cold Clerk JWKS fetch + Neon warmup on endpoints like /stats that aren't on the
-            // conversation-start hot path. Conversation-start latency budget (1.5s) is enforced via cold_start_complete
-            // telemetry, not by failing the request — failing here would just show the user a misleading "timed out"
-            // instead of letting the warmup tips UI run.
-            config.timeoutIntervalForRequest = 15
-            config.timeoutIntervalForResource = 30
-            self.transport = URLSession(configuration: config)
-        }
-        self.auth = auth ?? ClerkAuthTokenProvider()
+        self.transport = transport
+        self.auth = auth
     }
 
     // MARK: - Public transport surface (used by BackendEndpoints)
@@ -316,6 +361,16 @@ actor BackendAPI {
         try await attachAuth(&request)
         request.httpBody = try Self.encoder.encode(body)
         return try await execute(request)
+    }
+
+    /// Raw-bytes POST. Used by session-audio upload: the body is a gzipped wav, not JSON. Caller sets Content-Type (e.g. "audio/wav+gzip") so the backend can record the format for later decode.
+    func postRaw(_ path: String, body: Data, contentType: String) async throws {
+        var request = URLRequest(url: urlForPath(path))
+        request.httpMethod = "POST"
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        try await attachAuth(&request)
+        request.httpBody = body
+        _ = try await executeRaw(request)
     }
 
     func patch<T: Decodable>(_ path: String, body: some Encodable) async throws -> T {
@@ -374,7 +429,7 @@ actor BackendAPI {
             let query = String(path[path.index(after: queryStart)...])
             var components = URLComponents(
                 url: baseURL.appendingPathComponent(pathOnly),
-                resolvingAgainstBaseURL: false
+                resolvingAgainstBaseURL: false,
             )
             components?.query = query
             if let url = components?.url { return url }
@@ -410,5 +465,18 @@ actor BackendAPI {
         } catch {
             throw BackendError.decoding(String(describing: error))
         }
+    }
+
+    /// execute() variant for endpoints that don't return JSON (204 No Content, raw body uploads). Just validates the status code and returns the bytes.
+    private func executeRaw(_ request: URLRequest) async throws -> Data {
+        let (data, response) = try await transport.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw BackendError.http(0, "no response")
+        }
+        guard (200 ..< 300).contains(http.statusCode) else {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            throw BackendError.http(http.statusCode, body)
+        }
+        return data
     }
 }

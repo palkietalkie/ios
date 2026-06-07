@@ -4,20 +4,29 @@ private let vocabularyOptions: [String] = [
     "Casual",
     "Professional",
     "Slang-heavy",
-    "Domain-specific"
+    "Domain-specific",
 ]
 
-private let conversationalStyleOptions: [String] = [
-    "Fast and punchy",
-    "Slow and deliberate",
-    "Mixed pace",
+private let paceOptions: [String] = [
+    "Very slow",
+    "Slow",
+    "Natural pace",
+    "Fast",
+    "Very fast",
+]
+
+private let verbosityOptions: [String] = [
+    "Very terse",
+    "Terse",
+    "Balanced",
     "Verbose",
-    "Terse"
+    "Very verbose",
 ]
 
 @MainActor
 struct PersonaCustomizeView: View {
     let persona: PersonaDTO?
+    @Environment(\.backendAPI) private var api
     @Environment(\.dismiss) private var dismiss
     @State private var name: String = ""
     @State private var personaDescription: String = ""
@@ -27,13 +36,57 @@ struct PersonaCustomizeView: View {
     @State private var background: String = ""
     @State private var vocabularyChoice: String = ""
     @State private var vocabularyCustom: String = ""
-    @State private var conversationalChoice: String = ""
+    @State private var paceChoice: String = ""
+    @State private var verbosityChoice: String = ""
     @State private var conversationalCustom: String = ""
     @State private var topicalPreferences: String = ""
     @State private var isPublic: Bool = false
     @State private var voices: [VoiceDTO] = []
+    @State private var preview = VoicePreviewPlayer()
     @State private var saving: Bool = false
     @State private var saveError: String?
+    /// First-appearance guard so prefill() doesn't re-fire every time the view re-appears (e.g. after popping back from a sub-navigation) and clobber the user's edits with the original persona values.
+    @State private var didPrefill: Bool = false
+
+    @ViewBuilder
+    private func voiceRow(_ voice: VoiceDTO) -> some View {
+        let isSelected = voiceId == voice.id
+        let hasPreview = VoicePreviewPlayer.hasPreview(voice.id)
+        let isPlaying = preview.nowPlaying == voice.id
+        HStack {
+            Button {
+                voiceId = voice.id
+            } label: {
+                HStack {
+                    Text(voice.label)
+                    Spacer(minLength: 8)
+                    if isSelected {
+                        Image(systemName: "checkmark").foregroundStyle(.tint)
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            if hasPreview {
+                Button {
+                    if isPlaying {
+                        preview.stop()
+                    } else {
+                        preview.play(voiceId: voice.id)
+                    }
+                } label: {
+                    Image(systemName: isPlaying ? "stop.fill" : "play.fill")
+                        .imageScale(.large)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(isPlaying ? "Stop preview" : "Play preview")
+            } else {
+                Text("—")
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Preview unavailable")
+            }
+        }
+    }
 
     private var vocabularyResolved: String {
         let pieces = [vocabularyChoice, vocabularyCustom].filter { !$0.isEmpty }
@@ -41,35 +94,39 @@ struct PersonaCustomizeView: View {
     }
 
     private var conversationalResolved: String {
-        let pieces = [conversationalChoice, conversationalCustom].filter { !$0.isEmpty }
+        let pieces = [paceChoice, verbosityChoice, conversationalCustom].filter { !$0.isEmpty }
         return pieces.joined(separator: ". ")
     }
 
     var body: some View {
         Form {
             Section {
-                TextField("e.g. Jimmy Carr", text: $name)
+                TextField("e.g. Riley", text: $name)
             } header: {
                 Text("Name")
+            } footer: {
+                Text("Shown in your persona library and used as the character's name in conversation.")
             }
             Section {
-                TextField("One-liner about the character", text: $personaDescription, axis: .vertical)
+                TextField("One-liner shown in your library", text: $personaDescription, axis: .vertical)
                     .lineLimit(2 ... 4)
             } header: {
-                Text("Description")
+                Text("Tagline")
+            } footer: {
+                Text("Library preview text. Not sent to the AI.")
             }
             Section {
                 if voices.isEmpty {
                     ProgressView()
                 } else {
-                    Picker("Voice", selection: $voiceId) {
-                        ForEach(voices) { voice in
-                            Text("\(voice.id) — \(voice.label)").tag(voice.id)
-                        }
+                    ForEach(voices) { voice in
+                        voiceRow(voice)
                     }
                 }
             } header: {
                 Text("Voice")
+            } footer: {
+                Text("Tap a row to select. Tap ▶ to preview.")
             }
             Section {
                 TextField("e.g. A dry, deadpan British observational comedian.", text: $role, axis: .vertical)
@@ -77,7 +134,7 @@ struct PersonaCustomizeView: View {
             } header: {
                 Text("Role")
             } footer: {
-                Text("Who they are. The basic identity the AI inhabits.")
+                Text("Their function or relationship to you (coach, friend, prosecutor). Goes into the prompt.")
             }
             Section {
                 TextField("e.g. Late 20s, 40s, 70s", text: $age)
@@ -90,9 +147,9 @@ struct PersonaCustomizeView: View {
                 TextField("e.g. Lives in SF, works at an early-stage startup.", text: $background, axis: .vertical)
                     .lineLimit(2 ... 4)
             } header: {
-                Text("Background")
+                Text("Backstory")
             } footer: {
-                Text("Where they're from, what they do, what shapes how they see things.")
+                Text("Their life context — where they're from, what they've done. Shapes how they think.")
             }
             Section {
                 Picker("Style", selection: $vocabularyChoice) {
@@ -109,9 +166,15 @@ struct PersonaCustomizeView: View {
                 Text("Pick a style, write your own, or both.")
             }
             Section {
-                Picker("Pace", selection: $conversationalChoice) {
+                Picker("Pace", selection: $paceChoice) {
                     Text("None").tag("")
-                    ForEach(conversationalStyleOptions, id: \.self) { option in
+                    ForEach(paceOptions, id: \.self) { option in
+                        Text(option).tag(option)
+                    }
+                }
+                Picker("Length", selection: $verbosityChoice) {
+                    Text("None").tag("")
+                    ForEach(verbosityOptions, id: \.self) { option in
                         Text(option).tag(option)
                     }
                 }
@@ -120,7 +183,7 @@ struct PersonaCustomizeView: View {
             } header: {
                 Text("Conversational style")
             } footer: {
-                Text("Speed and turn-taking habits — pick a pace, write your own, or both.")
+                Text("Pace = how fast they talk. Length = how much they say. Pick one or both, or write your own.")
             }
             Section {
                 TextField("e.g. Product design, hikes, coffee shops.", text: $topicalPreferences, axis: .vertical)
@@ -142,7 +205,16 @@ struct PersonaCustomizeView: View {
         }
         .navigationTitle(persona == nil ? "New persona" : "Edit persona")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear(perform: prefill)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Cancel") { dismiss() }
+            }
+        }
+        .onAppear {
+            guard !didPrefill else { return }
+            didPrefill = true
+            prefill()
+        }
         .task { await loadVoices() }
         .alert("Couldn't save", isPresented: .constant(saveError != nil)) {
             Button("OK") { saveError = nil }
@@ -165,19 +237,39 @@ struct PersonaCustomizeView: View {
         } else {
             vocabularyCustom = vocab
         }
-        let convo = persona.conversationalStyle ?? ""
-        if conversationalStyleOptions.contains(convo) {
-            conversationalChoice = convo
-        } else {
-            conversationalCustom = convo
+        var remaining = persona.conversationalStyle ?? ""
+        for pace in paceOptions {
+            if remaining == pace {
+                paceChoice = pace
+                remaining = ""
+                break
+            }
+            if remaining.hasPrefix(pace + ". ") {
+                paceChoice = pace
+                remaining = String(remaining.dropFirst(pace.count + 2))
+                break
+            }
         }
+        for v in verbosityOptions {
+            if remaining == v {
+                verbosityChoice = v
+                remaining = ""
+                break
+            }
+            if remaining.hasPrefix(v + ". ") {
+                verbosityChoice = v
+                remaining = String(remaining.dropFirst(v.count + 2))
+                break
+            }
+        }
+        conversationalCustom = remaining
         topicalPreferences = persona.topicalPreferences ?? ""
         isPublic = persona.isPublic
     }
 
     private func loadVoices() async {
         do {
-            voices = try await BackendAPI.shared.getVoices()
+            voices = try await api.getVoices()
         } catch {
             // voices fetch failure isn't fatal — Save will surface a proper backend error if the id is invalid.
         }
@@ -200,9 +292,9 @@ struct PersonaCustomizeView: View {
                     vocabularyRegister: vocab.isEmpty ? nil : vocab,
                     conversationalStyle: convo.isEmpty ? nil : convo,
                     topicalPreferences: topicalPreferences.isEmpty ? nil : topicalPreferences,
-                    isPublic: isPublic
+                    isPublic: isPublic,
                 )
-                _ = try await BackendAPI.shared.updatePersona(id: persona.id, payload)
+                _ = try await api.updatePersona(id: persona.id, payload)
             } else {
                 let payload = PersonaCreatePayload(
                     name: name,
@@ -214,9 +306,9 @@ struct PersonaCustomizeView: View {
                     vocabularyRegister: vocab.isEmpty ? nil : vocab,
                     conversationalStyle: convo.isEmpty ? nil : convo,
                     topicalPreferences: topicalPreferences.isEmpty ? nil : topicalPreferences,
-                    isPublic: isPublic
+                    isPublic: isPublic,
                 )
-                _ = try await BackendAPI.shared.createPersona(payload)
+                _ = try await api.createPersona(payload)
             }
             dismiss()
         } catch {

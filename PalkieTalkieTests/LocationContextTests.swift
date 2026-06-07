@@ -31,7 +31,7 @@ final class LocationContextTests: XCTestCase {
     func testLocationFixReceived() async {
         let provider = FakeLocationProvider(
             fix: LocationFix(latitude: 37.77, longitude: -122.42),
-            city: "San Francisco"
+            city: "San Francisco",
         )
         let fix = await provider.requestOnce()
         XCTAssertEqual(fix?.latitude, 37.77)
@@ -41,7 +41,7 @@ final class LocationContextTests: XCTestCase {
     func testReverseGeocodeReturnsCity() async {
         let provider = FakeLocationProvider(
             fix: LocationFix(latitude: 1, longitude: 2),
-            city: "Tokyo"
+            city: "Tokyo",
         )
         let city = await provider.reverseGeocode(LocationFix(latitude: 1, longitude: 2))
         XCTAssertEqual(city, "Tokyo")

@@ -99,3 +99,11 @@ if echo "$STAGED" | grep -qE "(\.swift$|^project\.yml$)"; then
 		-destination 'generic/platform=iOS Simulator' \
 		build -quiet
 fi
+
+# Full end-to-end: deploy backend + Modal to dev, install on connected iPhone, start local website.
+# Lives at the parent dir (multi-repo container). Skip the deploy half so commits don't push to dev infra every time; iOS install only.
+BOOT_SH="$(git rev-parse --show-toplevel)/../scripts/boot.sh"
+if [ -x "$BOOT_SH" ]; then
+	echo "[pre-commit] boot.sh --no-deploy --no-ios=0 (install on iPhone)"
+	"$BOOT_SH" --no-deploy
+fi

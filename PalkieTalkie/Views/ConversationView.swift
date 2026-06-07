@@ -30,9 +30,13 @@ struct ConversationView: View {
                 }
             }
             .onDisappear {
-                // Leaving the Talk tab (switching tabs or backgrounding) ends the session — no explicit end button.
-                if case .live = session.phase { Task { await session.end() } }
-                if case .connecting = session.phase { Task { await session.end() } }
+                // Leaving the Talk tab (switching tabs or backgrounding) ends the session — no explicit end button. Fire end() whenever there could be an in-flight server session, not just on .live/.connecting: fast tab-switches caught the previous version in .startingSession (after POST /start landed but before WS upgrade completed), which left the session dangling — no /end posted, no post-session pipelines, no word_freq/phrase_freq rows.
+                switch session.phase {
+                case .gatheringContext, .startingSession, .connecting, .live:
+                    Task { await session.end() }
+                case .idle, .ending, .error:
+                    break
+                }
             }
         }
     }

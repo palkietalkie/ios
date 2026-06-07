@@ -20,16 +20,20 @@ protocol ConversationBackend: Sendable {
     func startConversation(
         personaId: String,
         context: ConversationContext,
-        topicOverride: String?
+        topicOverride: String?,
     ) async throws -> StartResponse
     func endConversation(sessionId: String) async throws -> EndResponse
     func appendTranscript(sessionId: String, speaker: String, text: String, startedAt: Date, endedAt: Date) async throws
     func recordColdStart(
         durationMs: Int,
         phaseTimings: ColdStartTimings,
-        sessionId: String
+        sessionId: String,
     ) async throws
+    func recordPitchRange(sessionId: String, minHz: Float, maxHz: Float) async throws
+    func uploadMicAudio(sessionId: String, deflatedWav: Data) async throws
+    func uploadModelAudio(sessionId: String, deflatedWav: Data) async throws
     func getPersonas(search: String?, sort: String) async throws -> [PersonaDTO]
+    func getEntitlement() async throws -> Entitlement
 }
 
 extension BackendAPI: ConversationBackend {}
@@ -126,6 +130,8 @@ final class SessionController {
     private var sessionStartedAt: Date?
     private var serverSessionId: String?
     private var observerTasks: [Task<Void, Never>] = []
+    /// Tasks the controller scheduled to enforce the free-cap mid-session: one warns the AI to wrap up at ~30s remaining, the other hard-ends the session at 0s. Cancelled in teardown() so a manual end doesn't leave them pending.
+    private var freeCapTasks: [Task<Void, Never>] = []
 
     /// In-progress turn buffer. Stream emissions from the same speaker accumulate here; flush as one `transcripts` row
     /// on speaker switch or session end. Per CLAUDE.md, a transcripts row = one TURN, not one realtime-stream fragment.
@@ -139,11 +145,11 @@ final class SessionController {
 
     init(
         context: ContextGathering = ContextGatherer.shared,
-        backend: ConversationBackend = BackendAPI.shared,
+        backend: ConversationBackend,
         micPermission: MicrophonePermissionRequesting = DefaultMicrophonePermission(),
         streamerFactory: AudioStreamerFactory = DefaultAudioStreamerFactory(),
         sessionFactory: PersonaPlexSessionFactory = DefaultPersonaPlexSessionFactory(),
-        openAIFactory: OpenAIRealtimeClientFactory = DefaultOpenAIRealtimeClientFactory()
+        openAIFactory: OpenAIRealtimeClientFactory = DefaultOpenAIRealtimeClientFactory(),
     ) {
         self.context = context
         self.backend = backend
@@ -193,9 +199,9 @@ final class SessionController {
                 response = try await backend.startConversation(
                     personaId: selectedPersonaId,
                     context: gathered,
-                    topicOverride: startContextOverride
+                    topicOverride: startContextOverride,
                 )
-            } catch let BackendError.http(404, _) {
+            } catch BackendError.http(404, _) {
                 // Cached persona ID is stale (user-created persona deleted, DB reset, preset list rotated). Re-resolve
                 // from /personas and retry once.
                 logger.info("conversation/start 404 — refreshing persona from server")
@@ -206,7 +212,7 @@ final class SessionController {
                 response = try await backend.startConversation(
                     personaId: selectedPersonaId,
                     context: gathered,
-                    topicOverride: startContextOverride
+                    topicOverride: startContextOverride,
                 )
             }
             signposter.endInterval("conversation.backendStart", startInterval)
@@ -215,7 +221,7 @@ final class SessionController {
             // BUILD-2026-05-25-A diagnostic — confirm latest binary on device and trace which path /start returns.
             logger
                 .error(
-                    "/start returned: provider=\(response.provider, privacy: .public) wsUrl=\(response.wsUrl, privacy: .public) tokenLen=\(response.ephemeralToken?.count ?? 0, privacy: .public)"
+                    "/start returned: provider=\(response.provider, privacy: .public) wsUrl=\(response.wsUrl, privacy: .public) tokenLen=\(response.ephemeralToken?.count ?? 0, privacy: .public)",
                 )
 
             phase = .connecting
@@ -257,7 +263,7 @@ final class SessionController {
             } else {
                 logger
                     .error(
-                        "audio pump → NO MATCH provider=\(response.provider, privacy: .public) streamerIsPCM16=\(streamer is PCM16AudioStreamerType, privacy: .public) realtimeIsPersonaPlex=\(realtime is PersonaPlexSessionType, privacy: .public)"
+                        "audio pump → NO MATCH provider=\(response.provider, privacy: .public) streamerIsPCM16=\(streamer is PCM16AudioStreamerType, privacy: .public) realtimeIsPersonaPlex=\(realtime is PersonaPlexSessionType, privacy: .public)",
                     )
             }
             self.pump = pump
@@ -272,8 +278,11 @@ final class SessionController {
                 t0: t0,
                 tGatherEnd: tGatherEnd,
                 tStartEnd: tStartEnd,
-                tConnectEnd: tConnectEnd
+                tConnectEnd: tConnectEnd,
             )
+
+            // Free-cap mid-session enforcement. Fire-and-forget — a failed entitlement fetch leaves the session uncapped (premium-style) so a network blip doesn't end someone's conversation. Only schedules timers if the user is on free and a finite remaining window applies.
+            scheduleFreeCapWrapUp(realtime: realtime)
         } catch {
             let message = String(describing: error)
             logger.error("conversation start failed: \(message, privacy: .public)")
@@ -293,11 +302,51 @@ final class SessionController {
         // this, the final turn (often the AI's closing line, or whatever the user said before tapping end) is lost.
         flushPendingTurn(endedAt: Date())
         let id = serverSessionId
+        let streamer = audioStreamer as? AudioStreamer
         if let id {
+            if let streamer, let range = await streamer.pitchTracker.range() {
+                _ = try? await backend.recordPitchRange(
+                    sessionId: id, minHz: range.min, maxHz: range.max,
+                )
+            }
             _ = try? await backend.endConversation(sessionId: id)
         }
         await teardown()
+        // Audio upload AFTER teardown so the wav file is closed/finalized. Best-effort: a failed upload doesn't reopen the session — we just lose retention for that session. File is deleted whether upload succeeded or not so we don't accumulate local copies.
+        if let id, let streamer {
+            await uploadMicAudioIfAny(sessionId: id, streamer: streamer)
+        }
         phase = .idle
+    }
+
+    /// Read the freshly-finalized mic wav from the AudioStreamer, deflate-compress it, POST to the backend, delete the local file. All steps best-effort; logs and continues on failure. Companion call below ships the model-output wav.
+    private func uploadMicAudioIfAny(sessionId: String, streamer: AudioStreamer) async {
+        guard let url = await streamer.recordedSessionAudioURL else { return }
+        defer { try? FileManager.default.removeItem(at: url) }
+        do {
+            let wavData = try Data(contentsOf: url)
+            guard !wavData.isEmpty else { return }
+            // Apple's `NSData.compressed(using: .zlib)` produces a RAW DEFLATE stream — no zlib wrapper, no gzip header. The Content-Type the network layer sends ("audio/wav+deflate") matches; do NOT mislabel it as "gzip".
+            let deflated = try (wavData as NSData).compressed(using: .zlib) as Data
+            try await backend.uploadMicAudio(sessionId: sessionId, deflatedWav: deflated)
+        } catch {
+            logger.error("mic audio upload failed: \(String(describing: error), privacy: .public)")
+        }
+        await uploadModelAudioIfAny(sessionId: sessionId, streamer: streamer)
+    }
+
+    /// Mirror of `uploadMicAudioIfAny` for the model-output wav. Independent best-effort upload so a failure on one track doesn't poison the other.
+    private func uploadModelAudioIfAny(sessionId: String, streamer: AudioStreamer) async {
+        guard let url = await streamer.recordedModelAudioURL else { return }
+        defer { try? FileManager.default.removeItem(at: url) }
+        do {
+            let wavData = try Data(contentsOf: url)
+            guard !wavData.isEmpty else { return }
+            let deflated = try (wavData as NSData).compressed(using: .zlib) as Data
+            try await backend.uploadModelAudio(sessionId: sessionId, deflatedWav: deflated)
+        } catch {
+            logger.error("model audio upload failed: \(String(describing: error), privacy: .public)")
+        }
     }
 
     private func startObservers(session: PersonaPlexSessionType) async {
@@ -342,6 +391,47 @@ final class SessionController {
         observerTasks = [transcriptTask, errorTask]
     }
 
+    /// Fetch the entitlement, compute the smaller of the two remaining windows (day vs week), then schedule a wrap-up hint at `remaining - 30s` and a hard end at `remaining`. Premium users get no timers. Failures (network, decode) fail-open (no caps) — a single API blip should never end a paying user's conversation.
+    private func scheduleFreeCapWrapUp(realtime: RealtimeClient) {
+        Task { [weak self] in
+            guard let self else { return }
+            guard let entitlement = try? await backend.getEntitlement() else { return }
+            if entitlement.isPremium { return }
+            let remainingSec = min(
+                entitlement.freeMinutesRemainingToday,
+                entitlement.freeMinutesRemainingThisWeek,
+            ) * 60
+            guard remainingSec > 0 else {
+                await end()
+                return
+            }
+            let warnAt = max(remainingSec - 30, 5)
+            let hintTask = Task { [weak self] in
+                try? await Task.sleep(nanoseconds: UInt64(warnAt) * 1_000_000_000)
+                guard !Task.isCancelled else { return }
+                await realtime.injectSystemHint(
+                    "You have about 30 seconds left in this conversation before the user's free-plan limit ends the call. Wrap up naturally and warmly — a quick goodbye that fits your character. Don't ask new questions.",
+                )
+                await self?.logFreeCapEvent(stage: "warn", secondsRemaining: 30)
+            }
+            let endTask = Task { [weak self] in
+                try? await Task.sleep(nanoseconds: UInt64(remainingSec) * 1_000_000_000)
+                guard !Task.isCancelled else { return }
+                await self?.logFreeCapEvent(stage: "hard_end", secondsRemaining: 0)
+                await self?.end()
+            }
+            await self.storeFreeCapTasks([hintTask, endTask])
+        }
+    }
+
+    private func storeFreeCapTasks(_ tasks: [Task<Void, Never>]) {
+        freeCapTasks = tasks
+    }
+
+    private func logFreeCapEvent(stage: String, secondsRemaining: Int) {
+        logger.error("free-cap \(stage, privacy: .public) — \(secondsRemaining, privacy: .public)s remaining")
+    }
+
     private func appendTranscript(_ chunk: TranscriptChunk) {
         transcript.append(chunk)
         // Aggregate stream fragments into turn rows. Speaker switch (or session end) flushes the in-flight buffer as
@@ -366,7 +456,7 @@ final class SessionController {
                 speaker: pending.speaker.rawValue,
                 text: pending.text,
                 startedAt: pending.startedAt,
-                endedAt: endedAt
+                endedAt: endedAt,
             )
         }
     }
@@ -376,6 +466,10 @@ final class SessionController {
             task.cancel()
         }
         observerTasks.removeAll()
+        for task in freeCapTasks {
+            task.cancel()
+        }
+        freeCapTasks.removeAll()
         if let pump {
             await pump.stop()
         }

@@ -25,7 +25,7 @@ enum AudioSessionManager {
                 // connecting AirPods automatically overrides to AirPods, just like other media apps. DO NOT add
                 // `overrideOutputAudioPort(.speaker)` here; that forces the bottom speaker regardless of route and
                 // breaks AirPods/headphones.
-                options: [.allowBluetoothA2DP, .allowBluetoothHFP, .defaultToSpeaker, .duckOthers]
+                options: [.allowBluetoothA2DP, .allowBluetoothHFP, .defaultToSpeaker, .duckOthers],
             )
             // 24kHz matches PersonaPlex / Mimi target; iOS will resample if hardware mismatches.
             try session.setPreferredSampleRate(24000)

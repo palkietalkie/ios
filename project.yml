@@ -4,6 +4,23 @@ options:
   deploymentTarget:
     iOS: "26.0"
   generateEmptyDirectories: true
+  developmentLanguage: en
+  # Fails xcodegen if Info.plist comes out with unresolved `${VAR}` literals or empty required keys. Caught a session where running `xcodegen generate` without sourcing ios/.env shipped an empty CLERK_PUBLISHABLE_KEY, which surfaced as the misleading "Clerk Native API is disabled" error.
+  postGenCommand: ./scripts/validate_info_plist.sh PalkieTalkie/Info.plist
+  # Locales the app ships with — matches website/src/i18n/config.ts. Adding one: drop translations into Localizable.xcstrings, add the locale here, regen project.
+  knownRegions:
+    - en
+    - ja
+    - zh-Hans
+    - zh-Hant
+    - ko
+    - es
+    - pt-BR
+    - fr
+    - de
+    - vi
+    - id
+    - hi
 
 # Files visible in Xcode's project navigator but not compiled
 fileGroups:
@@ -23,6 +40,10 @@ packages:
   Opus:
     url: https://github.com/alta/swift-opus
     revision: 6f3cb6bd3ffed1fe5f06d00a962d5c191a50daf8
+  # ViewInspector lets XCTest introspect rendered SwiftUI bodies (find buttons, simulate taps, assert state) without UI tests. Test-target only.
+  ViewInspector:
+    url: https://github.com/nalexn/ViewInspector
+    from: "0.10.3"
 
 targets:
   PalkieTalkie:
@@ -36,14 +57,22 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
         SUPPORTS_MACCATALYST: false
+        # Auto-extract every SwiftUI LocalizedStringKey usage (Text("…"), Label("…"), navigationTitle("…"), etc.) into Localizable.xcstrings at build time. Translators fill in non-English entries; missing translations fall back to the English source.
+        SWIFT_EMIT_LOC_STRINGS: "YES"
+        LOCALIZED_STRING_MACRO_NAMES: "NSLocalizedString String"
         # Override xcodegen's default (`{prefix}.{target}` → `com.palkietalkie.PalkieTalkie`) to the shorter, all-lowercase canonical form. Lock in now before any Apple Developer / TestFlight / IAP / APNs registration — changing later is painful.
         PRODUCT_BUNDLE_IDENTIFIER: com.palkietalkie.app
         CODE_SIGN_STYLE: Automatic
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        # Personal Team ID for wesnishio@gmail.com — captured from the working build that registered "Let's go Wes" iPhone with the team. When the paid Apple Developer Program account is approved, replace with that Team ID.
+        # Apple Developer Program Team ID for wesnishio@gmail.com.
         DEVELOPMENT_TEAM: 7P7YY88H3V
     # Explicit Info.plist (xcodegen writes it) so we can add the OAuth URL scheme cleanly. Runtime values read via Bundle.main.object(forInfoDictionaryKey:).
+    entitlements:
+      path: PalkieTalkie/PalkieTalkie.entitlements
+      properties:
+        com.apple.developer.applesignin:
+          - Default
     info:
       path: PalkieTalkie/Info.plist
       properties:
@@ -59,13 +88,14 @@ targets:
         NSCalendarsUsageDescription: "Palkie Talkie reads today's events so the AI can ask about them naturally."
         UIBackgroundModes:
           - audio
+        # We use only Apple's OS-provided standard encryption (TLS via URLSession + WebSocket). Declares export-compliance EXEMPT so App Store Connect doesn't block submission on "Encryption documentation required".
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen:
           UIColorName: ""
-        # xcodegen interpolates ${ENV} from the shell at `xcodegen generate` time.
-        # boot.sh exports BACKEND_URL before running xcodegen; defaults below match prd.
-        BACKEND_URL: "${BACKEND_URL:-https://api.palkietalkie.com}"
-        PERSONAPLEX_HOST: "${PERSONAPLEX_HOST:-wss://palkietalkie--api.modal.run}"
-        CLERK_PUBLISHABLE_KEY: "${CLERK_PUBLISHABLE_KEY:-pk_test_Y3V0ZS10aWNrLTQxLmNsZXJrLmFjY291bnRzLmRldiQ}"
+        # xcodegen substitutes `${VAR}` from the shell at generate time. It does NOT support the shell `:-default` form — that gets written as a literal string into Info.plist, leading to empty values at runtime. Always run xcodegen via `scripts/boot.sh` (which exports these), or `set -a; source ios/.env; set +a` first. An unset var here ships an empty Info.plist value and breaks auth.
+        BACKEND_URL: "${BACKEND_URL}"
+        PERSONAPLEX_HOST: "${PERSONAPLEX_HOST}"
+        CLERK_PUBLISHABLE_KEY: "${CLERK_PUBLISHABLE_KEY}"
         CFBundleURLTypes:
           - CFBundleURLName: com.palkietalkie.oauth
             CFBundleURLSchemes:
@@ -90,10 +120,13 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         BUNDLE_LOADER: "$(TEST_HOST)"
         TEST_HOST: "$(BUILT_PRODUCTS_DIR)/PalkieTalkie.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PalkieTalkie"
+        DEVELOPMENT_TEAM: 7P7YY88H3V
     dependencies:
       - target: PalkieTalkie
       - package: Opus
         product: Opus
+      - package: ViewInspector
+        product: ViewInspector
 
 # Scheme definition — tells Xcode how to build/run the app
 schemes:

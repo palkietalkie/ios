@@ -1,7 +1,9 @@
 import SwiftUI
 
 struct MistakesView: View {
-    @State private var mistakes: [Mistake] = []
+    private static let cacheKey = "cache.mistakes"
+    @Environment(\.backendAPI) private var api
+    @State private var mistakes: [Mistake] = JSONCache.load([Mistake].self, key: MistakesView.cacheKey) ?? []
     @State private var loadError: String?
 
     var body: some View {
@@ -15,7 +17,9 @@ struct MistakesView: View {
         .navigationTitle("Mistakes")
         .task {
             do {
-                mistakes = try await BackendAPI.shared.getMistakes()
+                let fresh = try await api.getMistakes()
+                mistakes = fresh
+                JSONCache.save(fresh, key: Self.cacheKey)
             } catch {
                 loadError = error.localizedDescription
             }

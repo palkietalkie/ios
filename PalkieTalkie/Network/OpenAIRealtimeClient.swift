@@ -44,6 +44,9 @@ actor OpenAIRealtimeClient: RealtimeClient {
     private var ready = false
     private var readyWaiters: [CheckedContinuation<Void, Never>] = []
 
+    /// First-event wall-clock for relative-time diagnostics. Set lazily on first event so logs show `t=…ms` rather than absolute timestamps — easier to read the ordering between `response.output_audio.delta` and `conversation.item.input_audio_transcription.completed`.
+    private var firstEventAt: Date?
+
     /// Persona prompt to push via `session.update` after the WS opens. Captured in the initializer because the OpenAI
     /// Realtime protocol requires the client to send instructions on every new session (the ephemeral token doesn't
     /// carry them).
@@ -140,6 +143,30 @@ actor OpenAIRealtimeClient: RealtimeClient {
         logger.error("OpenAI WS sent response.create")
     }
 
+    /// Inject a system hint into the live conversation and trigger the AI to respond. Used by SessionController's free-cap wrap-up: 30s before the user's daily/weekly limit is exhausted, we send a system message telling the persona to wind down naturally so the user hears a real goodbye instead of getting cut off mid-sentence.
+    func injectSystemHint(_ text: String) async {
+        guard let task else { return }
+        let item: [String: Any] = [
+            "type": "conversation.item.create",
+            "item": [
+                "type": "message",
+                "role": "system",
+                "content": [["type": "input_text", "text": text]],
+            ],
+        ]
+        let create: [String: Any] = ["type": "response.create"]
+        do {
+            for payload in [item, create] {
+                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+                guard let json = String(data: data, encoding: .utf8) else { continue }
+                try await task.send(.string(json))
+            }
+            logger.error("OpenAI WS sent wrap-up system hint")
+        } catch {
+            logger.error("OpenAI WS wrap-up hint failed: \(String(describing: error), privacy: .public)")
+        }
+    }
+
     func open(wsUrl: String, ephemeralToken: String?) async throws {
         guard let token = ephemeralToken, !token.isEmpty else {
             throw OpenAIRealtimeError.missingEphemeralToken
@@ -177,7 +204,7 @@ actor OpenAIRealtimeClient: RealtimeClient {
         let base64 = chunk.base64EncodedString()
         let payload: [String: Any] = [
             "type": "input_audio_buffer.append",
-            "audio": base64
+            "audio": base64,
         ]
         let data = try JSONSerialization.data(withJSONObject: payload, options: [])
         guard let json = String(data: data, encoding: .utf8) else { return }
@@ -217,16 +244,21 @@ actor OpenAIRealtimeClient: RealtimeClient {
         errorContinuation?.finish()
     }
 
-    private func handleEvent(data: Data) {
+    /// Visible to the test bundle so we can feed synthetic JSON event frames at the unit-test layer without spinning up
+    /// a real WebSocket. Production callers go through `readLoop()` which receives from the WS task and forwards into
+    /// this method.
+    func handleEvent(data: Data) {
         guard let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let type = parsed["type"] as? String
         else { return }
-        // Diagnostic — every event type the server emits. Surfaces on device via .error.
+        // Diagnostic — every event type the server emits, with relative ms-since-first-event so we can see the ordering between user-audio commit → audio.delta → transcription.completed at a glance.
+        if firstEventAt == nil { firstEventAt = Date() }
+        let tMs = Int(Date().timeIntervalSince(firstEventAt!) * 1000)
         if type == "error" {
             let body = String(data: data, encoding: .utf8) ?? "?"
-            logger.error("OpenAI WS error body=\(body, privacy: .public)")
+            logger.error("OpenAI WS [t=\(tMs, privacy: .public)ms] error body=\(body, privacy: .public)")
         } else {
-            logger.error("OpenAI WS evt type=\(type, privacy: .public)")
+            logger.error("OpenAI WS [t=\(tMs, privacy: .public)ms] evt type=\(type, privacy: .public)")
         }
         if type == "input_audio_buffer.speech_started" {
             bargeInContinuation?.yield(())
