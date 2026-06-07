@@ -16,7 +16,7 @@ BASE_REF="${1:-origin/main}"
 
 git fetch --quiet --depth=200 origin main 2>/dev/null || true
 
-CHANGED=$(git diff --name-only "${BASE_REF}"...HEAD)
+CHANGED=$(git diff --name-only --diff-filter=ACMR "${BASE_REF}"...HEAD)
 if [ -z "$CHANGED" ]; then
 	echo "[test-pair] no changes vs ${BASE_REF}"
 	exit 0
@@ -26,18 +26,14 @@ MISSING_PAIRS=()
 while IFS= read -r f; do
 	[ -z "$f" ] && continue
 	case "$f" in
-	# Skip non-source paths
 	PalkieTalkieTests/* | scripts/* | .github/* | docs/*) continue ;;
-	# Skip generated + non-code resources
 	PalkieTalkie/Generated/*) continue ;;
 	PalkieTalkie/Assets.xcassets/* | PalkieTalkie/Localizable.xcstrings | PalkieTalkie/Info.plist) continue ;;
-	# Only check Swift files under the app target
 	PalkieTalkie/*.swift) ;;
 	*) continue ;;
 	esac
 
 	base=$(basename "$f" .swift)
-	# Any test file whose basename contains the source basename counts as the pair.
 	if ! printf '%s\n' "$CHANGED" | grep -qE "^PalkieTalkieTests/.*${base}.*\.swift$"; then
 		if find PalkieTalkieTests -name "*${base}*.swift" -print -quit 2>/dev/null | grep -q .; then
 			MISSING_PAIRS+=("  ${f}  (modified)  →  PalkieTalkieTests/*${base}*.swift  (exists but unchanged in PR)")

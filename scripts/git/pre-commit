@@ -97,15 +97,27 @@ if echo "$STAGED" | grep -qx "project.yml"; then
 	xcodegen generate
 fi
 
-# Build sanity check if any Swift file or project.yml is staged.
+# Build sanity check + tests with the same 90 percent line-coverage gate CI enforces — if any Swift file or project.yml is staged. Adds ~30-60s to commits (sim boot + xctest run) but matches the CI floor so we never push a PR that's about to fail there.
 if echo "$STAGED" | grep -qE "(\.swift$|^project\.yml$)"; then
 	require xcodebuild "install Xcode"
-	echo "[pre-commit] xcodebuild..."
+	echo "[pre-commit] xcodebuild test with code coverage..."
 	xcodebuild \
 		-project PalkieTalkie.xcodeproj \
 		-scheme PalkieTalkie \
-		-destination 'generic/platform=iOS Simulator' \
-		build -quiet
+		-destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
+		-resultBundlePath /tmp/PalkieTalkiePreCommit.xcresult \
+		-enableCodeCoverage YES \
+		CODE_SIGNING_ALLOWED=NO \
+		test -quiet
+	echo "[pre-commit] enforcing 90 percent line coverage on PalkieTalkie target..."
+	pct=$(xcrun xccov view --report --json /tmp/PalkieTalkiePreCommit.xcresult \
+		| python3 -c "import json,sys; d=json.loads(sys.stdin.read()); t=next((x for x in d['targets'] if x['name'].startswith('PalkieTalkie.app') or x['name']=='PalkieTalkie'), None); print(round(t['lineCoverage']*100, 2)) if t else (print('NO_TARGET') or exit(1))")
+	echo "[pre-commit] line coverage: ${pct}%"
+	rm -rf /tmp/PalkieTalkiePreCommit.xcresult
+	awk "BEGIN {exit !(${pct} >= 90)}" || {
+		echo "[pre-commit] line coverage ${pct}% is below the 90% gate" >&2
+		exit 1
+	}
 fi
 
 # Full end-to-end: deploy backend + Modal to dev, install on connected iPhone, start local website.
