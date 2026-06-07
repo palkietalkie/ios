@@ -5,6 +5,14 @@ set -e
 
 cd "$(git rev-parse --show-toplevel)"
 
+# Refuse `git commit <pathspec>`. When git assembles a partial commit from a working-tree pathspec, it routes the hook through a temp index (e.g. `.git/next-index-12345`) instead of `.git/index`. That bypasses whatever was staged AND quietly picks up unstaged hunks in the named files — a footgun in multi-session workflows.
+if [ -n "$GIT_INDEX_FILE" ] && [ "$(basename "$GIT_INDEX_FILE")" != "index" ]; then
+	echo "pre-commit: REFUSED — 'git commit <pathspec>' detected (GIT_INDEX_FILE=$GIT_INDEX_FILE)." >&2
+	echo "  This snapshots the working tree of those paths and bypasses the staging boundary." >&2
+	echo "  Stage explicitly then commit:  git add <files> && git commit -m '...'" >&2
+	exit 1
+fi
+
 # Block direct commits to main — feature work always lives on a branch.
 CURRENT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
 if [ "$CURRENT_BRANCH" = "main" ]; then

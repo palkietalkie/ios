@@ -14,6 +14,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          # Need history vs main for the test-pair diff check below.
+          fetch-depth: 200
+
+      - name: Refuse source changes without paired test changes
+        if: github.event_name == 'pull_request'
+        run: bash scripts/ci/check_test_pair.sh "origin/${{ github.base_ref }}"
 
       - name: Print toolchain versions
         run: |
@@ -43,7 +50,16 @@ jobs:
             -scheme PalkieTalkie \
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
             -resultBundlePath TestResults \
+            -enableCodeCoverage YES \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Enforce 90% line coverage on the PalkieTalkie app target
+        run: |
+          pct=$(xcrun xccov view --report --json TestResults.xcresult \
+            | python3 -c "import json,sys; d=json.loads(sys.stdin.read()); t=next((x for x in d['targets'] if x['name'].startswith('PalkieTalkie.app') or x['name']=='PalkieTalkie'), None); print(round(t['lineCoverage']*100, 2)) if t else (print('NO_TARGET') or exit(1))")
+          echo "PalkieTalkie line coverage: ${pct}%"
+          awk "BEGIN {exit !(${pct} >= 90)}" \
+            || { echo \"::error::PalkieTalkie line coverage ${pct}% is below the 90% gate\"; exit 1; }
 
       - name: Upload test results
         if: always()
