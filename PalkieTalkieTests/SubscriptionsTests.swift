@@ -7,10 +7,10 @@ final class SubscriptionProductsTests: XCTestCase {
         XCTAssertEqual(
             raws,
             [
-                "com.palkietalkie.family.annual",
                 "com.palkietalkie.family.monthly",
-                "com.palkietalkie.individual.annual",
+                "com.palkietalkie.family.yearly",
                 "com.palkietalkie.individual.monthly",
+                "com.palkietalkie.individual.yearly",
             ],
         )
     }

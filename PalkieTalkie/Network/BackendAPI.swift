@@ -335,11 +335,14 @@ final class BackendAPI: @unchecked Sendable {
         if let baseURL {
             self.baseURL = baseURL
         } else {
-            // Coerce empty → nil so the fallback triggers. Xcode's Info.plist preprocessor doesn't understand
-            // `${VAR:-default}` shell syntax (only `$(VAR)`), so when BACKEND_URL env var isn't exported at build time the key resolves to "" — without this guard, URL(string:"") is nil and the force-unwrap crashes the app at launch (e.g., during `xcodebuild test` where boot.sh's env exports don't run).
-            let raw = Bundle.main.object(forInfoDictionaryKey: "BACKEND_URL") as? String
-            let urlString = (raw?.isEmpty == false ? raw : nil) ?? "https://api.palkietalkie.com"
-            self.baseURL = URL(string: urlString)!
+            // Info.plist's BACKEND_URL is per-config baked at build time by xcodegen (Debug = dev Fly app, Release = prd). Missing / wrong-type / unparseable value means project.yml + Info.plist drifted; crash on the first launch rather than silently dialing the wrong host.
+            guard
+                let urlString = Bundle.main.object(forInfoDictionaryKey: "BACKEND_URL") as? String,
+                let parsed = URL(string: urlString)
+            else {
+                fatalError("Info.plist BACKEND_URL is missing or unparseable — check project.yml settings.configs")
+            }
+            self.baseURL = parsed
         }
         self.transport = transport
         self.auth = auth

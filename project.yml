@@ -67,6 +67,17 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         # Apple Developer Program Team ID for wesnishio@gmail.com.
         DEVELOPMENT_TEAM: 7P7YY88H3V
+      configs:
+        # Per-config endpoint pinning. Xcode picks Debug for `xcodebuild build/test` and Release for `xcodebuild archive` (App Store / TestFlight). Info.plist below references these via `$(NAME)` so each scheme bakes the right URL/key.
+        # None of these are secrets — Backend / PersonaPlex URLs are public hostnames, Clerk's pk_test_ / pk_live_ are `publishable` by design (meant to ship in clients). The pk_live_ key is the same one in backend/.env.production + ios/.env.production.
+        Debug:
+          BACKEND_URL: "https://palkietalkie-api-dev.fly.dev"
+          PERSONAPLEX_HOST: "wss://palkietalkie-dev--api.modal.run"
+          CLERK_PUBLISHABLE_KEY: "pk_test_Y3V0ZS10aWNrLTQxLmNsZXJrLmFjY291bnRzLmRldiQ"
+        Release:
+          BACKEND_URL: "https://api.palkietalkie.com"
+          PERSONAPLEX_HOST: "wss://palkietalkie--api.modal.run"
+          CLERK_PUBLISHABLE_KEY: "pk_live_Y2xlcmsucGFsa2lldGFsa2llLmNvbSQ"
     # Explicit Info.plist (xcodegen writes it) so we can add the OAuth URL scheme cleanly. Runtime values read via Bundle.main.object(forInfoDictionaryKey:).
     entitlements:
       path: PalkieTalkie/PalkieTalkie.entitlements
@@ -92,10 +103,10 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         UILaunchScreen:
           UIColorName: ""
-        # xcodegen substitutes `${VAR}` from the shell at generate time. It does NOT support the shell `:-default` form — that gets written as a literal string into Info.plist, leading to empty values at runtime. Always run xcodegen via `scripts/boot.sh` (which exports these), or `set -a; source ios/.env; set +a` first. An unset var here ships an empty Info.plist value and breaks auth.
-        BACKEND_URL: "${BACKEND_URL}"
-        PERSONAPLEX_HOST: "${PERSONAPLEX_HOST}"
-        CLERK_PUBLISHABLE_KEY: "${CLERK_PUBLISHABLE_KEY}"
+        # Per-config substitution from settings.configs above — Debug bakes dev, Release bakes prd.
+        BACKEND_URL: "$(BACKEND_URL)"
+        PERSONAPLEX_HOST: "$(PERSONAPLEX_HOST)"
+        CLERK_PUBLISHABLE_KEY: "$(CLERK_PUBLISHABLE_KEY)"
         CFBundleURLTypes:
           - CFBundleURLName: com.palkietalkie.oauth
             CFBundleURLSchemes:
