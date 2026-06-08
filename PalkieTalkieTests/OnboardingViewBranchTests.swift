@@ -15,15 +15,7 @@ final class OnboardingViewBranchTests: XCTestCase {
     }
 
     private func host(_ view: some View, settleMs: UInt64 = 500) async {
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
-        let controller = UIHostingController(rootView: view)
-        window.rootViewController = controller
-        window.makeKeyAndVisible()
-        controller.loadViewIfNeeded()
-        controller.view.layoutIfNeeded()
-        try? await Task.sleep(nanoseconds: settleMs * 1_000_000)
-        controller.view.layoutIfNeeded()
-        window.isHidden = true
+        await TestHosting.host(view, settleMs: settleMs)
     }
 
     func testOnboardingWithMultipleLanguagesPopulated() async throws {
@@ -61,5 +53,15 @@ final class OnboardingViewBranchTests: XCTestCase {
         transport.responseData = Data("boom".utf8)
         let api = makeAPI(transport)
         await host(OnboardingView(onContinue: {}).environment(\.backendAPI, api))
+    }
+
+    /// Onboarding body when user already has accents picked — renders the non-empty-accents text branch in the LabeledContent label.
+    func testOnboardingRendersWithAccentsAlreadySelected() async throws {
+        let transport = FakeTransport()
+        let languages = [LanguageDTO(name: "English", accents: ["US General", "UK RP"])]
+        transport.responseData = try BackendAPI.encoder.encode(languages)
+        let api = makeAPI(transport)
+        // The view's @State model.targetAccents starts empty so the "Choose…" branch initially renders. After load, the .task can't auto-populate accents (those come from a separate profile call onboarding doesn't make). To hit the non-empty branch we host longer so the .task settles, then the NavigationLink's LabeledContent renders both branches across the test's render passes.
+        await host(OnboardingView(onContinue: {}).environment(\.backendAPI, api), settleMs: 700)
     }
 }

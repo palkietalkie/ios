@@ -5,8 +5,15 @@ import XCTest
 
 @MainActor
 final class HistoryViewTests: XCTestCase {
-    override func tearDown() {
+    override func setUp() async throws {
+        try await super.setUp()
         UserDefaults.standard.removeObject(forKey: "cache.sessions")
+    }
+
+    override func tearDown() async throws {
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        UserDefaults.standard.removeObject(forKey: "cache.sessions")
+        try await super.tearDown()
     }
 
     /// Empty-state copy: `ContentUnavailableView("No sessions yet", …)` renders when `sessions.isEmpty && loadError == nil`. Catches a refactor that silently swaps the copy or the icon.
@@ -32,6 +39,41 @@ final class HistoryViewTests: XCTestCase {
         let texts = try sut.inspect().findAll(ViewType.Text.self).compactMap { try? $0.string() }
         XCTAssertTrue(texts.contains("Sharp prosecutor"))
         XCTAssertTrue(texts.contains("1m 15s"), "expected duration formatted '1m 15s'; saw \(texts)")
+    }
+
+    /// Hosts HistoryView with canned /conversation/sessions so the load success path runs and the row body renders (covers durationSeconds optional unwrap, date formatting).
+    func testHostsWithLoadedSessions() async throws {
+        let transport = FakeTransport()
+        let sessions = [
+            SessionSummary(
+                sessionId: "s1",
+                personaId: "Coach A",
+                startedAt: Date(),
+                endedAt: nil,
+                durationSeconds: 125,
+            ),
+            SessionSummary(sessionId: "s2", personaId: nil, startedAt: Date(), endedAt: nil, durationSeconds: nil),
+        ]
+        transport.responseData = try BackendAPI.encoder.encode(sessions)
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        await TestHosting.host(HistoryView().environment(\.backendAPI, api), settleMs: 500)
+    }
+
+    /// Backend errors on /sessions — covers the catch branch + the alert binding.
+    func testHostsWithLoadErrorTriggersAlertBranch() async throws {
+        let transport = FakeTransport()
+        transport.responseStatus = 500
+        transport.responseData = Data("boom".utf8)
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        await TestHosting.host(HistoryView().environment(\.backendAPI, api), settleMs: 500)
     }
 
     /// Missing personaId falls back to "Unknown persona" — never empty. Empty heading would create a row with only the date underneath, which looks broken.

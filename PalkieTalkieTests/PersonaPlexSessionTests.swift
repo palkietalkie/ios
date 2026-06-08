@@ -56,6 +56,24 @@ final class PersonaPlexSessionTests: XCTestCase {
         }
     }
 
+    /// `open(wsUrl:ephemeralToken:)` is the RealtimeClient-protocol overload — PersonaPlex doesn't use the ephemeral token (it bakes an HMAC ticket into wsUrl) so the token is ignored. Invalid URL must still throw.
+    func testOpenWithEphemeralTokenOverloadStillRejectsInvalidURL() async {
+        let session = PersonaPlexSession()
+        do {
+            try await session.open(wsUrl: "", ephemeralToken: "ignored")
+            XCTFail("empty URL should throw")
+        } catch {
+            // expected
+        }
+    }
+
+    /// `injectSystemHint` is a no-op for PersonaPlex (no text-injection channel in the wire protocol). Confirm it doesn't crash and doesn't change state.
+    func testInjectSystemHintIsNoOp() async {
+        let session = PersonaPlexSession()
+        await session.injectSystemHint("anything")
+        // No assertion possible beyond no-crash; document the intentional no-op contract.
+    }
+
     /// The PersonaPlexClient owns the WS lifecycle. Without a real open, sendControl/sendAudio should error with
     /// `.notConnected`.
     func testSendBeforeOpenErrors() async {

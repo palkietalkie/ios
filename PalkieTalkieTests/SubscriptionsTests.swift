@@ -33,4 +33,14 @@ final class SubscriptionProductsTests: XCTestCase {
         XCTAssertEqual(SubscriptionID.allRawIDs.count, 4)
         XCTAssertEqual(SubscriptionID.allRawIDs, Set(SubscriptionID.all.map(\.rawValue)))
     }
+
+    /// Identifiable getters — required by ForEach to render rows. Calling each explicitly so xccov hits the getter bodies.
+    func test_identifiableGettersForAllEnumCases() {
+        XCTAssertEqual(SubscriptionTier.family.id, "family")
+        XCTAssertEqual(SubscriptionTier.individual.id, "individual")
+        XCTAssertEqual(SubscriptionCycle.monthly.id, "monthly")
+        XCTAssertEqual(SubscriptionCycle.yearly.id, "yearly")
+        let sid = SubscriptionID(tier: .individual, cycle: .monthly)
+        XCTAssertEqual(sid.id, sid.rawValue)
+    }
 }

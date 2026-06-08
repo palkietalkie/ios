@@ -47,4 +47,61 @@ final class StatsViewHelpersTests: XCTestCase {
             _ = view.body
         }
     }
+
+    /// Hosts StatsView with a canned backend response so each metricCard, cefrCard ForEach, and formatter branch (with non-nil values) runs.
+    func testHostsStatsViewWithLoadedData() async throws {
+        let transport = FakeTransport()
+        let stats = Stats(
+            dayStreak: 7,
+            sessionTotalSeconds: 360,
+            sessionsCount: 4,
+            uniqueWords: 250,
+            uniquePhrases: 30,
+            userTalkPct: 0.55,
+            speakingRateWpm: 142,
+            pitchRangeHz: 80,
+            cefrCoverage: [
+                CEFRCoverage(level: "A1", totalWords: 500, usedWords: 400, coveragePct: 0.8),
+                CEFRCoverage(level: "B1", totalWords: 1000, usedWords: 300, coveragePct: 0.3),
+            ],
+        )
+        transport.responseData = try BackendAPI.encoder.encode(stats)
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        await TestHosting.host(StatsView().environment(\.backendAPI, api), settleMs: 500)
+    }
+
+    /// Streak = 1 → "day in a row" (singular). Covers the ternary branch in hero().
+    func testHostsStatsViewWithStreakOfOne() async throws {
+        let transport = FakeTransport()
+        let stats = Stats(
+            dayStreak: 1, sessionTotalSeconds: 60, sessionsCount: 1,
+            uniqueWords: 10, uniquePhrases: 1,
+            userTalkPct: nil, speakingRateWpm: nil, pitchRangeHz: nil,
+            cefrCoverage: [],
+        )
+        transport.responseData = try BackendAPI.encoder.encode(stats)
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        await TestHosting.host(StatsView().environment(\.backendAPI, api), settleMs: 400)
+    }
+
+    /// Load fails — covers the catch branch that sets loadError + the Text view rendering it.
+    func testHostsStatsViewWithLoadErrorSurfacesMessage() async throws {
+        let transport = FakeTransport()
+        transport.responseStatus = 500
+        transport.responseData = Data("boom".utf8)
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        await TestHosting.host(StatsView().environment(\.backendAPI, api), settleMs: 400)
+    }
 }

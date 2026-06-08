@@ -17,15 +17,7 @@ final class IntegrationsViewBranchTests: XCTestCase {
     }
 
     private func host(_ view: some View, settleMs: UInt64 = 600) async {
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
-        let controller = UIHostingController(rootView: view)
-        window.rootViewController = controller
-        window.makeKeyAndVisible()
-        controller.loadViewIfNeeded()
-        controller.view.layoutIfNeeded()
-        try? await Task.sleep(nanoseconds: settleMs * 1_000_000)
-        controller.view.layoutIfNeeded()
-        window.isHidden = true
+        await TestHosting.host(view, settleMs: settleMs)
     }
 
     func testGoogleConnectInvalidAuthURLBranch() async throws {

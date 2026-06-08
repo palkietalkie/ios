@@ -27,17 +27,7 @@ final class ViewBodyTests: XCTestCase {
     /// The backend call itself fails fast in the test bundle (no network / no Clerk token) so each `.task` resolves into
     /// the error / empty-state branch — which is exactly the branch we want exercised.
     private func hostAndPump(_ view: some View) async {
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
-        let controller = UIHostingController(rootView: view)
-        window.rootViewController = controller
-        window.makeKeyAndVisible()
-        controller.loadViewIfNeeded()
-        controller.view.layoutIfNeeded()
-        // Give any `.task` modifiers room to run. 400ms is enough for in-test BackendAPI calls to either fail or get
-        // cancelled when the window goes away.
-        try? await Task.sleep(nanoseconds: 400_000_000)
-        controller.view.layoutIfNeeded()
-        window.isHidden = true
+        await TestHosting.host(view, settleMs: 400)
     }
 
     private func makeSessionController() -> SessionController {

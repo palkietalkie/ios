@@ -101,6 +101,8 @@ fi
 if echo "$STAGED" | grep -qE "(\.swift$|^project\.yml$)"; then
 	require xcodebuild "install Xcode"
 	echo "[pre-commit] xcodebuild test with code coverage..."
+	# xcodebuild refuses to overwrite an existing result bundle. If a prior commit attempt crashed before the cleanup at the bottom of this block ran, the bundle lingers. Clean before AND after.
+	rm -rf /tmp/PalkieTalkiePreCommit.xcresult
 	xcodebuild \
 		-project PalkieTalkie.xcodeproj \
 		-scheme PalkieTalkie \

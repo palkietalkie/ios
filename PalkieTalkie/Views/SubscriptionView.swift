@@ -1,13 +1,20 @@
-import StoreKit
 import SwiftUI
 
 /// Subscription / billing screen. Focused on the actions a user can actually take here: see what plan they're on, upgrade (when products are available), restore a prior purchase, and jump to Apple's Settings screen to manage / downgrade / cancel (Apple owns that flow; iOS apps can't do it inline).
 @MainActor
 struct SubscriptionView: View {
     @Environment(\.backendAPI) private var api
-    @State private var store = SubscriptionStore()
+    @State private var store: SubscriptionStore
     @State private var purchasing: SubscriptionID?
     @State private var entitlement: Entitlement?
+
+    init(service: (any SubscriptionService)? = nil) {
+        if let service {
+            _store = State(initialValue: SubscriptionStore(service: service))
+        } else {
+            _store = State(initialValue: SubscriptionStore())
+        }
+    }
 
     var body: some View {
         List {

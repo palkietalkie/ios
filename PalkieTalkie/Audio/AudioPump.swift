@@ -1,11 +1,16 @@
 import Foundation
 
-/// Audio-streamer surface used by `AudioPump`. Lets the pump be unit-tested with a fake streamer that doesn't touch
-/// AVAudioEngine.
+/// Audio-streamer surface used by `AudioPump` AND `SessionController`'s end-of-session upload path. Lets the pump + end() flow be unit-tested with a fake streamer that doesn't touch AVAudioEngine.
 protocol AudioStreamerType: AnyObject, Sendable {
     var inputChunks: AsyncStream<Data> { get async }
     nonisolated var pitchTracker: PitchTracker { get }
     func playOutput(_ opusPacket: Data) async
+    /// URL of the mic-side wav file from the just-finished session, if any. Read after stop() in end() so SessionController can gzip + upload + delete. Nil when no session ran (e.g. very early error).
+    var recordedSessionAudioURL: URL? { get async }
+    /// URL of the model-output wav file. Same lifecycle as above.
+    var recordedModelAudioURL: URL? { get async }
+    /// Tear down the audio graph (mic tap removed, engine stopped, queued buffers cleared). Safe to call when never started.
+    func stop() async
 }
 
 extension AudioStreamer: AudioStreamerType {}

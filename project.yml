@@ -122,6 +122,9 @@ targets:
     platform: iOS
     sources:
       - PalkieTalkieTests
+      # Bundle the storekit fixture into the test target as a resource so SKTestSession(configurationFileNamed: "Configuration") can find it from XCTest. (In-process Product.products(for:) interception is unreliable on Xcode 26.2 — see SubscriptionStoreTests for the locked-in observation. XCUITest is what actually drives SubscriptionView's loaded-products branches.)
+      - path: PalkieTalkie/Configuration.storekit
+        buildPhase: resources
     settings:
       base:
         SWIFT_VERSION: "6.2"
@@ -148,7 +151,9 @@ schemes:
         PalkieTalkieTests: [test]
     run:
       config: Debug
+      storeKitConfiguration: PalkieTalkie/Configuration.storekit
     test:
       config: Debug
+      # storeKitConfiguration intentionally NOT set here. The xcodebuild CLI ignores StoreKitConfigurationFileReference under TestAction (verified Xcode 26.2). Configuration.storekit is still attached to the run/launch scheme above so developers running the app from Xcode get the dev fixture; the unit-test path uses ProductProvider dependency injection (see SubscriptionStore).
       targets:
         - PalkieTalkieTests

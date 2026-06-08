@@ -43,4 +43,32 @@ final class VoicePreviewPlayerTests: XCTestCase {
         p.stop()
         XCTAssertNil(p.nowPlaying)
     }
+
+    /// Real wav playback — the bundle ships alloy/ash/coral/echo/sage/shimmer wavs in Resources/VoiceSamples. play() should resolve the URL, init AVAudioPlayer, and set nowPlaying.
+    func testPlayAvailableVoiceSetsNowPlayingAndSchedulesReset() {
+        let p = VoicePreviewPlayer()
+        p.play(voiceId: "alloy")
+        XCTAssertEqual(p.nowPlaying, "alloy", "nowPlaying should advance to the voice id")
+        // The reset Task waits for the sample duration; we just stop() so the test doesn't run for ~4s.
+        p.stop()
+        XCTAssertNil(p.nowPlaying)
+    }
+
+    /// Case-insensitive — uppercase "ALLOY" lowercases to "alloy" → resolves the bundled wav and sets nowPlaying.
+    func testPlayUppercaseIdLowercasesAndSetsNowPlaying() {
+        let p = VoicePreviewPlayer()
+        p.play(voiceId: "ALLOY")
+        XCTAssertEqual(p.nowPlaying, "ALLOY", "nowPlaying preserves the caller's id; only the bundle lookup lowercases")
+        p.stop()
+    }
+
+    /// Calling play() a second time stops the first player and starts the new one.
+    func testPlaySecondVoiceReplacesFirst() {
+        let p = VoicePreviewPlayer()
+        p.play(voiceId: "alloy")
+        XCTAssertEqual(p.nowPlaying, "alloy")
+        p.play(voiceId: "coral")
+        XCTAssertEqual(p.nowPlaying, "coral")
+        p.stop()
+    }
 }

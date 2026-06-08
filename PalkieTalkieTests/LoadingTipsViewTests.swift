@@ -28,4 +28,15 @@ final class LoadingTipsViewTests: XCTestCase {
         // Label("Tip", …) renders as a Label; if the fallback didn't run, the body would crash on shuffledTips[index % 0].
         XCTAssertNoThrow(try sut.inspect().find(ViewType.Label.self))
     }
+
+    /// Nil tips argument also runs the bundled-list fallback.
+    func testNilTipsArgumentFallsBackToBundledList() throws {
+        let sut = LoadingTipsView(tips: nil)
+        XCTAssertNoThrow(try sut.inspect().find(ViewType.Label.self))
+    }
+
+    /// Hosts LoadingTipsView so the `.task` rotation loop runs at least one iteration. Without hosting the task block never fires.
+    func testHostsLoadingTipsViewRunsTaskRotation() async {
+        await TestHosting.host(LoadingTipsView(tips: ["Tip A", "Tip B", "Tip C"]), settleMs: 300)
+    }
 }

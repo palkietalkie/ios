@@ -29,4 +29,22 @@ final class MainTabViewTests: XCTestCase {
         XCTAssertEqual(set.count, 2)
         XCTAssertEqual(MainTabView.AppTab(rawValue: "talk"), .talk)
     }
+
+    /// Hosts the full TabView with the required SessionController + backendAPI environments so each of the 5 tabs' body builds. Catches a refactor that breaks any embedded tab view's @Environment requirements.
+    func testHostsMainTabViewWithAllFiveTabs() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data("[]".utf8)
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        let session = SessionController(backend: api)
+        await TestHosting.host(
+            MainTabView()
+                .environment(\.backendAPI, api)
+                .environment(session),
+            settleMs: 400,
+        )
+    }
 }

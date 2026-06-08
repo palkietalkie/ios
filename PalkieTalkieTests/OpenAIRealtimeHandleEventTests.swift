@@ -201,6 +201,49 @@ final class OpenAIRealtimeHandleEventTests: XCTestCase {
         await client.close()
     }
 
+    /// Audio delta with missing `delta` key — the guard-let chain bails before yielding, no inbound bytes emitted.
+    func testAudioDeltaWithMissingDeltaFieldIgnored() async {
+        let client = makeClient()
+        _ = await client.inboundAudio
+        await client.handleEvent(data: data(#"{"type":"response.output_audio.delta"}"#))
+        await client.close()
+    }
+
+    /// Audio delta with non-base64 garbage — `Data(base64Encoded:)` returns nil, guard fails, no inbound bytes.
+    func testAudioDeltaWithInvalidBase64Ignored() async {
+        let client = makeClient()
+        _ = await client.inboundAudio
+        await client.handleEvent(data: data(#"{"type":"response.output_audio.delta","delta":"not!base64**"}"#))
+        await client.close()
+    }
+
+    /// User transcription completed but transcript field is missing — guard fails, no yield.
+    func testUserTranscriptionCompletedWithoutTranscriptIgnored() async {
+        let client = makeClient()
+        _ = await client.transcript
+        await client.handleEvent(data: data(#"{"type":"conversation.item.input_audio_transcription.completed"}"#))
+        await client.close()
+    }
+
+    /// User transcription completed with empty string — same early-return.
+    func testUserTranscriptionCompletedEmptyStringIgnored() async {
+        let client = makeClient()
+        _ = await client.transcript
+        await client
+            .handleEvent(
+                data: data(#"{"type":"conversation.item.input_audio_transcription.completed","transcript":""}"#),
+            )
+        await client.close()
+    }
+
+    /// Persona transcript delta with missing `delta` — guard fails.
+    func testTranscriptDeltaWithoutFieldIgnored() async {
+        let client = makeClient()
+        _ = await client.transcript
+        await client.handleEvent(data: data(#"{"type":"response.output_audio_transcript.delta"}"#))
+        await client.close()
+    }
+
     func testMalformedJSONIgnored() async {
         let client = makeClient()
         _ = await client.inboundAudio

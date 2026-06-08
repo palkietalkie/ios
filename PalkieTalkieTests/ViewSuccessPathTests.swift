@@ -18,6 +18,28 @@ import XCTest
 /// stale `phase == .idle` branch the no-environment tests hit.
 @MainActor
 final class ViewSuccessPathTests: XCTestCase {
+    override func setUp() async throws {
+        try await super.setUp()
+        clearViewCaches()
+    }
+
+    override func tearDown() async throws {
+        // Let in-flight Task { await model.load(...) } from .task finish before tearing down — these tests host views whose .task triggers JSONCache writes; clearing too early in a full-suite run races into the next test's setUp and the resulting concurrent UserDefaults writes have caused SIGSEGV on the simulator.
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        clearViewCaches()
+        try await super.tearDown()
+    }
+
+    private func clearViewCaches() {
+        for key in [
+            "cache.profile", "cache.languages", "cache.practice_options",
+            "cache.knowledge_graph", "cache.personas", "cache.daily_content",
+            "cache.stats",
+        ] {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+    }
+
     private func makeAPI(_ transport: FakeTransport) -> BackendAPI {
         BackendAPI(
             baseURL: URL(string: "https://api.test")!,
@@ -27,15 +49,7 @@ final class ViewSuccessPathTests: XCTestCase {
     }
 
     private func host(_ view: some View, settleMs: UInt64 = 400) async {
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
-        let controller = UIHostingController(rootView: view)
-        window.rootViewController = controller
-        window.makeKeyAndVisible()
-        controller.loadViewIfNeeded()
-        controller.view.layoutIfNeeded()
-        try? await Task.sleep(nanoseconds: settleMs * 1_000_000)
-        controller.view.layoutIfNeeded()
-        window.isHidden = true
+        await TestHosting.host(view, settleMs: settleMs)
     }
 
     private func makeSessionController(api _: BackendAPI) -> SessionController {

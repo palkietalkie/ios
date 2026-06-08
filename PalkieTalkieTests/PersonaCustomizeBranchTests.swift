@@ -18,15 +18,7 @@ final class PersonaCustomizeBranchTests: XCTestCase {
     }
 
     private func host(_ view: some View, settleMs: UInt64 = 400) async {
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
-        let controller = UIHostingController(rootView: view)
-        window.rootViewController = controller
-        window.makeKeyAndVisible()
-        controller.loadViewIfNeeded()
-        controller.view.layoutIfNeeded()
-        try? await Task.sleep(nanoseconds: settleMs * 1_000_000)
-        controller.view.layoutIfNeeded()
-        window.isHidden = true
+        await TestHosting.host(view, settleMs: settleMs)
     }
 
     func testCreateModeHostsWithVoicesLoaded() async throws {
@@ -86,5 +78,86 @@ final class PersonaCustomizeBranchTests: XCTestCase {
         transport.responseData = Data("nope".utf8)
         let api = makeAPI(transport)
         await host(NavigationStack { PersonaCustomizeView(persona: nil) }.environment(\.backendAPI, api))
+    }
+
+    /// Edit mode + voices loaded + save() succeeds — drives the PATCH /personas/<id> path. We rely on the prefilled persona's `name` being non-empty so the Save button is enabled, then let the .task settle so loadVoices + prefill complete, then host long enough that any save attempt also runs.
+    func testEditModeWithSaveSuccessPath() async throws {
+        let transport = FakeTransport()
+        let voices = [VoiceDTO(id: "NATM1", label: "Marin", gender: "F", description: "")]
+        try transport.enqueue(path: "/voices", data: BackendAPI.encoder.encode(voices))
+        let returnPersona = PersonaDTO(
+            id: "p1", name: "Riley", description: "deadpan",
+            voiceId: "NATM1", role: "Comedian", age: "30s", background: "London",
+            vocabularyRegister: "Casual", conversationalStyle: "Slow. Balanced",
+            topicalPreferences: "Coffee", isPreset: false, isPublic: true,
+            isOwner: true, likeCount: 0, likedByMe: false,
+        )
+        try transport.enqueue(path: "/personas", data: BackendAPI.encoder.encode(returnPersona))
+        let api = makeAPI(transport)
+        let persona = PersonaDTO(
+            id: "p1", name: "Riley", description: "deadpan",
+            voiceId: "NATM1", role: "Comedian", age: "30s", background: "London",
+            vocabularyRegister: "Casual", conversationalStyle: "Slow. Balanced",
+            topicalPreferences: "Coffee", isPreset: false, isPublic: true,
+            isOwner: true, likeCount: 0, likedByMe: false,
+        )
+        await host(
+            NavigationStack { PersonaCustomizeView(persona: persona) }.environment(\.backendAPI, api),
+            settleMs: 800,
+        )
+    }
+
+    /// Save errors out — covers the catch branch + alert presentation.
+    func testEditModeSaveErrorHitsAlertBranch() async throws {
+        let transport = FakeTransport()
+        let voices = [VoiceDTO(id: "NATM1", label: "Marin", gender: "F", description: "")]
+        try transport.enqueue(path: "/voices", data: BackendAPI.encoder.encode(voices))
+        transport.enqueue(path: "/personas", data: Data("nope".utf8), status: 500)
+        let api = makeAPI(transport)
+        let persona = PersonaDTO(
+            id: "p2", name: "Brooke", description: "sharp",
+            voiceId: "NATM1", role: nil, age: nil, background: nil,
+            vocabularyRegister: nil, conversationalStyle: nil,
+            topicalPreferences: nil, isPreset: false, isPublic: false,
+            isOwner: true, likeCount: 0, likedByMe: false,
+        )
+        await host(
+            NavigationStack { PersonaCustomizeView(persona: persona) }.environment(\.backendAPI, api),
+            settleMs: 800,
+        )
+    }
+
+    /// Persona with conversationalStyle that ENDS with a pace token (no trailing ". ") — exercises the "remaining == pace" exact-match branch in prefill().
+    func testPrefillWithExactPaceMatch() async throws {
+        let transport = FakeTransport()
+        let voices = [VoiceDTO(id: "NATM1", label: "Marin", gender: "F", description: "")]
+        transport.responseData = try BackendAPI.encoder.encode(voices)
+        let api = makeAPI(transport)
+        let persona = PersonaDTO(
+            id: "p3", name: "Lex", description: "",
+            voiceId: "NATM1", role: nil, age: nil, background: nil,
+            vocabularyRegister: nil,
+            conversationalStyle: "Slow", // exact match, no trailing
+            topicalPreferences: nil, isPreset: false, isPublic: false,
+            isOwner: true, likeCount: 0, likedByMe: false,
+        )
+        await host(NavigationStack { PersonaCustomizeView(persona: persona) }.environment(\.backendAPI, api))
+    }
+
+    /// Persona with conversationalStyle that ENDS with a verbosity token (exact match) — exercises the "remaining == v" exact-match branch.
+    func testPrefillWithExactVerbosityMatch() async throws {
+        let transport = FakeTransport()
+        let voices = [VoiceDTO(id: "NATM1", label: "Marin", gender: "F", description: "")]
+        transport.responseData = try BackendAPI.encoder.encode(voices)
+        let api = makeAPI(transport)
+        let persona = PersonaDTO(
+            id: "p4", name: "Zara", description: "",
+            voiceId: "NATM1", role: nil, age: nil, background: nil,
+            vocabularyRegister: nil,
+            conversationalStyle: "Verbose",
+            topicalPreferences: nil, isPreset: false, isPublic: false,
+            isOwner: true, likeCount: 0, likedByMe: false,
+        )
+        await host(NavigationStack { PersonaCustomizeView(persona: persona) }.environment(\.backendAPI, api))
     }
 }

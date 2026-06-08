@@ -6,87 +6,7 @@ import SwiftUI
 private let signposter = OSSignposter(subsystem: "com.palkietalkie", category: "conversation")
 private let logger = Logger(subsystem: "com.palkietalkie", category: "conversation")
 
-/// Orchestrator and phase machine. Delegates audio, networking, persistence, and context-gathering to injectable
-/// collaborators so the controller stays unit-testable.
-protocol ContextGathering: Sendable {
-    func gather() async -> ConversationContext
-}
-
-extension ContextGatherer: ContextGathering {}
-
-/// Slice of `BackendAPI` the controller needs. Defining it as a protocol lets `SessionControllerTests` stub start / end
-/// without standing up the transport.
-protocol ConversationBackend: Sendable {
-    func startConversation(
-        personaId: String,
-        context: ConversationContext,
-        topicOverride: String?,
-    ) async throws -> StartResponse
-    func endConversation(sessionId: String) async throws -> EndResponse
-    func appendTranscript(sessionId: String, speaker: String, text: String, startedAt: Date, endedAt: Date) async throws
-    func recordColdStart(
-        durationMs: Int,
-        phaseTimings: ColdStartTimings,
-        sessionId: String,
-    ) async throws
-    func recordPitchRange(sessionId: String, minHz: Float, maxHz: Float) async throws
-    func uploadMicAudio(sessionId: String, deflatedWav: Data) async throws
-    func uploadModelAudio(sessionId: String, deflatedWav: Data) async throws
-    func getPersonas(search: String?, sort: String) async throws -> [PersonaDTO]
-    func getEntitlement() async throws -> Entitlement
-}
-
-extension BackendAPI: ConversationBackend {}
-
-/// Mic-permission seam — production calls `AudioSessionManager`; tests no-op.
-protocol MicrophonePermissionRequesting: Sendable {
-    func requestMicrophonePermission() async throws
-}
-
-struct DefaultMicrophonePermission: MicrophonePermissionRequesting {
-    func requestMicrophonePermission() async throws {
-        try await AudioSessionManager.requestMicrophonePermission()
-    }
-}
-
-/// Factory for the audio streamer. Production returns a real `AudioStreamer` and starts it; tests return a fake that
-/// records `playOutput` calls.
-protocol AudioStreamerFactory: Sendable {
-    func makeStreamer() async throws -> AudioStreamerType
-}
-
-struct DefaultAudioStreamerFactory: AudioStreamerFactory {
-    func makeStreamer() async throws -> AudioStreamerType {
-        let streamer = AudioStreamer()
-        try await streamer.start()
-        return streamer
-    }
-}
-
-/// Factory for the PersonaPlex lifecycle. Returns a session that's ready to `open(wsUrl:)`. Tests inject a fake to
-/// assert open/close flow.
-protocol PersonaPlexSessionFactory: Sendable {
-    func makeSession() -> PersonaPlexSessionType
-}
-
-struct DefaultPersonaPlexSessionFactory: PersonaPlexSessionFactory {
-    func makeSession() -> PersonaPlexSessionType {
-        PersonaPlexSession()
-    }
-}
-
-/// Factory for the OpenAI Realtime client. Separate from `PersonaPlexSessionFactory` so the orchestrator wiring stays
-/// explicit per provider.
-protocol OpenAIRealtimeClientFactory: Sendable {
-    func makeClient(instructions: String?) -> RealtimeClient
-}
-
-struct DefaultOpenAIRealtimeClientFactory: OpenAIRealtimeClientFactory {
-    func makeClient(instructions: String?) -> RealtimeClient {
-        OpenAIRealtimeClient(instructions: instructions)
-    }
-}
-
+/// Orchestrator and phase machine. Owns the conversation lifecycle: gather context → start session → connect WS → run audio loop → end. Delegates audio, networking, persistence, and context-gathering to the protocols declared in `SessionCollaborators.swift` so the controller stays unit-testable.
 @MainActor
 @Observable
 final class SessionController {
@@ -298,11 +218,10 @@ final class SessionController {
 
     func end() async {
         phase = .ending
-        // Flush any in-progress turn buffer before tearing down so the last utterance lands in transcripts. Without
-        // this, the final turn (often the AI's closing line, or whatever the user said before tapping end) is lost.
+        // Flush any in-progress turn buffer before tearing down so the last utterance lands in transcripts. Without this, the final turn (often the AI's closing line, or whatever the user said before tapping end) is lost.
         flushPendingTurn(endedAt: Date())
         let id = serverSessionId
-        let streamer = audioStreamer as? AudioStreamer
+        let streamer = audioStreamer
         if let id {
             if let streamer, let range = await streamer.pitchTracker.range() {
                 _ = try? await backend.recordPitchRange(
@@ -319,8 +238,8 @@ final class SessionController {
         phase = .idle
     }
 
-    /// Read the freshly-finalized mic wav from the AudioStreamer, deflate-compress it, POST to the backend, delete the local file. All steps best-effort; logs and continues on failure. Companion call below ships the model-output wav.
-    private func uploadMicAudioIfAny(sessionId: String, streamer: AudioStreamer) async {
+    /// Read the freshly-finalized mic wav from the streamer, deflate-compress it, POST to the backend, delete the local file. All steps best-effort; logs and continues on failure. Companion call below ships the model-output wav.
+    private func uploadMicAudioIfAny(sessionId: String, streamer: AudioStreamerType) async {
         guard let url = await streamer.recordedSessionAudioURL else { return }
         defer { try? FileManager.default.removeItem(at: url) }
         do {
@@ -336,7 +255,7 @@ final class SessionController {
     }
 
     /// Mirror of `uploadMicAudioIfAny` for the model-output wav. Independent best-effort upload so a failure on one track doesn't poison the other.
-    private func uploadModelAudioIfAny(sessionId: String, streamer: AudioStreamer) async {
+    private func uploadModelAudioIfAny(sessionId: String, streamer: AudioStreamerType) async {
         guard let url = await streamer.recordedModelAudioURL else { return }
         defer { try? FileManager.default.removeItem(at: url) }
         do {
@@ -482,7 +401,7 @@ final class SessionController {
             await openAIClient.close()
         }
         openAIClient = nil
-        if let streamer = audioStreamer as? AudioStreamer {
+        if let streamer = audioStreamer {
             await streamer.stop()
         }
         audioStreamer = nil

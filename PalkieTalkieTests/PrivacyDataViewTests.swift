@@ -27,4 +27,31 @@ final class PrivacyDataViewTests: XCTestCase {
             XCTAssertFalse(try toggle.isOn(), "expected toggles to start off (pre-server-load)")
         }
     }
+
+    /// Hosts PrivacyDataView with canned /consent so load()'s success path runs and toggles reflect server state.
+    func testHostsWithLoadedConsent() async throws {
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode(
+            ConsentDTO(personalization: true, productImprovement: true, set: true),
+        )
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        await TestHosting.host(NavigationStack { PrivacyDataView() }.environment(\.backendAPI, api), settleMs: 500)
+    }
+
+    /// /consent returns 500 — load()'s catch sets `error`, the alert flips visible. Same code path as ConsentView's error-alert but for the More-tab variant.
+    func testHostsWithLoadErrorTriggersAlertBranch() async throws {
+        let transport = FakeTransport()
+        transport.responseStatus = 500
+        transport.responseData = Data("boom".utf8)
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        await TestHosting.host(NavigationStack { PrivacyDataView() }.environment(\.backendAPI, api), settleMs: 500)
+    }
 }

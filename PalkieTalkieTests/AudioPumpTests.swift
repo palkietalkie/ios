@@ -123,5 +123,15 @@ private final class ReplayStreamer: AudioStreamerType, @unchecked Sendable {
         get async { stream }
     }
 
+    var recordedSessionAudioURL: URL? {
+        get async { nil }
+    }
+
+    var recordedModelAudioURL: URL? {
+        get async { nil }
+    }
+
+    func stop() async {}
+
     func playOutput(_: Data) async {}
 }

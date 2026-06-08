@@ -15,9 +15,21 @@ actor FakeConversationBackend: ConversationBackend {
     var startError: Error?
     var endResponse: EndResponse
     var personas: [PersonaDTO]
+    var entitlementResult: Result<Entitlement, Error> = .success(Entitlement(
+        isPremium: true,
+        freeMinutesRemainingToday: 10,
+        freeMinutesRemainingThisWeek: 30,
+        freeMinutesPerDayCap: 10,
+        freeMinutesPerWeekCap: 30,
+        premiumEndsAt: nil,
+    ))
     var startCount = 0
     var endCount = 0
     var transcriptCalls: [(sessionId: String, speaker: String, text: String)] = []
+
+    func setEntitlement(_ result: Result<Entitlement, Error>) {
+        entitlementResult = result
+    }
 
     init(
         startResponse: StartResponse,
@@ -92,25 +104,34 @@ actor FakeConversationBackend: ConversationBackend {
         sessionId _: String,
     ) async throws {}
 
-    func recordPitchRange(sessionId _: String, minHz _: Float, maxHz _: Float) async throws {}
+    nonisolated(unsafe) var pitchRangeCalls: [(String, Float, Float)] = []
+    nonisolated(unsafe) var micUploads: [(String, Int)] = []
+    nonisolated(unsafe) var modelUploads: [(String, Int)] = []
+    nonisolated(unsafe) var pitchRangeError: Error?
+    nonisolated(unsafe) var micUploadError: Error?
+    nonisolated(unsafe) var modelUploadError: Error?
 
-    func uploadMicAudio(sessionId _: String, deflatedWav _: Data) async throws {}
+    func recordPitchRange(sessionId: String, minHz: Float, maxHz: Float) async throws {
+        pitchRangeCalls.append((sessionId, minHz, maxHz))
+        if let err = pitchRangeError { throw err }
+    }
 
-    func uploadModelAudio(sessionId _: String, deflatedWav _: Data) async throws {}
+    func uploadMicAudio(sessionId: String, deflatedWav: Data) async throws {
+        micUploads.append((sessionId, deflatedWav.count))
+        if let err = micUploadError { throw err }
+    }
+
+    func uploadModelAudio(sessionId: String, deflatedWav: Data) async throws {
+        modelUploads.append((sessionId, deflatedWav.count))
+        if let err = modelUploadError { throw err }
+    }
 
     func getPersonas(search _: String?, sort _: String) async throws -> [PersonaDTO] {
         personas
     }
 
     func getEntitlement() async throws -> Entitlement {
-        Entitlement(
-            isPremium: true,
-            freeMinutesRemainingToday: 10,
-            freeMinutesRemainingThisWeek: 30,
-            freeMinutesPerDayCap: 10,
-            freeMinutesPerWeekCap: 30,
-            premiumEndsAt: nil,
-        )
+        try entitlementResult.get()
     }
 }
 
@@ -132,6 +153,10 @@ final class FakeAudioStreamer: AudioStreamerType, PCM16AudioStreamerType, @unche
     private let (stream, continuation) = AsyncStream.makeStream(of: Data.self)
     private let (pcm16Stream, pcm16Continuation) = AsyncStream.makeStream(of: Data.self)
     nonisolated let pitchTracker = PitchTracker()
+    /// URLs the test can set so end()'s upload paths run with a known wav on disk.
+    nonisolated(unsafe) var sessionAudioURL: URL?
+    nonisolated(unsafe) var modelAudioURL: URL?
+    nonisolated(unsafe) var stopCount = 0
 
     var inputChunks: AsyncStream<Data> {
         get async { stream }
@@ -139,6 +164,14 @@ final class FakeAudioStreamer: AudioStreamerType, PCM16AudioStreamerType, @unche
 
     var pcm16InputChunks: AsyncStream<Data> {
         get async { pcm16Stream }
+    }
+
+    var recordedSessionAudioURL: URL? {
+        get async { sessionAudioURL }
+    }
+
+    var recordedModelAudioURL: URL? {
+        get async { modelAudioURL }
     }
 
     func playOutput(_ opusPacket: Data) async {
@@ -151,6 +184,10 @@ final class FakeAudioStreamer: AudioStreamerType, PCM16AudioStreamerType, @unche
 
     func interruptPlayback() async {
         interruptCount += 1
+    }
+
+    func stop() async {
+        stopCount += 1
     }
 
     deinit {

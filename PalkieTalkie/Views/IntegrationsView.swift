@@ -3,36 +3,40 @@ import SwiftUI
 
 struct IntegrationsView: View {
     @Environment(\.backendAPI) private var api
-    @State private var appleCalendarGranted = EKEventStore.authorizationStatus(for: .event) == .fullAccess
-    @State private var googleConnected = false
-    @State private var outlookConnected = false
-    @State private var statusMessage: String?
-    @State private var isLoading = false
+    @State private var model: IntegrationsViewModel
+
+    init(oauth: (any OAuthStarting)? = nil) {
+        if let oauth {
+            _model = State(initialValue: IntegrationsViewModel(oauth: oauth))
+        } else {
+            _model = State(initialValue: IntegrationsViewModel())
+        }
+    }
 
     var body: some View {
         NavigationStack {
             List {
                 Section("Calendar") {
-                    Toggle(isOn: $appleCalendarGranted) {
+                    Toggle(isOn: $model.appleCalendarGranted) {
                         Label("Apple Calendar", systemImage: "calendar")
                     }
-                    .onChange(of: appleCalendarGranted) { _, newValue in
-                        if newValue { Task { await requestCalendar() } }
+                    .onChange(of: model.appleCalendarGranted) { _, newValue in
+                        if newValue { Task { await model.requestCalendar() } }
                     }
-                    Toggle(isOn: $googleConnected) {
+                    Toggle(isOn: $model.googleConnected) {
                         Label("Google Calendar", systemImage: "g.circle.fill")
                     }
-                    .onChange(of: googleConnected) { _, newValue in
-                        if newValue { Task { await connectGoogle() } }
+                    .onChange(of: model.googleConnected) { _, newValue in
+                        if newValue { Task { await model.connectGoogle(api: api) } }
                     }
-                    Toggle(isOn: $outlookConnected) {
+                    Toggle(isOn: $model.outlookConnected) {
                         Label("Outlook", systemImage: "envelope.circle.fill")
                     }
-                    .onChange(of: outlookConnected) { _, newValue in
-                        if newValue { Task { await connectOutlook() } }
+                    .onChange(of: model.outlookConnected) { _, newValue in
+                        if newValue { Task { await model.connectOutlook(api: api) } }
                     }
                 }
-                if let statusMessage {
+                if let statusMessage = model.statusMessage {
                     Section { Text(statusMessage).font(.footnote).foregroundStyle(.secondary) }
                 }
                 Section("Reminders") {
@@ -44,76 +48,10 @@ struct IntegrationsView: View {
                 }
             }
             .navigationTitle("Integrations")
-            .task { await refreshIntegrations() }
+            .task { await model.refreshIntegrations(api: api) }
             .overlay {
-                if isLoading { ProgressView().padding().background(.regularMaterial).cornerRadius(8) }
+                if model.isLoading { ProgressView().padding().background(.regularMaterial).cornerRadius(8) }
             }
-        }
-    }
-
-    private func requestCalendar() async {
-        let store = EKEventStore()
-        let granted = await (try? store.requestFullAccessToEvents()) ?? false
-        await MainActor.run { appleCalendarGranted = granted }
-    }
-
-    private func connectGoogle() async {
-        isLoading = true
-        defer { isLoading = false }
-        do {
-            let connect = try await api.connectGoogleCalendar()
-            guard let url = URL(string: connect.authUrl) else {
-                statusMessage = "Backend returned an invalid auth URL."
-                googleConnected = false
-                return
-            }
-            try await OAuthFlow.shared.start(authURL: url)
-            await refreshIntegrations()
-        } catch OAuthError.userCancelled {
-            statusMessage = "Google sign-in cancelled."
-            googleConnected = false
-        } catch let BackendError.http(code, body) where code == 503 {
-            statusMessage = "Google OAuth isn't configured on the server yet. (\(body))"
-            googleConnected = false
-        } catch {
-            statusMessage = "Couldn't connect Google: \(error.localizedDescription)"
-            googleConnected = false
-        }
-    }
-
-    private func connectOutlook() async {
-        isLoading = true
-        defer { isLoading = false }
-        do {
-            let connect = try await api.connectOutlook()
-            guard let url = URL(string: connect.authUrl) else {
-                statusMessage = "Backend returned an invalid auth URL."
-                outlookConnected = false
-                return
-            }
-            try await OAuthFlow.shared.start(authURL: url)
-            await refreshIntegrations()
-        } catch OAuthError.userCancelled {
-            statusMessage = "Outlook sign-in cancelled."
-            outlookConnected = false
-        } catch let BackendError.http(code, _) where code == 501 {
-            statusMessage = "Outlook integration coming soon."
-            outlookConnected = false
-        } catch {
-            statusMessage = "Couldn't connect Outlook: \(error.localizedDescription)"
-            outlookConnected = false
-        }
-    }
-
-    private func refreshIntegrations() async {
-        do {
-            let providers = try await api.listIntegrations()
-            await MainActor.run {
-                googleConnected = providers.first(where: { $0.provider == "google" })?.connected ?? false
-                outlookConnected = providers.first(where: { $0.provider == "outlook" })?.connected ?? false
-            }
-        } catch {
-            // Silent — connecting works without the list call succeeding.
         }
     }
 }

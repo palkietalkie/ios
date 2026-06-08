@@ -33,6 +33,31 @@ final class OpenAIRealtimeClientExtraTests: XCTestCase {
         XCTAssertNotNil(bargeIn)
     }
 
+    /// `open` rejects an empty ephemeral token — the OpenAI Realtime WS requires Bearer auth. Without this guard the WS upgrade would fail later with a less useful error.
+    func testOpenWithNilTokenThrowsMissingEphemeralToken() async {
+        let client = OpenAIRealtimeClient(instructions: nil)
+        do {
+            try await client.open(wsUrl: "wss://api.openai.com/v1/realtime", ephemeralToken: nil)
+            XCTFail("expected missingEphemeralToken")
+        } catch let OpenAIRealtimeError.missingEphemeralToken {
+            // expected
+        } catch {
+            XCTFail("unexpected error: \(error)")
+        }
+    }
+
+    func testOpenWithEmptyTokenThrowsMissingEphemeralToken() async {
+        let client = OpenAIRealtimeClient(instructions: nil)
+        do {
+            try await client.open(wsUrl: "wss://api.openai.com/v1/realtime", ephemeralToken: "")
+            XCTFail("expected missingEphemeralToken")
+        } catch let OpenAIRealtimeError.missingEphemeralToken {
+            // expected
+        } catch {
+            XCTFail("unexpected error: \(error)")
+        }
+    }
+
     func testInvalidURLOpensBoundedFailure() async {
         let client = OpenAIRealtimeClient(instructions: nil)
         do {

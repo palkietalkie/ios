@@ -70,14 +70,13 @@ jobs:
             -enableCodeCoverage YES \
             CODE_SIGNING_ALLOWED=NO
 
-      - name: Enforce line coverage on the PalkieTalkie app target
-        # Gate is 75 not 90: AudioStreamer + OAuthFlow + SubscriptionView are ~720 structurally-untestable lines (only-on-device / only-with-system-UI / only-with-StoreKit-sandbox) out of ~5000, capping unit-test coverage around 85-87. Same number in scripts/git/pre-commit. Raise as host-integration tests for those areas land.
+      - name: Enforce 90 percent line coverage on the PalkieTalkie app target
         run: |
           pct=$(xcrun xccov view --report --json TestResults.xcresult \
             | python3 -c "import json,sys; d=json.loads(sys.stdin.read()); t=next((x for x in d['targets'] if x['name'].startswith('PalkieTalkie.app') or x['name']=='PalkieTalkie'), None); print(round(t['lineCoverage']*100, 2)) if t else (print('NO_TARGET') or exit(1))")
           echo "PalkieTalkie line coverage: ${pct}%"
-          awk "BEGIN {exit !(${pct} >= 75)}" \
-            || { echo "::error::PalkieTalkie line coverage ${pct}% is below the 75% gate"; exit 1; }
+          awk "BEGIN {exit !(${pct} >= 90)}" \
+            || { echo "::error::PalkieTalkie line coverage ${pct}% is below the 90% gate"; exit 1; }
 
       - name: Upload test results
         if: always()
