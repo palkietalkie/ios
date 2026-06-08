@@ -245,7 +245,7 @@ actor PersonaPlexClient {
         if sendCount <= 3 || sendCount % 50 == 0 {
             logger
                 .info(
-                    "WS send audio frame #\(self.sendCount, privacy: .public), \(opusFrame.count + 1, privacy: .public) bytes"
+                    "WS send audio frame #\(self.sendCount, privacy: .public), \(opusFrame.count + 1, privacy: .public) bytes",
                 )
         }
         try await task.send(.data(Self.encodeAudio(opusFrame)))
@@ -280,7 +280,7 @@ actor PersonaPlexClient {
                 if frameCount <= 3 || frameCount % 50 == 0 {
                     logger
                         .info(
-                            "WS recv frame #\(frameCount, privacy: .public), type=\(String(describing: message), privacy: .public)"
+                            "WS recv frame #\(frameCount, privacy: .public), type=\(String(describing: message), privacy: .public)",
                         )
                 }
                 switch message {
@@ -297,7 +297,7 @@ actor PersonaPlexClient {
             } catch {
                 logger
                     .error(
-                        "WS recv loop exit at frame #\(frameCount, privacy: .public), error: \(String(describing: error), privacy: .public), closeCode: \(task.closeCode.rawValue, privacy: .public)"
+                        "WS recv loop exit at frame #\(frameCount, privacy: .public), error: \(String(describing: error), privacy: .public), closeCode: \(task.closeCode.rawValue, privacy: .public)",
                     )
                 break
             }
@@ -308,7 +308,9 @@ actor PersonaPlexClient {
         errorContinuation?.finish()
     }
 
-    private func dispatchFrame(_ frame: Data) {
+    /// Internal so the test bundle can feed synthetic frames at the unit-test layer. Production goes through
+    /// `readLoop()` which receives frames from the WebSocket task and forwards them here.
+    func dispatchFrame(_ frame: Data) {
         guard let parsed = Self.decodeFrame(frame) else { return }
         switch parsed {
         case .handshake:

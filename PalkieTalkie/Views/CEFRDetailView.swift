@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CEFRDetailView: View {
+    @Environment(\.backendAPI) private var api
     @State private var level: String = "B1"
     @State private var words: [CEFRWord] = []
 
@@ -24,7 +25,7 @@ struct CEFRDetailView: View {
         }
         .navigationTitle("CEFR \(level)")
         .task(id: level) {
-            words = await (try? BackendAPI.shared.getCEFRWords(level: level)) ?? []
+            words = await (try? api.getCEFRWords(level: level)) ?? []
         }
     }
 }

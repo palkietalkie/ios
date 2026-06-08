@@ -62,4 +62,7 @@ actor PersonaPlexSession: PersonaPlexSessionType, RealtimeClient {
         // moment user speech is detected, so iOS doesn't need to interrupt local playback. Return a finished stream.
         get async { AsyncStream<Void> { $0.finish() } }
     }
+
+    /// PersonaPlex's wire protocol has no text-injection channel today; the wrap-up hint is a best-effort feature, so we no-op here. SessionController still hard-ends the session at the cap regardless.
+    func injectSystemHint(_: String) async {}
 }

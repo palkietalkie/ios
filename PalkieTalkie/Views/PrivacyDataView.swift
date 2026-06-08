@@ -2,6 +2,7 @@ import SwiftUI
 
 @MainActor
 struct PrivacyDataView: View {
+    @Environment(\.backendAPI) private var api
     @State private var personalization: Bool = false
     @State private var productImprovement: Bool = false
     @State private var loaded: Bool = false
@@ -15,7 +16,7 @@ struct PrivacyDataView: View {
                     .onChange(of: personalization) { _, _ in Task { await save() } }
             } footer: {
                 Text(
-                    "Your transcripts power memory of you (knowledge graph + last-session recall + future lifetime memory). Off = every conversation starts cold."
+                    "Your transcripts power memory of you (knowledge graph + last-session recall + future lifetime memory). Off = every conversation starts cold.",
                 )
             }
             Section {
@@ -23,7 +24,7 @@ struct PrivacyDataView: View {
                     .onChange(of: productImprovement) { _, _ in Task { await save() } }
             } footer: {
                 Text(
-                    "Your conversations contribute to model + pipeline improvements (mistake detection, persona tuning, training data for our own future models). Stored under your account, never sold to third parties."
+                    "Your conversations contribute to model + pipeline improvements (mistake detection, persona tuning, training data for our own future models). Stored under your account, never sold to third parties.",
                 )
             }
             Section {
@@ -51,7 +52,7 @@ struct PrivacyDataView: View {
 
     private func load() async {
         do {
-            let current = try await BackendAPI.shared.getConsent()
+            let current = try await api.getConsent()
             personalization = current.personalization
             productImprovement = current.productImprovement
             loaded = true
@@ -65,11 +66,11 @@ struct PrivacyDataView: View {
         saving = true
         defer { saving = false }
         do {
-            _ = try await BackendAPI.shared.setConsent(
+            _ = try await api.setConsent(
                 ConsentUpdatePayload(
                     personalization: personalization,
-                    productImprovement: productImprovement
-                )
+                    productImprovement: productImprovement,
+                ),
             )
         } catch let err {
             error = err.localizedDescription

@@ -1,6 +1,8 @@
 --swiftversion 6.2
---trailing-commas never
+--trailing-commas always
 --maxwidth 120
 # os.Logger string interpolations are @autoclosure'd into Sendable closures, so instance-property refs need `self.` — swiftformat's redundantSelf would strip them and break the build.
 --self insert
 --disable redundantSelf
+# Per global house style: single-line comments stay on one line even when long. Wrapping `//` lines is harder to read and edit, and `--maxwidth` shouldn't apply to comments.
+--disable wrapSingleLineComments

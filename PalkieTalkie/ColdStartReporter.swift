@@ -15,7 +15,7 @@ enum ColdStartReporter {
         t0: Date,
         tGatherEnd: Date,
         tStartEnd: Date,
-        tConnectEnd: Date
+        tConnectEnd: Date,
     ) {
         Task.detached(priority: .background) {
             for await _ in inboundAudio {
@@ -25,12 +25,12 @@ enum ColdStartReporter {
                     gatherContextMs: Int(tGatherEnd.timeIntervalSince(t0) * 1000),
                     backendStartMs: Int(tStartEnd.timeIntervalSince(tGatherEnd) * 1000),
                     websocketConnectMs: Int(tConnectEnd.timeIntervalSince(tStartEnd) * 1000),
-                    firstAudioMs: Int(tFirstAudio.timeIntervalSince(tConnectEnd) * 1000)
+                    firstAudioMs: Int(tFirstAudio.timeIntervalSince(tConnectEnd) * 1000),
                 )
                 try? await backend.recordColdStart(
                     durationMs: total,
                     phaseTimings: timings,
-                    sessionId: sessionId
+                    sessionId: sessionId,
                 )
                 // Only the first audio chunk matters for cold-start measurement; we exit after one report so the task
                 // doesn't sit forever waiting for the stream to end.

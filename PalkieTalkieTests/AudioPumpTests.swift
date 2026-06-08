@@ -33,7 +33,7 @@ final class AudioPumpTests: XCTestCase {
         XCTAssertEqual(
             afterHandshake,
             [Data([0xAA]), Data([0xBB])],
-            "pump should forward all queued frames once handshake signaled"
+            "pump should forward all queued frames once handshake signaled",
         )
 
         await pump.stop()
@@ -100,6 +100,8 @@ private actor HandshakeGatedSession: PersonaPlexSessionType {
     nonisolated var bargeIn: AsyncStream<Void> {
         get async { AsyncStream { $0.finish() } }
     }
+
+    func injectSystemHint(_: String) async {}
 }
 
 /// Streamer that yields a fixed list of frames then finishes.
@@ -115,9 +117,21 @@ private final class ReplayStreamer: AudioStreamerType, @unchecked Sendable {
         }
     }
 
+    nonisolated let pitchTracker = PitchTracker()
+
     var inputChunks: AsyncStream<Data> {
         get async { stream }
     }
+
+    var recordedSessionAudioURL: URL? {
+        get async { nil }
+    }
+
+    var recordedModelAudioURL: URL? {
+        get async { nil }
+    }
+
+    func stop() async {}
 
     func playOutput(_: Data) async {}
 }

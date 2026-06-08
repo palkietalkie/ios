@@ -15,9 +15,21 @@ actor FakeConversationBackend: ConversationBackend {
     var startError: Error?
     var endResponse: EndResponse
     var personas: [PersonaDTO]
+    var entitlementResult: Result<Entitlement, Error> = .success(Entitlement(
+        isPremium: true,
+        freeMinutesRemainingToday: 10,
+        freeMinutesRemainingThisWeek: 30,
+        freeMinutesPerDayCap: 10,
+        freeMinutesPerWeekCap: 30,
+        premiumEndsAt: nil,
+    ))
     var startCount = 0
     var endCount = 0
     var transcriptCalls: [(sessionId: String, speaker: String, text: String)] = []
+
+    func setEntitlement(_ result: Result<Entitlement, Error>) {
+        entitlementResult = result
+    }
 
     init(
         startResponse: StartResponse,
@@ -39,9 +51,9 @@ actor FakeConversationBackend: ConversationBackend {
                 isPublic: true,
                 isOwner: false,
                 likeCount: 0,
-                likedByMe: false
-            )
-        ]
+                likedByMe: false,
+            ),
+        ],
     ) {
         self.startResponse = startResponse
         self.endResponse = endResponse
@@ -59,7 +71,7 @@ actor FakeConversationBackend: ConversationBackend {
     func startConversation(
         personaId: String,
         context _: ConversationContext,
-        topicOverride _: String?
+        topicOverride _: String?,
     ) async throws -> StartResponse {
         startCount += 1
         startPersonaIds.append(personaId)
@@ -81,7 +93,7 @@ actor FakeConversationBackend: ConversationBackend {
         speaker: String,
         text: String,
         startedAt _: Date,
-        endedAt _: Date
+        endedAt _: Date,
     ) async throws {
         transcriptCalls.append((sessionId, speaker, text))
     }
@@ -89,11 +101,37 @@ actor FakeConversationBackend: ConversationBackend {
     func recordColdStart(
         durationMs _: Int,
         phaseTimings _: ColdStartTimings,
-        sessionId _: String
+        sessionId _: String,
     ) async throws {}
+
+    nonisolated(unsafe) var pitchRangeCalls: [(String, Float, Float)] = []
+    nonisolated(unsafe) var micUploads: [(String, Int)] = []
+    nonisolated(unsafe) var modelUploads: [(String, Int)] = []
+    nonisolated(unsafe) var pitchRangeError: Error?
+    nonisolated(unsafe) var micUploadError: Error?
+    nonisolated(unsafe) var modelUploadError: Error?
+
+    func recordPitchRange(sessionId: String, minHz: Float, maxHz: Float) async throws {
+        pitchRangeCalls.append((sessionId, minHz, maxHz))
+        if let err = pitchRangeError { throw err }
+    }
+
+    func uploadMicAudio(sessionId: String, deflatedWav: Data) async throws {
+        micUploads.append((sessionId, deflatedWav.count))
+        if let err = micUploadError { throw err }
+    }
+
+    func uploadModelAudio(sessionId: String, deflatedWav: Data) async throws {
+        modelUploads.append((sessionId, deflatedWav.count))
+        if let err = modelUploadError { throw err }
+    }
 
     func getPersonas(search _: String?, sort _: String) async throws -> [PersonaDTO] {
         personas
+    }
+
+    func getEntitlement() async throws -> Entitlement {
+        try entitlementResult.get()
     }
 }
 
@@ -106,21 +144,55 @@ struct StubMicPermission: MicrophonePermissionRequesting {
     }
 }
 
-/// Fake AudioStreamer that doesn't touch AVAudioEngine.
-final class FakeAudioStreamer: AudioStreamerType, @unchecked Sendable {
+/// Fake AudioStreamer that doesn't touch AVAudioEngine. Conforms to both AudioStreamerType (PersonaPlex / Opus path)
+/// and PCM16AudioStreamerType (OpenAI path) so tests can drive either provider's audio pump branch.
+final class FakeAudioStreamer: AudioStreamerType, PCM16AudioStreamerType, @unchecked Sendable {
     nonisolated(unsafe) var played: [Data] = []
+    nonisolated(unsafe) var playedPCM16: [Data] = []
+    nonisolated(unsafe) var interruptCount = 0
     private let (stream, continuation) = AsyncStream.makeStream(of: Data.self)
+    private let (pcm16Stream, pcm16Continuation) = AsyncStream.makeStream(of: Data.self)
+    nonisolated let pitchTracker = PitchTracker()
+    /// URLs the test can set so end()'s upload paths run with a known wav on disk.
+    nonisolated(unsafe) var sessionAudioURL: URL?
+    nonisolated(unsafe) var modelAudioURL: URL?
+    nonisolated(unsafe) var stopCount = 0
 
     var inputChunks: AsyncStream<Data> {
         get async { stream }
+    }
+
+    var pcm16InputChunks: AsyncStream<Data> {
+        get async { pcm16Stream }
+    }
+
+    var recordedSessionAudioURL: URL? {
+        get async { sessionAudioURL }
+    }
+
+    var recordedModelAudioURL: URL? {
+        get async { modelAudioURL }
     }
 
     func playOutput(_ opusPacket: Data) async {
         played.append(opusPacket)
     }
 
+    func playPCM16(_ pcm16Bytes: Data) async {
+        playedPCM16.append(pcm16Bytes)
+    }
+
+    func interruptPlayback() async {
+        interruptCount += 1
+    }
+
+    func stop() async {
+        stopCount += 1
+    }
+
     deinit {
         continuation.finish()
+        pcm16Continuation.finish()
     }
 }
 
@@ -180,6 +252,8 @@ actor FakePersonaPlexSession: PersonaPlexSessionType {
         get async { AsyncStream { $0.finish() } }
     }
 
+    func injectSystemHint(_: String) async {}
+
     func emit(transcript chunk: TranscriptChunk) {
         transcriptCont.yield(chunk)
     }
@@ -212,7 +286,7 @@ final class SessionControllerTests: XCTestCase {
         backend: FakeConversationBackend? = nil,
         session: FakePersonaPlexSession = FakePersonaPlexSession(),
         streamer: FakeAudioStreamer = FakeAudioStreamer(),
-        micThrows: Bool = false
+        micThrows: Bool = false,
     ) -> SessionControllerRig {
         let backend = backend ?? FakeConversationBackend(
             startResponse: StartResponse(
@@ -221,16 +295,16 @@ final class SessionControllerTests: XCTestCase {
                 voiceId: "v1",
                 wsUrl: "wss://test",
                 provider: "personaplex",
-                ephemeralToken: nil
+                ephemeralToken: nil,
             ),
-            endResponse: EndResponse(sessionId: "srv-1", durationSeconds: 10)
+            endResponse: EndResponse(sessionId: "srv-1", durationSeconds: 10),
         )
         let controller = SessionController(
             context: FakeContextGatherer(context: makeContext()),
             backend: backend,
             micPermission: StubMicPermission(shouldThrow: micThrows),
             streamerFactory: StubAudioStreamerFactory(streamer: streamer),
-            sessionFactory: StubSessionFactory(session: session)
+            sessionFactory: StubSessionFactory(session: session),
         )
         return SessionControllerRig(controller: controller, backend: backend, session: session, streamer: streamer)
     }
@@ -244,7 +318,7 @@ final class SessionControllerTests: XCTestCase {
             city: nil,
             weatherDescription: nil,
             temperatureC: nil,
-            calendarEvents: []
+            calendarEvents: [],
         )
     }
 
@@ -275,10 +349,10 @@ final class SessionControllerTests: XCTestCase {
         let backend = FakeConversationBackend(
             startResponse: StartResponse(
                 sessionId: "x", textPrompt: "", voiceId: "", wsUrl: "",
-                provider: "personaplex", ephemeralToken: nil
+                provider: "personaplex", ephemeralToken: nil,
             ),
             endResponse: EndResponse(sessionId: "x", durationSeconds: 0),
-            startError: BackendError.notAuthenticated(reason: "test")
+            startError: BackendError.notAuthenticated(reason: "test"),
         )
         let rig = makeController(backend: backend)
         await rig.controller.start()
@@ -300,7 +374,7 @@ final class SessionControllerTests: XCTestCase {
                 voiceId: "v1",
                 wsUrl: "wss://test",
                 provider: "personaplex",
-                ephemeralToken: nil
+                ephemeralToken: nil,
             ),
             endResponse: EndResponse(sessionId: "srv-1", durationSeconds: 0),
             personas: [
@@ -311,9 +385,9 @@ final class SessionControllerTests: XCTestCase {
                     role: nil, age: nil, background: nil,
                     vocabularyRegister: nil, conversationalStyle: nil, topicalPreferences: nil,
                     isPreset: true, isPublic: true, isOwner: false,
-                    likeCount: 0, likedByMe: false
-                )
-            ]
+                    likeCount: 0, likedByMe: false,
+                ),
+            ],
         )
         await backend.setStartErrorOnce(BackendError.http(404, "persona not found"))
         let rig = makeController(backend: backend)
@@ -342,7 +416,7 @@ final class SessionControllerTests: XCTestCase {
             TranscriptChunk(speaker: .persona, text: "Wes,", timestamp: now.addingTimeInterval(0.1)),
             TranscriptChunk(speaker: .persona, text: " how are you?", timestamp: now.addingTimeInterval(0.2)),
             // Speaker switch → flushes the persona turn.
-            TranscriptChunk(speaker: .user, text: "good thanks", timestamp: now.addingTimeInterval(1.0))
+            TranscriptChunk(speaker: .user, text: "good thanks", timestamp: now.addingTimeInterval(1.0)),
         ]
         for chunk in chunks {
             await rig.session.emit(transcript: chunk)
@@ -370,9 +444,9 @@ final class SessionControllerTests: XCTestCase {
                 voiceId: "",
                 wsUrl: "wss://test",
                 provider: "personaplex",
-                ephemeralToken: nil
+                ephemeralToken: nil,
             ),
-            endResponse: EndResponse(sessionId: "srv-2", durationSeconds: 0)
+            endResponse: EndResponse(sessionId: "srv-2", durationSeconds: 0),
         )
         let rig = makeController(backend: backend)
         await rig.controller.start()

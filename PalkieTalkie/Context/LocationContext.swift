@@ -1,5 +1,6 @@
 import CoreLocation
 import Foundation
+@preconcurrency import MapKit
 
 /// Minimal location info this app cares about. Decoupled from CLLocation so tests can construct fixtures without
 /// CoreLocation initializing real hardware.
@@ -15,23 +16,30 @@ protocol LocationProviding: Sendable {
     func reverseGeocode(_ fix: LocationFix) async -> String?
 }
 
-/// Production implementation backed by CLLocationManager + CLGeocoder.
+/// Production implementation backed by CLLocationManager + MKReverseGeocodingRequest (CLGeocoder is deprecated as of iOS 26).
 actor LocationContext: LocationProviding {
     private let delegate = LocationDelegate()
-    private let geocoder = CLGeocoder()
 
     func requestOnce() async -> LocationFix? {
         guard let location = await delegate.requestOnce() else { return nil }
         return LocationFix(
             latitude: location.coordinate.latitude,
-            longitude: location.coordinate.longitude
+            longitude: location.coordinate.longitude,
         )
     }
 
     func reverseGeocode(_ fix: LocationFix) async -> String? {
         let location = CLLocation(latitude: fix.latitude, longitude: fix.longitude)
-        let placemarks = try? await geocoder.reverseGeocodeLocation(location)
-        return placemarks?.first?.locality ?? placemarks?.first?.administrativeArea
+        return await Self.performReverseGeocode(location)
+    }
+
+    /// Nonisolated so MKReverseGeocodingRequest (non-Sendable) doesn't cross the actor boundary.
+    private nonisolated static func performReverseGeocode(_ location: CLLocation) async -> String? {
+        guard let request = MKReverseGeocodingRequest(location: location) else { return nil }
+        let mapItems = try? await request.mapItems
+        guard let shortAddress = mapItems?.first?.address?.shortAddress else { return nil }
+        // iOS 26 MKAddress.shortAddress format is "City, Region" — take the locality portion.
+        return shortAddress.components(separatedBy: ",").first?.trimmingCharacters(in: .whitespaces)
     }
 }
 

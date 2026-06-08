@@ -2,7 +2,10 @@ import SwiftUI
 
 @MainActor
 struct HistoryView: View {
-    @State private var sessions: [SessionSummary] = []
+    private static let cacheKey = "cache.sessions"
+    @Environment(\.backendAPI) private var api
+    @State private var sessions: [SessionSummary] = JSONCache
+        .load([SessionSummary].self, key: HistoryView.cacheKey) ?? []
     @State private var loadError: String?
 
     var body: some View {
@@ -40,7 +43,9 @@ struct HistoryView: View {
 
     private func load() async {
         do {
-            sessions = try await BackendAPI.shared.getSessions()
+            let fresh = try await api.getSessions()
+            sessions = fresh
+            JSONCache.save(fresh, key: Self.cacheKey)
         } catch {
             loadError = error.localizedDescription
         }

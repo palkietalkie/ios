@@ -30,7 +30,7 @@ actor WeatherContext {
             let decoded = try JSONDecoder().decode(OpenMeteoResponse.self, from: data)
             return WeatherReading(
                 description: Self.weatherCodeDescription(decoded.current.weatherCode),
-                temperatureC: decoded.current.temperature2m
+                temperatureC: decoded.current.temperature2m,
             )
         } catch {
             return nil

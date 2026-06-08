@@ -5,6 +5,14 @@ set -e
 
 cd "$(git rev-parse --show-toplevel)"
 
+# Refuse `git commit <pathspec>`. When git assembles a partial commit from a working-tree pathspec, it routes the hook through a temp index (e.g. `.git/next-index-12345`) instead of `.git/index`. That bypasses whatever was staged AND quietly picks up unstaged hunks in the named files — a footgun in multi-session workflows.
+if [ -n "$GIT_INDEX_FILE" ] && [ "$(basename "$GIT_INDEX_FILE")" != "index" ]; then
+	echo "pre-commit: REFUSED — 'git commit <pathspec>' detected (GIT_INDEX_FILE=$GIT_INDEX_FILE)." >&2
+	echo "  This snapshots the working tree of those paths and bypasses the staging boundary." >&2
+	echo "  Stage explicitly then commit:  git add <files> && git commit -m '...'" >&2
+	exit 1
+fi
+
 # Block direct commits to main — feature work always lives on a branch.
 CURRENT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
 if [ "$CURRENT_BRANCH" = "main" ]; then
@@ -89,13 +97,35 @@ if echo "$STAGED" | grep -qx "project.yml"; then
 	xcodegen generate
 fi
 
-# Build sanity check if any Swift file or project.yml is staged.
+# Build sanity check + tests with the same 90 percent line-coverage gate CI enforces — if any Swift file or project.yml is staged. Adds ~30-60s to commits (sim boot + xctest run) but matches the CI floor so we never push a PR that's about to fail there.
 if echo "$STAGED" | grep -qE "(\.swift$|^project\.yml$)"; then
 	require xcodebuild "install Xcode"
-	echo "[pre-commit] xcodebuild..."
+	echo "[pre-commit] xcodebuild test with code coverage..."
+	# xcodebuild refuses to overwrite an existing result bundle. If a prior commit attempt crashed before the cleanup at the bottom of this block ran, the bundle lingers. Clean before AND after.
+	rm -rf /tmp/PalkieTalkiePreCommit.xcresult
 	xcodebuild \
 		-project PalkieTalkie.xcodeproj \
 		-scheme PalkieTalkie \
-		-destination 'generic/platform=iOS Simulator' \
-		build -quiet
+		-destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
+		-resultBundlePath /tmp/PalkieTalkiePreCommit.xcresult \
+		-enableCodeCoverage YES \
+		CODE_SIGNING_ALLOWED=NO \
+		test -quiet
+	echo "[pre-commit] enforcing 90 percent line coverage on PalkieTalkie target..."
+	pct=$(xcrun xccov view --report --json /tmp/PalkieTalkiePreCommit.xcresult \
+		| python3 -c "import json,sys; d=json.loads(sys.stdin.read()); t=next((x for x in d['targets'] if x['name'].startswith('PalkieTalkie.app') or x['name']=='PalkieTalkie'), None); print(round(t['lineCoverage']*100, 2)) if t else (print('NO_TARGET') or exit(1))")
+	echo "[pre-commit] line coverage: ${pct}%"
+	rm -rf /tmp/PalkieTalkiePreCommit.xcresult
+	awk "BEGIN {exit !(${pct} >= 90)}" || {
+		echo "[pre-commit] line coverage ${pct}% is below the 90% gate" >&2
+		exit 1
+	}
+fi
+
+# Full end-to-end: deploy backend + Modal to dev, install on connected iPhone, start local website.
+# Lives at the parent dir (multi-repo container). Skip the deploy half so commits don't push to dev infra every time; iOS install only.
+BOOT_SH="$(git rev-parse --show-toplevel)/../scripts/boot.sh"
+if [ -x "$BOOT_SH" ]; then
+	echo "[pre-commit] boot.sh --no-deploy --no-ios=0 (install on iPhone)"
+	"$BOOT_SH" --no-deploy
 fi

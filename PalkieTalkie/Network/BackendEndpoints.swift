@@ -6,7 +6,7 @@ extension BackendAPI {
     func startConversation(
         personaId: String,
         context: ConversationContext,
-        topicOverride: String? = nil
+        topicOverride: String? = nil,
     ) async throws -> StartResponse {
         // Backend's StartRequest accepts persona_id, lat, lon, topic_override.
         // Other ConversationContext fields (timezone, city, weather, calendar) are re-derived server-side from the
@@ -23,8 +23,8 @@ extension BackendAPI {
                 personaId: personaId,
                 lat: context.lat,
                 lon: context.lon,
-                topicOverride: topicOverride
-            )
+                topicOverride: topicOverride,
+            ),
         )
     }
 
@@ -45,7 +45,7 @@ extension BackendAPI {
         speaker: String,
         text: String,
         startedAt: Date,
-        endedAt: Date
+        endedAt: Date,
     ) async throws {
         let body = TranscriptAppend(speaker: speaker, text: text, startedAt: startedAt, endedAt: endedAt)
         let _: EmptyResponse = try await post("/conversation/\(sessionId)/transcript", body: body)
@@ -85,6 +85,14 @@ extension BackendAPI {
         try await get("/voices")
     }
 
+    func getLanguages() async throws -> [LanguageDTO] {
+        try await get("/languages")
+    }
+
+    func getPracticeOptions() async throws -> PracticeOptionsDTO {
+        try await get("/profile/practice-options")
+    }
+
     func getConsent() async throws -> ConsentDTO {
         try await get("/consent")
     }
@@ -113,8 +121,20 @@ extension BackendAPI {
         try await get("/entitlement")
     }
 
-    func getTalkAboutToday() async throws -> [TalkPrompt] {
-        try await get("/content/today")
+    func getTalkAboutToday() async throws -> [TalkSection] {
+        let payload: DailyContentDTO = try await get("/content/today")
+        return payload.sections.map { raw in
+            let items = raw.items.enumerated().map { idx, item in
+                TalkItem(
+                    id: "\(raw.topic)-\(idx)-\(item.title)",
+                    title: item.title,
+                    summary: item.summary,
+                    source: item.source,
+                    imageUrl: item.imageUrl,
+                )
+            }
+            return TalkSection(topic: raw.topic, items: items)
+        }
     }
 
     func getKG() async throws -> [KGEntityDTO] {
@@ -138,7 +158,7 @@ extension BackendAPI {
     func recordColdStart(
         durationMs: Int,
         phaseTimings: ColdStartTimings,
-        sessionId: String
+        sessionId: String,
     ) async throws {
         struct Props: Codable {
             let durationMs: Int
@@ -156,9 +176,28 @@ extension BackendAPI {
                 props: Props(
                     durationMs: durationMs,
                     phaseTimings: phaseTimings,
-                    sessionId: sessionId
-                )
-            )
+                    sessionId: sessionId,
+                ),
+            ),
+        )
+    }
+
+    func recordPitchRange(sessionId: String, minHz: Float, maxHz: Float) async throws {
+        struct Props: Codable {
+            let sessionId: String
+            let minHz: Float
+            let maxHz: Float
+        }
+        struct Body: Codable {
+            let eventType: String
+            let props: Props
+        }
+        let _: EmptyResponse = try await post(
+            "/events",
+            body: Body(
+                eventType: "pitch_range",
+                props: Props(sessionId: sessionId, minHz: minHz, maxHz: maxHz),
+            ),
         )
     }
 
@@ -174,6 +213,25 @@ extension BackendAPI {
     func connectOutlook() async throws -> OAuthConnectURL {
         struct Empty: Codable {}
         return try await post("/integrations/outlook/connect", body: Empty())
+    }
+
+    /// Upload the deflate-compressed wav of the iOS MIC recording (post-acoustic-echo-cancellation user-side audio). The paired `uploadModelAudio` ships the AI's raw output for the same session.
+    func uploadMicAudio(sessionId: String, deflatedWav: Data) async throws {
+        // Content type is "audio/wav+deflate" (raw DEFLATE), NOT "audio/wav+gzip". Apple's `NSData.compressed(using: .zlib)` produces a raw deflate stream with no gzip header or trailer; mislabelling broke the backend's decoder.
+        try await postRaw(
+            "/conversation/\(sessionId)/audio/mic",
+            body: deflatedWav,
+            contentType: "audio/wav+deflate",
+        )
+    }
+
+    /// Upload the AI's raw PCM16 output (deflate-compressed wav) — what arrived from OpenAI Realtime *before* iOS played it through the speaker. Lets us tell whether audio truncation like "Wes" → "We" happens in iOS playback or in the model's stream.
+    func uploadModelAudio(sessionId: String, deflatedWav: Data) async throws {
+        try await postRaw(
+            "/conversation/\(sessionId)/audio/model",
+            body: deflatedWav,
+            contentType: "audio/wav+deflate",
+        )
     }
 }
 

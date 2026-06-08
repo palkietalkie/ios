@@ -3,40 +3,67 @@ import SwiftUI
 
 @MainActor
 struct ProfileView: View {
-    @State private var email: String = ""
-    @State private var displayName: String = ""
-    @State private var namePronunciation: String = ""
-    @State private var nativeLanguage: String = ""
-    @State private var targetAccent: String = ""
-    @State private var goals: String = ""
-    @State private var knowledgeGraph: [KGEntityDTO] = []
-    @State private var saveError: String?
-    @State private var loaded: Bool = false
+    @Environment(\.backendAPI) private var api
+    @Environment(\.authing) private var auth
+    @State private var model = ProfileViewModel()
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Profile") {
                     LabeledContent("Email") {
-                        Text(email.isEmpty
+                        Text(model.email.isEmpty
                             ? (Clerk.shared.user?.primaryEmailAddress?.emailAddress ?? "—")
-                            : email)
+                            : model.email)
                     }
-                    TextField("Display name", text: $displayName)
-                    TextField("Name pronunciation (e.g. WESS, NEE-shee-oh)", text: $namePronunciation)
-                    TextField("Native language", text: $nativeLanguage)
-                    TextField("Target accent", text: $targetAccent)
-                    TextField("Goals", text: $goals, axis: .vertical)
+                    LabeledContent("Preferred name") {
+                        TextField("e.g. Wes", text: $model.displayName)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    LabeledContent("Pronunciation") {
+                        TextField("e.g. WESS", text: $model.namePronunciation)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    // Distinct sub-row so the user can clearly tell this is a SUGGESTION (not the stored value) and tap to accept. Ghost-text placeholder reads identically to a real value to most users.
+                    if model.namePronunciation.isEmpty, !model.pronunciationSuggestion.isEmpty {
+                        Button {
+                            model.namePronunciation = model.pronunciationSuggestion
+                        } label: {
+                            HStack {
+                                Text("Suggested:").foregroundStyle(.secondary)
+                                Text(model.pronunciationSuggestion).bold()
+                                Spacer()
+                                Text("Tap to use").font(.caption).foregroundStyle(.tint)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    NavigationLink {
+                        MultiLanguagePicker(
+                            languages: model.languages,
+                            selection: $model.nativeLanguages,
+                            title: "Native languages",
+                        )
+                    } label: {
+                        LabeledContent("Native languages") {
+                            Text(model.nativeLanguages.isEmpty
+                                ? String(localized: "Choose…")
+                                : model.nativeLanguages.sorted().joined(separator: ", "))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
                 }
                 Section("Knowledge Graph (read-only)") {
-                    if knowledgeGraph.isEmpty {
+                    if model.knowledgeGraph.isEmpty {
                         Text(
-                            "No entities yet. As you talk, the AI starts recognizing the people, places, and projects."
+                            "No entities yet. As you talk, the AI starts recognizing the people, places, and projects.",
                         )
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     } else {
-                        ForEach(knowledgeGraph, id: \.id) { entity in
+                        ForEach(model.knowledgeGraph, id: \.id) { entity in
                             VStack(alignment: .leading) {
                                 Text(entity.name).font(.headline)
                                 Text(entity.type.capitalized).font(.caption).foregroundStyle(.secondary)
@@ -47,61 +74,45 @@ struct ProfileView: View {
                         }
                     }
                 }
-                Section("History") {
-                    NavigationLink("Past conversations") { HistoryView() }
-                }
                 Section {
-                    Button("Save changes") {
-                        Task { await save() }
+                    Button {
+                        Task { await model.save(api: api) }
+                    } label: {
+                        HStack {
+                            if model.saving {
+                                ProgressView().controlSize(.small)
+                            }
+                            Text(model.saving ? "Saving…" : "Save changes")
+                            Spacer()
+                            if let savedAt = model.savedAt, Date().timeIntervalSince(savedAt) < 3 {
+                                Label("Saved", systemImage: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                                    .labelStyle(.iconOnly)
+                                    .transition(.opacity)
+                            }
+                        }
+                        // View-side animation. The VM stays SwiftUI-agnostic (no withAnimation call) so it's safe to instantiate + drive from XCTest without going through SwiftUI's animation runtime — that runtime crashes when invoked outside a real render context.
+                        .animation(.default, value: model.savedAt)
                     }
-                    .disabled(!loaded)
-                    if let saveError {
+                    .disabled(!model.loaded || model.saving)
+                    if let saveError = model.saveError {
                         Text(saveError).font(.footnote).foregroundStyle(.red).textSelection(.enabled)
                     }
                 }
                 Section {
                     Button("Sign out", role: .destructive) {
-                        Task { await ClerkAuth.shared.signOut() }
+                        let auth = auth
+                        Task { await auth.signOut() }
                     }
                 }
             }
             .navigationTitle("Profile")
-            .task { await load() }
-            .refreshable { await load() }
-        }
-    }
-
-    private func load() async {
-        do {
-            let profile = try await BackendAPI.shared.getProfile()
-            email = profile.email ?? ""
-            displayName = profile.displayName ?? ""
-            namePronunciation = profile.namePronunciation ?? ""
-            nativeLanguage = profile.nativeLanguage ?? ""
-            targetAccent = profile.targetAccent ?? ""
-            goals = profile.goals ?? ""
-            loaded = true
-        } catch {
-            saveError = error.localizedDescription
-        }
-        knowledgeGraph = await (try? BackendAPI.shared.getKG()) ?? []
-    }
-
-    private func save() async {
-        let update = ProfileUpdate(
-            displayName: displayName.isEmpty ? nil : displayName,
-            namePronunciation: namePronunciation.isEmpty ? nil : namePronunciation,
-            nativeLanguage: nativeLanguage.isEmpty ? nil : nativeLanguage,
-            targetAccent: targetAccent.isEmpty ? nil : targetAccent,
-            goals: goals.isEmpty ? nil : goals,
-            locationCity: nil,
-            timezone: TimeZone.current.identifier
-        )
-        do {
-            _ = try await BackendAPI.shared.updateProfile(update)
-            saveError = nil
-        } catch {
-            saveError = error.localizedDescription
+            .task {
+                guard !model.didInitialLoad else { return }
+                model.didInitialLoad = true
+                await model.load(api: api)
+            }
+            .refreshable { await model.load(api: api) }
         }
     }
 }

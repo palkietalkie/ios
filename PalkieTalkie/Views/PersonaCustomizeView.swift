@@ -1,107 +1,121 @@
 import SwiftUI
 
-private let vocabularyOptions: [String] = [
-    "Casual",
-    "Professional",
-    "Slang-heavy",
-    "Domain-specific"
-]
-
-private let conversationalStyleOptions: [String] = [
-    "Fast and punchy",
-    "Slow and deliberate",
-    "Mixed pace",
-    "Verbose",
-    "Terse"
-]
-
 @MainActor
 struct PersonaCustomizeView: View {
-    let persona: PersonaDTO?
+    @Environment(\.backendAPI) private var api
     @Environment(\.dismiss) private var dismiss
-    @State private var name: String = ""
-    @State private var personaDescription: String = ""
-    @State private var voiceId: String = "NATM1"
-    @State private var role: String = ""
-    @State private var age: String = ""
-    @State private var background: String = ""
-    @State private var vocabularyChoice: String = ""
-    @State private var vocabularyCustom: String = ""
-    @State private var conversationalChoice: String = ""
-    @State private var conversationalCustom: String = ""
-    @State private var topicalPreferences: String = ""
-    @State private var isPublic: Bool = false
-    @State private var voices: [VoiceDTO] = []
-    @State private var saving: Bool = false
-    @State private var saveError: String?
+    @State private var model: PersonaCustomizeViewModel
+    @State private var preview = VoicePreviewPlayer()
 
-    private var vocabularyResolved: String {
-        let pieces = [vocabularyChoice, vocabularyCustom].filter { !$0.isEmpty }
-        return pieces.joined(separator: ". ")
+    init(persona: PersonaDTO?) {
+        _model = State(initialValue: PersonaCustomizeViewModel(persona: persona))
     }
 
-    private var conversationalResolved: String {
-        let pieces = [conversationalChoice, conversationalCustom].filter { !$0.isEmpty }
-        return pieces.joined(separator: ". ")
+    @ViewBuilder
+    private func voiceRow(_ voice: VoiceDTO) -> some View {
+        let isSelected = model.voiceId == voice.id
+        let hasPreview = VoicePreviewPlayer.hasPreview(voice.id)
+        let isPlaying = preview.nowPlaying == voice.id
+        HStack {
+            Button {
+                model.voiceId = voice.id
+            } label: {
+                HStack {
+                    Text(voice.label)
+                    Spacer(minLength: 8)
+                    if isSelected {
+                        Image(systemName: "checkmark").foregroundStyle(.tint)
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            if hasPreview {
+                Button {
+                    if isPlaying {
+                        preview.stop()
+                    } else {
+                        preview.play(voiceId: voice.id)
+                    }
+                } label: {
+                    Image(systemName: isPlaying ? "stop.fill" : "play.fill")
+                        .imageScale(.large)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel(isPlaying ? "Stop preview" : "Play preview")
+            } else {
+                Text("—")
+                    .foregroundStyle(.secondary)
+                    .accessibilityLabel("Preview unavailable")
+            }
+        }
     }
 
     var body: some View {
         Form {
             Section {
-                TextField("e.g. Jimmy Carr", text: $name)
+                TextField("e.g. Riley", text: $model.name)
             } header: {
                 Text("Name")
+            } footer: {
+                Text("Shown in your persona library and used as the character's name in conversation.")
             }
             Section {
-                TextField("One-liner about the character", text: $personaDescription, axis: .vertical)
+                TextField("One-liner shown in your library", text: $model.personaDescription, axis: .vertical)
                     .lineLimit(2 ... 4)
             } header: {
-                Text("Description")
+                Text("Tagline")
+            } footer: {
+                Text("Library preview text. Not sent to the AI.")
             }
             Section {
-                if voices.isEmpty {
+                if model.voices.isEmpty {
                     ProgressView()
                 } else {
-                    Picker("Voice", selection: $voiceId) {
-                        ForEach(voices) { voice in
-                            Text("\(voice.id) — \(voice.label)").tag(voice.id)
-                        }
+                    ForEach(model.voices) { voice in
+                        voiceRow(voice)
                     }
                 }
             } header: {
                 Text("Voice")
+            } footer: {
+                Text("Tap a row to select. Tap ▶ to preview.")
             }
             Section {
-                TextField("e.g. A dry, deadpan British observational comedian.", text: $role, axis: .vertical)
+                TextField("e.g. A dry, deadpan British observational comedian.", text: $model.role, axis: .vertical)
                     .lineLimit(2 ... 4)
             } header: {
                 Text("Role")
             } footer: {
-                Text("Who they are. The basic identity the AI inhabits.")
+                Text("Their function or relationship to you (coach, friend, prosecutor). Goes into the prompt.")
             }
             Section {
-                TextField("e.g. Late 20s, 40s, 70s", text: $age)
+                TextField("e.g. Late 20s, 40s, 70s", text: $model.age)
             } header: {
                 Text("Age")
             } footer: {
                 Text("Drives pacing and word choice indirectly. Free text.")
             }
             Section {
-                TextField("e.g. Lives in SF, works at an early-stage startup.", text: $background, axis: .vertical)
-                    .lineLimit(2 ... 4)
+                TextField(
+                    "e.g. Lives in SF, works at an early-stage startup.",
+                    text: $model.background,
+                    axis: .vertical,
+                )
+                .lineLimit(2 ... 4)
             } header: {
-                Text("Background")
+                Text("Backstory")
             } footer: {
-                Text("Where they're from, what they do, what shapes how they see things.")
+                Text("Their life context — where they're from, what they've done. Shapes how they think.")
             }
             Section {
-                Picker("Style", selection: $vocabularyChoice) {
+                Picker("Style", selection: $model.vocabularyChoice) {
                     Text("None").tag("")
-                    ForEach(vocabularyOptions, id: \.self) { option in
+                    ForEach(PersonaCustomizeViewModel.vocabularyOptions, id: \.self) { option in
                         Text(option).tag(option)
                     }
                 }
-                TextField("Or describe in your own words", text: $vocabularyCustom, axis: .vertical)
+                TextField("Or describe in your own words", text: $model.vocabularyCustom, axis: .vertical)
                     .lineLimit(1 ... 3)
             } header: {
                 Text("Vocabulary")
@@ -109,21 +123,27 @@ struct PersonaCustomizeView: View {
                 Text("Pick a style, write your own, or both.")
             }
             Section {
-                Picker("Pace", selection: $conversationalChoice) {
+                Picker("Pace", selection: $model.paceChoice) {
                     Text("None").tag("")
-                    ForEach(conversationalStyleOptions, id: \.self) { option in
+                    ForEach(PersonaCustomizeViewModel.paceOptions, id: \.self) { option in
                         Text(option).tag(option)
                     }
                 }
-                TextField("Or describe in your own words", text: $conversationalCustom, axis: .vertical)
+                Picker("Length", selection: $model.verbosityChoice) {
+                    Text("None").tag("")
+                    ForEach(PersonaCustomizeViewModel.verbosityOptions, id: \.self) { option in
+                        Text(option).tag(option)
+                    }
+                }
+                TextField("Or describe in your own words", text: $model.conversationalCustom, axis: .vertical)
                     .lineLimit(1 ... 3)
             } header: {
                 Text("Conversational style")
             } footer: {
-                Text("Speed and turn-taking habits — pick a pace, write your own, or both.")
+                Text("Pace = how fast they talk. Length = how much they say. Pick one or both, or write your own.")
             }
             Section {
-                TextField("e.g. Product design, hikes, coffee shops.", text: $topicalPreferences, axis: .vertical)
+                TextField("e.g. Product design, hikes, coffee shops.", text: $model.topicalPreferences, axis: .vertical)
                     .lineLimit(1 ... 3)
             } header: {
                 Text("Topics they bring up")
@@ -131,96 +151,34 @@ struct PersonaCustomizeView: View {
                 Text("What they ask about, what they steer toward.")
             }
             Section {
-                Toggle("Share with community", isOn: $isPublic)
+                Toggle("Share with community", isOn: $model.isPublic)
             } footer: {
                 Text("Public personas appear in everyone's persona library. They can like and use yours.")
             }
             Section {
-                Button(persona == nil ? "Create" : "Save", action: { Task { await save() } })
-                    .disabled(name.isEmpty || saving)
+                Button(model.persona == nil ? "Create" : "Save", action: { Task { await model.save(api: api) } })
+                    .disabled(model.name.isEmpty || model.saving)
             }
         }
-        .navigationTitle(persona == nil ? "New persona" : "Edit persona")
+        .navigationTitle(model.persona == nil ? "New persona" : "Edit persona")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear(perform: prefill)
-        .task { await loadVoices() }
-        .alert("Couldn't save", isPresented: .constant(saveError != nil)) {
-            Button("OK") { saveError = nil }
-        } message: {
-            Text(saveError ?? "")
-        }
-    }
-
-    private func prefill() {
-        guard let persona else { return }
-        name = persona.name
-        personaDescription = persona.description
-        voiceId = persona.voiceId
-        role = persona.role ?? ""
-        age = persona.age ?? ""
-        background = persona.background ?? ""
-        let vocab = persona.vocabularyRegister ?? ""
-        if vocabularyOptions.contains(vocab) {
-            vocabularyChoice = vocab
-        } else {
-            vocabularyCustom = vocab
-        }
-        let convo = persona.conversationalStyle ?? ""
-        if conversationalStyleOptions.contains(convo) {
-            conversationalChoice = convo
-        } else {
-            conversationalCustom = convo
-        }
-        topicalPreferences = persona.topicalPreferences ?? ""
-        isPublic = persona.isPublic
-    }
-
-    private func loadVoices() async {
-        do {
-            voices = try await BackendAPI.shared.getVoices()
-        } catch {
-            // voices fetch failure isn't fatal — Save will surface a proper backend error if the id is invalid.
-        }
-    }
-
-    private func save() async {
-        saving = true
-        defer { saving = false }
-        let vocab = vocabularyResolved
-        let convo = conversationalResolved
-        do {
-            if let persona {
-                let payload = PersonaUpdatePayload(
-                    name: name,
-                    description: personaDescription,
-                    voiceId: voiceId,
-                    role: role.isEmpty ? nil : role,
-                    age: age.isEmpty ? nil : age,
-                    background: background.isEmpty ? nil : background,
-                    vocabularyRegister: vocab.isEmpty ? nil : vocab,
-                    conversationalStyle: convo.isEmpty ? nil : convo,
-                    topicalPreferences: topicalPreferences.isEmpty ? nil : topicalPreferences,
-                    isPublic: isPublic
-                )
-                _ = try await BackendAPI.shared.updatePersona(id: persona.id, payload)
-            } else {
-                let payload = PersonaCreatePayload(
-                    name: name,
-                    description: personaDescription,
-                    voiceId: voiceId,
-                    role: role.isEmpty ? nil : role,
-                    age: age.isEmpty ? nil : age,
-                    background: background.isEmpty ? nil : background,
-                    vocabularyRegister: vocab.isEmpty ? nil : vocab,
-                    conversationalStyle: convo.isEmpty ? nil : convo,
-                    topicalPreferences: topicalPreferences.isEmpty ? nil : topicalPreferences,
-                    isPublic: isPublic
-                )
-                _ = try await BackendAPI.shared.createPersona(payload)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Cancel") { dismiss() }
             }
-            dismiss()
-        } catch {
-            saveError = error.localizedDescription
+        }
+        .onAppear { model.prefill() }
+        .task { await model.loadVoices(api: api) }
+        .alert(
+            "Couldn't save",
+            isPresented: Binding(get: { model.saveError != nil }, set: { if !$0 { model.saveError = nil } }),
+        ) {
+            Button("OK") { model.saveError = nil }
+        } message: {
+            Text(model.saveError ?? "")
+        }
+        .onChange(of: model.didSaveSuccessfully) { _, newValue in
+            if newValue { dismiss() }
         }
     }
 }

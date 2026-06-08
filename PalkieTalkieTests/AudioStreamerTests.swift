@@ -12,7 +12,7 @@ final class AudioStreamerTests: XCTestCase {
             commonFormat: .pcmFormatFloat32,
             sampleRate: AudioStreamer.sampleRate,
             channels: 1,
-            interleaved: false
+            interleaved: false,
         )!
     }
 
@@ -29,7 +29,7 @@ final class AudioStreamerTests: XCTestCase {
         let frameLen = Int(AudioStreamer.frameSamples)
         guard let buf = AVAudioPCMBuffer(
             pcmFormat: opusFormat,
-            frameCapacity: AVAudioFrameCount(frameLen)
+            frameCapacity: AVAudioFrameCount(frameLen),
         ) else {
             return XCTFail("could not allocate PCM buffer")
         }

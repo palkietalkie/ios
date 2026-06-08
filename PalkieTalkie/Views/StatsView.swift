@@ -2,26 +2,27 @@ import Charts
 import SwiftUI
 
 struct StatsView: View {
-    @State private var stats: Stats?
+    private static let cacheKey = "cache.stats"
+
+    @Environment(\.backendAPI) private var api
+    @State private var stats: Stats? = JSONCache.load(Stats.self, key: StatsView.cacheKey)
     @State private var loadError: String?
     @State private var explainerMetric: MetricInfo?
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                if let stats {
-                    VStack(spacing: 16) {
-                        hero(stats)
-                        metricGrid(stats)
-                        cefrCard(stats.cefrCoverage)
-                        detailLinks
+                VStack(spacing: 16) {
+                    // Render the full layout immediately. When `stats` is nil (first visit, no cache yet, or refresh in progress), each panel falls back to placeholders (em-dash / zero) so the user sees structure, not a spinner. Real numbers replace placeholders as soon as the network returns.
+                    hero(stats)
+                    metricGrid(stats)
+                    cefrCard(stats?.cefrCoverage ?? [])
+                    detailLinks
+                    if let loadError {
+                        Text(loadError).font(.caption).foregroundStyle(.red).textSelection(.enabled)
                     }
-                    .padding(16)
-                } else if let loadError {
-                    Text(loadError).foregroundStyle(.red).textSelection(.enabled).padding()
-                } else {
-                    ProgressView().padding()
                 }
+                .padding(16)
             }
             .navigationTitle("Stats")
             .navigationBarTitleDisplayMode(.inline)
@@ -44,20 +45,17 @@ struct StatsView: View {
 
     // MARK: - Hero (top headline)
 
-    private func hero(_ stats: Stats) -> some View {
-        let minutes = stats.sessionTotalSeconds / 60
+    private func hero(_ stats: Stats?) -> some View {
+        let streak = stats?.dayStreak
         return VStack(alignment: .leading, spacing: 4) {
-            Text("\(minutes)")
-                .font(.system(size: 64, weight: .bold, design: .rounded))
-                .contentTransition(.numericText())
-            HStack(spacing: 6) {
-                Text("minutes of conversation").foregroundStyle(.secondary)
-                Spacer()
-                Text("\(stats.sessionsCount) session\(stats.sessionsCount == 1 ? "" : "s")")
-                    .font(.caption)
-                    .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Color.accentColor.opacity(0.15), in: Capsule())
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(streak.map(String.init) ?? "—")
+                    .font(.system(size: 64, weight: .bold, design: .rounded))
+                    .contentTransition(.numericText())
+                Image(systemName: "flame.fill").foregroundStyle(.orange).font(.title)
             }
+            Text("day\((streak ?? 0) == 1 ? "" : "s") in a row")
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
@@ -66,14 +64,19 @@ struct StatsView: View {
 
     // MARK: - Metric cards (2-column grid)
 
-    private func metricGrid(_ stats: Stats) -> some View {
+    private func metricGrid(_ stats: Stats?) -> some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            metricCard(.uniqueWords, value: "\(stats.uniqueWords)", unit: "words")
-            metricCard(.uniquePhrases, value: "\(stats.uniquePhrases)", unit: "phrases")
-            metricCard(.talkShare, value: formatPct(stats.userTalkPct), unit: "your share")
-            metricCard(.speakingRate, value: formatWpm(stats.speakingRateWpm), unit: "wpm")
-            metricCard(.pitchRange, value: formatHz(stats.pitchRangeHz), unit: "Hz range")
-            // Filler card to balance grid when odd metric count — invisible, preserves layout.
+            metricCard(.minutes, value: stats.map { "\($0.sessionTotalSeconds / 60)" } ?? "—", unit: "minutes")
+            metricCard(
+                .sessions,
+                value: stats.map { "\($0.sessionsCount)" } ?? "—",
+                unit: (stats?.sessionsCount ?? 0) == 1 ? "session" : "sessions",
+            )
+            metricCard(.uniqueWords, value: stats.map { "\($0.uniqueWords)" } ?? "—", unit: "words")
+            metricCard(.uniquePhrases, value: stats.map { "\($0.uniquePhrases)" } ?? "—", unit: "phrases")
+            metricCard(.talkShare, value: formatPct(stats?.userTalkPct), unit: "your share")
+            metricCard(.speakingRate, value: formatWpm(stats?.speakingRateWpm), unit: "wpm")
+            metricCard(.pitchRange, value: formatHz(stats?.pitchRangeHz), unit: "Hz range")
             Color.clear.frame(height: 0)
         }
     }
@@ -177,7 +180,9 @@ struct StatsView: View {
 
     private func load() async {
         do {
-            stats = try await BackendAPI.shared.getStats()
+            let fresh = try await api.getStats()
+            stats = fresh
+            JSONCache.save(fresh, key: Self.cacheKey)
             loadError = nil
         } catch {
             loadError = error.localizedDescription
@@ -193,41 +198,53 @@ struct MetricInfo: Identifiable {
     let explanation: String
     let computation: String?
 
+    static let minutes = MetricInfo(
+        id: "minutes",
+        title: "Total minutes",
+        explanation: "Total time you've spent in conversation across all sessions.",
+        computation: "Sum of every session's duration (when the session was ended cleanly).",
+    )
+    static let sessions = MetricInfo(
+        id: "sessions",
+        title: "Total sessions",
+        explanation: "How many separate conversations you've had.",
+        computation: "Count of conversation_sessions rows for your account.",
+    )
     static let uniqueWords = MetricInfo(
         id: "uniqueWords",
         title: "Unique words",
         explanation: "How many different words you've actually said. Repeating \"hello\" 50 times still counts as 1.",
-        computation: "Counted from your spoken transcripts, lemmatized (\"running\" and \"run\" collapse to one word)."
+        computation: "Counted from your spoken transcripts, lemmatized (\"running\" and \"run\" collapse to one word).",
     )
     static let uniquePhrases = MetricInfo(
         id: "uniquePhrases",
         title: "Unique phrases",
         explanation: "Multi-word native expressions you've used (e.g., \"give it a shot\", \"figure out\").",
-        computation: "Extracted from transcripts after each session by an NLP pipeline."
+        computation: "Extracted from transcripts after each session by an NLP pipeline.",
     )
     static let talkShare = MetricInfo(
         id: "talkShare",
         title: "Your share of talk",
         explanation: "Of the words said in your conversations, how many were yours vs the AI's. ~50% means a balanced two-way conversation; under 30% means you're letting the AI dominate.",
-        computation: "Character ratio between your transcripts and the AI's. Real audio-time ratio is coming once on-device speech timing ships."
+        computation: "Character ratio between your transcripts and the AI's. Real audio-time ratio is coming once on-device speech timing ships.",
     )
     static let speakingRate = MetricInfo(
         id: "speakingRate",
         title: "Speaking rate",
         explanation: "Words per minute when you're talking. Native English averages 120-150 wpm; comfortable conversational fluency is 100+. Below ~70 wpm typically means hesitation.",
-        computation: "Your word count divided by inferred time you spent speaking (session duration × your talk-share)."
+        computation: "Your word count divided by inferred time you spent speaking (session duration × your talk-share).",
     )
     static let pitchRange = MetricInfo(
         id: "pitchRange",
         title: "Pitch range",
         explanation: "How much your voice goes up and down. Wider range = more expressive, animated speech. Flat pitch is a hallmark of robotic / hesitant speech.",
-        computation: "Needs on-device audio analysis (FFT pitch detection). Shipping in the next update."
+        computation: "On-device YIN pitch detection on mic buffers. Tracks min and max F0 (70-500 Hz) per session and aggregates across all sessions.",
     )
     static let cefr = MetricInfo(
         id: "cefr",
         title: "CEFR vocab coverage",
         explanation: "What percent of the standard CEFR vocabulary (A1 → C2) you've actually used in conversation. A1 = absolute beginner, C2 = native-level mastery. Aim to push each level past 80%.",
-        computation: "Cross-references your spoken words against the CEFR-J Wordlist v1.6 reference."
+        computation: "Cross-references your spoken words against the CEFR-J Wordlist v1.6 reference.",
     )
 }
 

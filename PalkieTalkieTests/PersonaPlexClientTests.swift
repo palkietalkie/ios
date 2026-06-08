@@ -94,7 +94,7 @@ final class PersonaPlexClientTests: XCTestCase {
             PersonaPlexClient.ControlAction.start,
             .endTurn,
             .pause,
-            .restart
+            .restart,
         ] {
             let encoded = PersonaPlexClient.encodeControl(action)
             guard case let .control(decoded) = PersonaPlexClient.decodeFrame(encoded) else {

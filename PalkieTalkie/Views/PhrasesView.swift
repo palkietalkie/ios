@@ -1,7 +1,9 @@
 import SwiftUI
 
 struct PhrasesView: View {
-    @State private var phrases: [PhraseUsage] = []
+    private static let cacheKey = "cache.phrases"
+    @Environment(\.backendAPI) private var api
+    @State private var phrases: [PhraseUsage] = JSONCache.load([PhraseUsage].self, key: PhrasesView.cacheKey) ?? []
 
     var body: some View {
         List(phrases) { phrase in
@@ -17,7 +19,10 @@ struct PhrasesView: View {
         }
         .navigationTitle("Frequent phrases")
         .task {
-            phrases = await (try? BackendAPI.shared.getPhrases()) ?? []
+            if let fresh = try? await api.getPhrases() {
+                phrases = fresh
+                JSONCache.save(fresh, key: Self.cacheKey)
+            }
         }
     }
 }
