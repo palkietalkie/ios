@@ -1,5 +1,11 @@
 name: test
 
+# macOS runners cost 10x normal Actions minutes against the GitHub Free quota (2000 min/mo on private repos). A single iOS test run burns ~60-90 minutes from the quota, so a few pushes a day exhausts the month. Re-enable each macOS job (format / lint / test) when ANY of the following lands:
+# - spending limit raised in github.com/settings/billing/spending_limit, OR
+# - self-hosted Mac runner provisioned + targeted via `runs-on: [self-hosted, macOS]`, OR
+# - repo flipped public (unlimited Actions minutes).
+# Until then the local pre-commit hook (scripts/git/pre-commit) is the gate — it runs swiftformat / swiftlint --strict / xcodebuild test with the same 90 percent coverage threshold on every commit.
+
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -25,6 +31,7 @@ jobs:
 
   format:
     name: Format (swiftformat)
+    if: false # disabled while macOS runners are off (see workflow-top comment for re-enable conditions)
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v6
@@ -33,6 +40,7 @@ jobs:
 
   lint:
     name: Lint (swiftlint)
+    if: false # disabled while macOS runners are off (see workflow-top comment for re-enable conditions)
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v6
@@ -41,6 +49,7 @@ jobs:
 
   test:
     name: Tests + 90 percent coverage gate
+    if: false # disabled while macOS runners are off (see workflow-top comment for re-enable conditions)
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v6
