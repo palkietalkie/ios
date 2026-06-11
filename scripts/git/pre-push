@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Pre-push: run the branch-level check that CI enforces, so a red PR never leaves the machine.
+#
+# The paired-test guard compares the whole branch against origin/main — a branch-level invariant, NOT a per-commit one. It lives here (pre-push), not in pre-commit: in pre-commit it would wrongly reject committing a source file in one commit and its test in the next. Pre-push runs once on the exact state about to become the PR, which mirrors CI (same case-sensitive matching, same script).
+set -e
+
+REPO="$(git rev-parse --show-toplevel)"
+echo "[pre-push] paired-test guard (same check CI runs)..."
+bash "$REPO/scripts/ci/check_test_pair.sh" origin/main
