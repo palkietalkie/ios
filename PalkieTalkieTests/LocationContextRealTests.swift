@@ -2,8 +2,7 @@ import CoreLocation
 @testable import PalkieTalkie
 import XCTest
 
-/// Real LocationContext + LocationDelegate. No CLLocationManager permission in tests, so requestOnce returns nil. Still
-/// hits the early-out branches.
+/// Real LocationContext + LocationDelegate. No CLLocationManager permission in tests, so requestOnce returns nil. Still hits the early-out branches.
 final class LocationContextRealTests: XCTestCase {
     func testRequestOnceReturnsNilWithoutPermission() async {
         let context = LocationContext()
@@ -37,8 +36,7 @@ final class LocationContextRealTests: XCTestCase {
     func testLocationDelegateHandlesFailureCallback() {
         let delegate = LocationDelegate()
         let manager = CLLocationManager()
-        // Direct delegate-method invocation. There's no pending continuation so the callback is a no-op — exercises the
-        // guarded path.
+        // Direct delegate-method invocation. There's no pending continuation so the callback is a no-op — exercises the guarded path.
         delegate.locationManager(manager, didFailWithError: NSError(domain: "test", code: -1))
     }
 

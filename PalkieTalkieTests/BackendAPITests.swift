@@ -85,8 +85,7 @@ final class FakeTransport: Transport, @unchecked Sendable {
     }
 }
 
-/// Test conformer for `Authing`. Returns a fixed token + user id; signOut records the call so View tests can assert
-/// the destructive Sign out button was tapped.
+/// Test conformer for `Authing`. Returns a fixed token + user id; signOut records the call so View tests can assert the destructive Sign out button was tapped.
 final class StubAuthing: Authing, @unchecked Sendable {
     let token: String?
     let _userId: String?

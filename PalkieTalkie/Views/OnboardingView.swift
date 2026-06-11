@@ -59,6 +59,12 @@ struct OnboardingView: View {
                         }
                     }
                 }
+                if let loadError = model.loadError {
+                    Section {
+                        Text("Couldn't load languages: \(loadError)")
+                            .font(.footnote).foregroundStyle(.red).textSelection(.enabled)
+                    }
+                }
                 if let saveError = model.saveError {
                     Section {
                         Text(saveError).font(.footnote).foregroundStyle(.red).textSelection(.enabled)

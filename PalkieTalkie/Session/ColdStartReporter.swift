@@ -1,12 +1,10 @@
 import Foundation
 
-/// Records the cold-start timeline of one conversation and posts it to backend `/events` once the model emits its first
-/// audio chunk.
+/// Records the cold-start timeline of one conversation and posts it to backend `/events` once the model emits its first audio chunk.
 ///
 /// Single responsibility: turn 4 phase-end timestamps into one `cold_start_complete` event.
 ///
-/// Why a separate file: keeps SessionController focused on phase machine + collaborator wiring. Telemetry is async
-/// fire-and-forget by nature and doesn't belong in the orchestrator's critical path.
+/// Why a separate file: keeps SessionController focused on phase machine + collaborator wiring. Telemetry is async fire-and-forget by nature and doesn't belong in the orchestrator's critical path.
 enum ColdStartReporter {
     static func scheduleReport(
         backend: ConversationBackend,
@@ -32,8 +30,7 @@ enum ColdStartReporter {
                     phaseTimings: timings,
                     sessionId: sessionId,
                 )
-                // Only the first audio chunk matters for cold-start measurement; we exit after one report so the task
-                // doesn't sit forever waiting for the stream to end.
+                // Only the first audio chunk matters for cold-start measurement; we exit after one report so the task doesn't sit forever waiting for the stream to end.
                 break
             }
         }

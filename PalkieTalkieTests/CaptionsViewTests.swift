@@ -2,9 +2,7 @@
 import SwiftUI
 import XCTest
 
-/// Captions UI is the on-screen live transcript. The pure function `mergedCaptions` collapses sub-word stream tokens
-/// from the realtime model into one line per speaker turn — without that, the user sees one row per "uh"/"he"/"y"
-/// fragment.
+/// Captions UI is the on-screen live transcript. The pure function `mergedCaptions` collapses sub-word stream tokens from the realtime model into one line per speaker turn — without that, the user sees one row per "uh"/"he"/"y" fragment.
 @MainActor
 final class CaptionsViewTests: XCTestCase {
     func testEmptyTranscriptYieldsNoLines() {
@@ -40,8 +38,7 @@ final class CaptionsViewTests: XCTestCase {
     func testCaptionsToggleViewBodyEvaluates() {
         @State var enabled = false
         let view = CaptionsToggle(enabled: $enabled)
-        // Touch .body so SwiftUI evaluates the ViewBuilder closures. Doesn't render to a window — we're only after code
-        // coverage of the view-tree construction.
+        // Touch .body so SwiftUI evaluates the ViewBuilder closures. Doesn't render to a window — we're only after code coverage of the view-tree construction.
         _ = view.body
     }
 

@@ -5,19 +5,19 @@ import XCTest
 final class OggOpusWriterTests: XCTestCase {
     func testHeaderBytesEmitsTwoOggPagesOnce() {
         let writer = OggOpusWriter()
-        let first = writer.headerBytes()
+        let first = writer.buildHeaderBytes()
         XCTAssertFalse(first.isEmpty, "first call should emit OpusHead + OpusTags pages")
         // Each page starts with "OggS" magic.
         XCTAssertEqual(first[0 ..< 4], Data([0x4F, 0x67, 0x67, 0x53]))
 
         // Calling twice should return empty — headers are emit-once.
-        let second = writer.headerBytes()
+        let second = writer.buildHeaderBytes()
         XCTAssertTrue(second.isEmpty)
     }
 
     func testWrapEmitsOggPageWithCorrectMagic() {
         let writer = OggOpusWriter()
-        _ = writer.headerBytes()
+        _ = writer.buildHeaderBytes()
         let opusFrame = Data([0xA0, 0xB1, 0xC2, 0xD3])
         let page = writer.wrap(opusPacket: opusFrame, pcmSampleCount: 480)
         XCTAssertEqual(page[0 ..< 4], Data([0x4F, 0x67, 0x67, 0x53]), "wrapped page must start with OggS")
@@ -25,7 +25,7 @@ final class OggOpusWriterTests: XCTestCase {
 
     func testGranulePositionAccumulates() {
         let writer = OggOpusWriter()
-        _ = writer.headerBytes()
+        _ = writer.buildHeaderBytes()
         let frame = Data(repeating: 0x55, count: 10)
         let p1 = writer.wrap(opusPacket: frame, pcmSampleCount: 480)
         let p2 = writer.wrap(opusPacket: frame, pcmSampleCount: 480)
@@ -39,7 +39,7 @@ final class OggOpusWriterTests: XCTestCase {
     /// A packet whose length is an exact multiple of 255 must encode a trailing zero-length segment entry per RFC 3533. Locks in the boundary handling that's easy to miss in a refactor.
     func testWrapHandlesPacketExactly255BytesWithTrailingZeroSegment() {
         let writer = OggOpusWriter()
-        _ = writer.headerBytes()
+        _ = writer.buildHeaderBytes()
         let packet = Data(repeating: 0xAA, count: 255)
         let page = writer.wrap(opusPacket: packet, pcmSampleCount: 480)
         // Segment table starts at byte 27 (4 magic + 1 ver + 1 flags + 8 granule + 4 serial + 4 seq + 4 crc + 1 segCount). Number of segments at offset 26.
@@ -52,7 +52,7 @@ final class OggOpusWriterTests: XCTestCase {
     /// Packets >255 bytes split across multiple 255-byte segments. A 600-byte packet → segments [255, 255, 90].
     func testWrapSplitsLargePacketIntoSegments() {
         let writer = OggOpusWriter()
-        _ = writer.headerBytes()
+        _ = writer.buildHeaderBytes()
         let packet = Data(repeating: 0x77, count: 600)
         let page = writer.wrap(opusPacket: packet, pcmSampleCount: 480)
         let segCount = Int(page[26])
@@ -65,7 +65,7 @@ final class OggOpusWriterTests: XCTestCase {
     /// The CRC field at bytes 22..26 should be a valid Ogg-CRC32 computed over the entire page with the CRC field zeroed. Reusing the writer's own CRC computation by reconstructing the page should match.
     func testWrapCRC32IsValid() {
         let writer = OggOpusWriter()
-        _ = writer.headerBytes()
+        _ = writer.buildHeaderBytes()
         let packet = Data(repeating: 0x42, count: 16)
         let page = writer.wrap(opusPacket: packet, pcmSampleCount: 480)
         // Re-compute by zeroing the CRC field and running the writer's crc.
@@ -80,7 +80,7 @@ final class OggOpusWriterTests: XCTestCase {
     func testWriterReaderRoundTripPreservesOpusBytes() {
         let writer = OggOpusWriter()
         let reader = OggOpusReader()
-        var stream = writer.headerBytes()
+        var stream = writer.buildHeaderBytes()
         let originalOpus = Data((0 ..< 32).map { UInt8($0) })
         stream.append(writer.wrap(opusPacket: originalOpus, pcmSampleCount: 480))
         let recovered = reader.feed(stream)

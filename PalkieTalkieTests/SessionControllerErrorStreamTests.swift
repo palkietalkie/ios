@@ -2,8 +2,7 @@ import Foundation
 @testable import PalkieTalkie
 import XCTest
 
-/// Hits `startObserversForRealtime`'s error-stream branch: when the realtime client surfaces a server-side error, the
-/// controller flips phase from .live → .error.
+/// Hits `startObserversForRealtime`'s error-stream branch: when the realtime client surfaces a server-side error, the controller flips phase from .live → .error.
 @MainActor
 final class SessionControllerErrorStreamTests: XCTestCase {
     func testServerErrorTransitionsPhaseToError() async {

@@ -54,6 +54,18 @@ private actor RecordingColdStartBackend: ConversationBackend {
             premiumEndsAt: nil,
         )
     }
+
+    func recallFacts(query _: String) async throws -> String {
+        ""
+    }
+
+    func recallConversations(query _: String) async throws -> String {
+        ""
+    }
+
+    func searchTranscripts(query _: String) async throws -> String {
+        ""
+    }
 }
 
 final class ColdStartReporterTests: XCTestCase {
@@ -81,8 +93,7 @@ final class ColdStartReporterTests: XCTestCase {
         audioCont.yield(Data([0xBB]))
         audioCont.finish()
 
-        // Wait for the detached task to publish the call. Reporter task runs at .background priority, which can be
-        // starved on a busy test runner — give it generous time to land before declaring failure.
+        // Wait for the detached task to publish the call. Reporter task runs at .background priority, which can be starved on a busy test runner — give it generous time to land before declaring failure.
         var calls: [(durationMs: Int, timings: ColdStartTimings, sessionId: String)] = []
         for _ in 0 ..< 200 {
             calls = await backend.coldStartCalls
@@ -104,8 +115,7 @@ final class ColdStartReporterTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(call.durationMs, 200 + 400 + 300 - 3)
     }
 
-    /// If the inboundAudio stream finishes without yielding anything (server died before sending), the reporter must
-    /// stay silent — never invent a cold-start event with garbage numbers.
+    /// If the inboundAudio stream finishes without yielding anything (server died before sending), the reporter must stay silent — never invent a cold-start event with garbage numbers.
     func testNoReportWhenStreamFinishesWithoutAudio() async throws {
         let backend = RecordingColdStartBackend()
         let (audioStream, audioCont) = AsyncStream.makeStream(of: Data.self)

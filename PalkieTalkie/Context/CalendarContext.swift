@@ -2,8 +2,7 @@ import EventKit
 import Foundation
 
 /// EventKit seam. Production uses `EKEventStore`; tests inject a fake.
-/// Returning `CalendarEventDTO` (the wire shape) lets the test bypass EKEvent construction entirely — `EKEvent`
-/// requires a real store.
+/// Returning `CalendarEventDTO` (the wire shape) lets the test bypass EKEvent construction entirely — `EKEvent` requires a real store.
 protocol CalendarStoreType: Sendable {
     func requestAccess() async -> Bool
     func todaysEvents() async -> [CalendarEventDTO]
@@ -24,8 +23,7 @@ actor CalendarContext: CalendarStoreType {
         }
     }
 
-    /// Returns today's events ONLY if Calendar permission is already granted. Does NOT prompt — permission requests are
-    /// user-initiated via Integrations.
+    /// Returns today's events ONLY if Calendar permission is already granted. Does NOT prompt — permission requests are user-initiated via Integrations.
     func todaysEvents() async -> [CalendarEventDTO] {
         let status = EKEventStore.authorizationStatus(for: .event)
         guard status == .fullAccess else { return [] }

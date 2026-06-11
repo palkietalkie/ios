@@ -3,9 +3,7 @@ import SwiftUI
 import ViewInspector
 import XCTest
 
-/// ViewInspector lets us walk the SwiftUI view tree at runtime and force every closure literal to be evaluated. That
-/// reaches branches the `host()` approach misses — list rows inside ForEach, `@ViewBuilder` switch cases that depend on
-/// `@State` mutation, etc.
+/// ViewInspector lets us walk the SwiftUI view tree at runtime and force every closure literal to be evaluated. That reaches branches the `host()` approach misses — list rows inside ForEach, `@ViewBuilder` switch cases that depend on `@State` mutation, etc.
 ///
 /// User added ViewInspector to the test target via project.yml, so we use it here for the high-value coverage gains.
 @MainActor
@@ -72,8 +70,7 @@ final class ViewInspectorTests: XCTestCase {
     func testMorePanelHasFiveNavLinks() throws {
         let sut = MorePanelView()
         let navLinks = try sut.inspect().findAll(ViewType.NavigationLink.self)
-        // ViewInspector counts each NavigationLink + the destination's nested links recursively; the loose lower bound
-        // is the 5 top-level entries we expose to the user.
+        // ViewInspector counts each NavigationLink + the destination's nested links recursively; the loose lower bound is the 5 top-level entries we expose to the user.
         XCTAssertGreaterThanOrEqual(navLinks.count, 5)
     }
 
@@ -160,10 +157,7 @@ final class ViewInspectorTests: XCTestCase {
 
     // MARK: - StatsView
 
-    // Loading-state assertion removed: StatsView no longer renders a ProgressView at first paint — it relies on
-    // JSONCache stale-while-revalidate so the initial body has the previous-fetch data, not a spinner. The old test
-    // crashed via `inspect()` walking into the GeometryReader subview. Real loading-state coverage now belongs in a
-    // host-integration test that can mount the view with an empty cache and observe network-blocked first paint.
+    // Loading-state assertion removed: StatsView no longer renders a ProgressView at first paint — it relies on JSONCache stale-while-revalidate so the initial body has the previous-fetch data, not a spinner. The old test crashed via `inspect()` walking into the GeometryReader subview. Real loading-state coverage now belongs in a host-integration test that can mount the view with an empty cache and observe network-blocked first paint.
 
     // MARK: - PersonaCustomizeView
 
@@ -201,18 +195,14 @@ final class ViewInspectorTests: XCTestCase {
     func testOnboardingViewHasTargetLanguagePicker() throws {
         let sut = OnboardingView(onContinue: {})
         let pickers = try sut.inspect().findAll(ViewType.Picker.self)
-        // OnboardingView's body has one inline Picker ("Target language"); the other two selectors are
-        // NavigationLinks to MultiLanguagePicker / MultiAccentPicker, which ViewInspector doesn't materialize until
-        // the link is followed. Asserting ≥1 keeps the test useful without depending on inspector traversal depth.
+        // OnboardingView's body has one inline Picker ("Target language"); the other two selectors are NavigationLinks to MultiLanguagePicker / MultiAccentPicker, which ViewInspector doesn't materialize until the link is followed. Asserting ≥1 keeps the test useful without depending on inspector traversal depth.
         XCTAssertGreaterThanOrEqual(pickers.count, 1)
     }
 
     // MARK: - PersonaPickerView
 
     func testPersonaPickerViewHasButtons() {
-        // PersonaPickerView reads SessionController from @Environment; ViewInspector's inspection unwraps the body which
-        // triggers a crash trying to resolve the Observable. ViewBodyTests covers this view with the proper
-        // UIHostingController route. We just confirm construction here.
+        // PersonaPickerView reads SessionController from @Environment; ViewInspector's inspection unwraps the body which triggers a crash trying to resolve the Observable. ViewBodyTests covers this view with the proper UIHostingController route. We just confirm construction here.
         let sut = PersonaPickerView()
         _ = sut
     }

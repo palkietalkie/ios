@@ -3,14 +3,9 @@ import XCTest
 
 // Regression test for the "audio sent before server handshake" bug.
 //
-// Background: the server's recv_loop only starts after `step_system_prompts_async` (15-30s on cold start). The protocol
-// signals "I'm ready, send audio" via a one-byte `\x00` handshake frame from server to client. If the client (iOS)
-// starts the audio pump immediately on WS-open, audio bytes either queue up out of order or get dropped — the server's
-// Ogg-Opus decoder then sees mid-stream audio pages with no preceding OpusHead, dies, and the whole session collapses
-// with `sphn ValueError: sending on a closed channel`.
+// Background: the server's recv_loop only starts after `step_system_prompts_async` (15-30s on cold start). The protocol signals "I'm ready, send audio" via a one-byte `\x00` handshake frame from server to client. If the client (iOS) starts the audio pump immediately on WS-open, audio bytes either queue up out of order or get dropped — the server's Ogg-Opus decoder then sees mid-stream audio pages with no preceding OpusHead, dies, and the whole session collapses with `sphn ValueError: sending on a closed channel`.
 //
-// The contract being locked in here: `AudioPump.start` MUST NOT call `session.send(audio:)` until
-// `session.waitForServerReady()` resolves. If a regression silently removes the await, this test pins it down.
+// The contract being locked in here: `AudioPump.start` MUST NOT call `session.send(audio:)` until `session.waitForServerReady()` resolves. If a regression silently removes the await, this test pins it down.
 
 @MainActor
 final class AudioPumpTests: XCTestCase {
@@ -42,8 +37,7 @@ final class AudioPumpTests: XCTestCase {
 
 // MARK: - Fixtures
 
-/// A `PersonaPlexSessionType` that holds `waitForServerReady` open until `signalReady` is called, and records every
-/// audio frame the pump tries to send.
+/// A `PersonaPlexSessionType` that holds `waitForServerReady` open until `signalReady` is called, and records every audio frame the pump tries to send.
 private actor HandshakeGatedSession: PersonaPlexSessionType {
     var recordedAudio: [Data] = []
 

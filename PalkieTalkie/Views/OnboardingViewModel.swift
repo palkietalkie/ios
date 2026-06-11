@@ -12,6 +12,7 @@ final class OnboardingViewModel {
     var loading: Bool = true
     var saving: Bool = false
     var saveError: String?
+    var loadError: String?
     var didInitialLoad: Bool = false
     /// Flag flipped after save() succeeds; the view observes and calls its onContinue closure.
     var didSaveSuccessfully: Bool = false
@@ -33,7 +34,13 @@ final class OnboardingViewModel {
     func load(api: BackendAPI) async {
         loading = true
         defer { loading = false }
-        languages = await (try? api.getLanguages()) ?? []
+        // Surface the failure instead of `try?`-swallowing it into an empty picker the user can't get past.
+        do {
+            languages = try await api.getLanguages()
+            loadError = nil
+        } catch {
+            loadError = error.localizedDescription
+        }
     }
 
     func save(api: BackendAPI) async {

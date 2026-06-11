@@ -8,6 +8,10 @@ build/
 DerivedData/
 *.xcuserdata
 
+# Test result bundles (from `xcodebuild test -resultBundlePath`; thousands of internal files VSCode's watcher chokes on)
+TestResults
+*.xcresult
+
 # SPM dependency cache
 .build/
 .swiftpm/

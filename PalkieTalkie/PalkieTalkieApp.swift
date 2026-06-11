@@ -15,8 +15,7 @@ struct PalkieTalkieApp: App {
         // Clerk v1.x fatal-errors on any `Clerk.shared` access before configure. Even unit-test runs evaluate the SwiftUI body (which touches Clerk.shared via RootView), so we always configure. The dev pk_test key passes Clerk's format validation; subsequent network calls under XCTest just fail without authenticating, which is what tests want.
         let key = Bundle.main.object(forInfoDictionaryKey: "CLERK_PUBLISHABLE_KEY") as? String ?? ""
         Clerk.configure(publishableKey: key)
-        // Production wiring: real URLSession + Clerk-backed Authing. All views pull these out of `@Environment`. Tests
-        // construct their own and pass via `.environment(\.backendAPI, …)`.
+        // Production wiring: real URLSession + Clerk-backed Authing. All views pull these out of `@Environment`. Tests construct their own and pass via `.environment(\.backendAPI, …)`.
         let transport = AppEnvironment.makeProductionTransport()
         let authing = ClerkAuthAdapter()
         let backendAPI = BackendAPI(transport: transport, auth: authing)

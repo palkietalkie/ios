@@ -1,13 +1,8 @@
 import SwiftUI
 
-/// Horizontal scroller that feels infinite in both directions. Renders `items × copies` virtual entries
-/// (100 copies; lazy, so memory stays bounded to what's on screen) and starts the scroll position at the
-/// middle copy. The user can swipe ~5,000 cards left or right before hitting an edge — well past any
-/// realistic use. We avoid the silent-jump-on-edge trick because it flickers on iOS 26's
-/// snap-target scrolling; the deep buffer is the simpler robust answer.
+/// Horizontal scroller that feels infinite in both directions. Renders `items × copies` virtual entries (100 copies; lazy, so memory stays bounded to what's on screen) and starts the scroll position at the middle copy. The user can swipe ~5,000 cards left or right before hitting an edge — well past any realistic use. We avoid the silent-jump-on-edge trick because it flickers on iOS 26's snap-target scrolling; the deep buffer is the simpler robust answer.
 ///
-/// All cards share a fixed height. Content is already capped by lineLimit, so a fixed bound makes
-/// every card visually identical without paying for a measurement pass.
+/// All cards share a fixed height. Content is already capped by lineLimit, so a fixed bound makes every card visually identical without paying for a measurement pass.
 struct InfiniteHorizontalCarousel<Item: Identifiable, Content: View>: View {
     let items: [Item]
     let spacing: CGFloat

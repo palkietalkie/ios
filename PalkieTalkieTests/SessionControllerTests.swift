@@ -133,6 +133,23 @@ actor FakeConversationBackend: ConversationBackend {
     func getEntitlement() async throws -> Entitlement {
         try entitlementResult.get()
     }
+
+    var recallCalls: [(name: String, query: String)] = []
+
+    func recallFacts(query: String) async throws -> String {
+        recallCalls.append(("recall_facts", query))
+        return "FACTS"
+    }
+
+    func recallConversations(query: String) async throws -> String {
+        recallCalls.append(("recall_past_conversations", query))
+        return "CONVERSATIONS"
+    }
+
+    func searchTranscripts(query: String) async throws -> String {
+        recallCalls.append(("search_transcripts", query))
+        return "TRANSCRIPTS"
+    }
 }
 
 struct StubMicPermission: MicrophonePermissionRequesting {
@@ -144,8 +161,28 @@ struct StubMicPermission: MicrophonePermissionRequesting {
     }
 }
 
-/// Fake AudioStreamer that doesn't touch AVAudioEngine. Conforms to both AudioStreamerType (PersonaPlex / Opus path)
-/// and PCM16AudioStreamerType (OpenAI path) so tests can drive either provider's audio pump branch.
+/// Drives connectivity transitions on demand. A struct (no `@unchecked`): AsyncStream + its Continuation are Sendable and share storage across copies, so `goOffline()`/`goOnline()` from the test reach the controller's monitor task. Emits nothing until called, so it's inert for tests that don't exercise recovery.
+struct FakeNetworkPathMonitor: NetworkPathMonitoring {
+    let stream: AsyncStream<Bool>
+    let continuation: AsyncStream<Bool>.Continuation
+    init() {
+        (stream, continuation) = AsyncStream<Bool>.makeStream()
+    }
+
+    func statuses() -> AsyncStream<Bool> {
+        stream
+    }
+
+    func goOffline() {
+        continuation.yield(false)
+    }
+
+    func goOnline() {
+        continuation.yield(true)
+    }
+}
+
+/// Fake AudioStreamer that doesn't touch AVAudioEngine. Conforms to both AudioStreamerType (PersonaPlex / Opus path) and PCM16AudioStreamerType (OpenAI path) so tests can drive either provider's audio pump branch.
 final class FakeAudioStreamer: AudioStreamerType, PCM16AudioStreamerType, @unchecked Sendable {
     nonisolated(unsafe) var played: [Data] = []
     nonisolated(unsafe) var playedPCM16: [Data] = []
@@ -207,11 +244,20 @@ actor FakePersonaPlexSession: PersonaPlexSessionType {
     private let (audioStream, audioCont) = AsyncStream.makeStream(of: Data.self)
     private let (transcriptStream, transcriptCont) = AsyncStream.makeStream(of: TranscriptChunk.self)
     private let (errorStream, errorCont) = AsyncStream.makeStream(of: String.self)
+    private let (toolStream, toolCont) = AsyncStream.makeStream(of: ToolCall.self)
+    var submittedOutputs: [(callId: String, output: String)] = []
 
     var openCount = 0
     var closeCount = 0
     var lastWSURL: String?
     var openError: Error?
+    /// When true, `waitForServerReady` parks forever (mimics a WS that upgraded but never got `\x00` / session.created) until close() drains it — used to test SessionController's ready-timeout guard.
+    var hangServerReady = false
+    private var readyContinuation: CheckedContinuation<Void, Never>?
+
+    func setHangServerReady(_ value: Bool) {
+        hangServerReady = value
+    }
 
     func open(wsUrl: String) async throws {
         openCount += 1
@@ -228,13 +274,34 @@ actor FakePersonaPlexSession: PersonaPlexSessionType {
         audioCont.finish()
         transcriptCont.finish()
         errorCont.finish()
+        toolCont.finish()
+        // Mirror the real client: draining the parked ready-waiter on close so a hung handshake doesn't leak its continuation.
+        readyContinuation?.resume()
+        readyContinuation = nil
+    }
+
+    nonisolated var toolCalls: AsyncStream<ToolCall> {
+        get async { toolStream }
+    }
+
+    func submitToolOutput(callId: String, output: String) async {
+        submittedOutputs.append((callId, output))
+    }
+
+    func emit(toolCall: ToolCall) {
+        toolCont.yield(toolCall)
     }
 
     func send(control _: PersonaPlexClient.ControlAction) async throws {}
     func send(audio _: Data) async throws {}
 
-    /// Test fakes complete handshake immediately so tests don't deadlock.
-    func waitForServerReady() async {}
+    /// Completes immediately unless `hangServerReady` is set, in which case it parks until close() — exercising SessionController's ready-timeout guard.
+    func waitForServerReady() async {
+        if !hangServerReady { return }
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+            readyContinuation = c
+        }
+    }
 
     nonisolated var inboundAudio: AsyncStream<Data> {
         get async { audioStream }
@@ -278,6 +345,7 @@ struct SessionControllerRig {
     let backend: FakeConversationBackend
     let session: FakePersonaPlexSession
     let streamer: FakeAudioStreamer
+    let pathMonitor: FakeNetworkPathMonitor
 }
 
 @MainActor
@@ -287,6 +355,7 @@ final class SessionControllerTests: XCTestCase {
         session: FakePersonaPlexSession = FakePersonaPlexSession(),
         streamer: FakeAudioStreamer = FakeAudioStreamer(),
         micThrows: Bool = false,
+        serverReadyTimeout: Double? = nil,
     ) -> SessionControllerRig {
         let backend = backend ?? FakeConversationBackend(
             startResponse: StartResponse(
@@ -299,14 +368,19 @@ final class SessionControllerTests: XCTestCase {
             ),
             endResponse: EndResponse(sessionId: "srv-1", durationSeconds: 10),
         )
+        let pathMonitor = FakeNetworkPathMonitor()
         let controller = SessionController(
             context: FakeContextGatherer(context: makeContext()),
             backend: backend,
             micPermission: StubMicPermission(shouldThrow: micThrows),
             streamerFactory: StubAudioStreamerFactory(streamer: streamer),
             sessionFactory: StubSessionFactory(session: session),
+            serverReadyTimeoutOverride: serverReadyTimeout,
+            pathMonitor: pathMonitor,
         )
-        return SessionControllerRig(controller: controller, backend: backend, session: session, streamer: streamer)
+        return SessionControllerRig(
+            controller: controller, backend: backend, session: session, streamer: streamer, pathMonitor: pathMonitor,
+        )
     }
 
     private func makeContext() -> ConversationContext {
@@ -361,9 +435,7 @@ final class SessionControllerTests: XCTestCase {
         }
     }
 
-    /// Regression: cached UUID in UserDefaults pointed at a user-created persona that no longer exists in the DB
-    /// (deleted, or dev DB reset). Old behavior: /start 404 → controller surfaces as .error → mic view dead. New
-    /// behavior: 404 → re-resolve from /personas → retry once with the first preset → reach .live.
+    /// Regression: cached UUID in UserDefaults pointed at a user-created persona that no longer exists in the DB (deleted, or dev DB reset). Old behavior: /start 404 → controller surfaces as .error → mic view dead. New behavior: 404 → re-resolve from /personas → retry once with the first preset → reach .live.
     func testStaleCachedPersonaRecoversOn404() async {
         let stalePersonaId = UUID().uuidString
         let freshPresetId = UUID().uuidString
@@ -401,9 +473,7 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(rig.controller.selectedPersonaId, freshPresetId)
     }
 
-    /// Regression: each realtime-stream fragment used to be a separate transcripts POST → one row per emission.
-    /// PersonaPlex emits sub-word fragments like "fl"+"uff" → two rows. New behavior: aggregate fragments from the same
-    /// speaker into one TURN row; flush on speaker switch and on session end.
+    /// Regression: each realtime-stream fragment used to be a separate transcripts POST → one row per emission. PersonaPlex emits sub-word fragments like "fl"+"uff" → two rows. New behavior: aggregate fragments from the same speaker into one TURN row; flush on speaker switch and on session end.
     func testTurnAggregationCoalescesFragmentsFlushesOnSpeakerSwitch() async {
         let rig = makeController()
         await rig.controller.start()

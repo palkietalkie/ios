@@ -1,10 +1,7 @@
 @testable import PalkieTalkie
 import XCTest
 
-/// Drives the full `open()` → readLoop start → `close()` cycle of OpenAIRealtimeClient against a localhost URL the
-/// kernel will reject. Even though the WS connection never lands, the code paths that build the URLRequest, set the
-/// Bearer auth header, kick the WS task, schedule the readLoop, and tear down all execute. That gets us coverage
-/// over `open` and the readLoop exit branch without needing a real OpenAI server.
+/// Drives the full `open()` → readLoop start → `close()` cycle of OpenAIRealtimeClient against a localhost URL the kernel will reject. Even though the WS connection never lands, the code paths that build the URLRequest, set the Bearer auth header, kick the WS task, schedule the readLoop, and tear down all execute. That gets us coverage over `open` and the readLoop exit branch without needing a real OpenAI server.
 final class OpenAIRealtimeOpenCloseTests: XCTestCase {
     func testOpenAndCloseAgainstLocalhostExitsCleanly() async {
         let client = OpenAIRealtimeClient(instructions: "test")
@@ -23,8 +20,7 @@ final class OpenAIRealtimeOpenCloseTests: XCTestCase {
     }
 
     func testOpenSendAudioAfterOpenIsPossibleBeforeClose() async {
-        // Cover send(audio:) when a task exists. The send will fail since the WS hasn't upgraded, but the code path
-        // through base64 encoding + JSON serialization + try-await task.send runs.
+        // Cover send(audio:) when a task exists. The send will fail since the WS hasn't upgraded, but the code path through base64 encoding + JSON serialization + try-await task.send runs.
         let client = OpenAIRealtimeClient(instructions: nil)
         try? await client.open(wsUrl: "wss://127.0.0.1:9/", ephemeralToken: "tok")
         try? await Task.sleep(nanoseconds: 50_000_000)

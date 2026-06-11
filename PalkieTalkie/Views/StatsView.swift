@@ -14,9 +14,9 @@ struct StatsView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     // Render the full layout immediately. When `stats` is nil (first visit, no cache yet, or refresh in progress), each panel falls back to placeholders (em-dash / zero) so the user sees structure, not a spinner. Real numbers replace placeholders as soon as the network returns.
-                    hero(stats)
+                    buildHero(stats)
                     metricGrid(stats)
-                    cefrCard(stats?.cefrCoverage ?? [])
+                    buildCefrCard(stats?.cefrCoverage ?? [])
                     detailLinks
                     if let loadError {
                         Text(loadError).font(.caption).foregroundStyle(.red).textSelection(.enabled)
@@ -45,7 +45,7 @@ struct StatsView: View {
 
     // MARK: - Hero (top headline)
 
-    private func hero(_ stats: Stats?) -> some View {
+    private func buildHero(_ stats: Stats?) -> some View {
         let streak = stats?.dayStreak
         return VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -104,7 +104,7 @@ struct StatsView: View {
 
     // MARK: - CEFR chart card
 
-    private func cefrCard(_ data: [CEFRCoverage]) -> some View {
+    private func buildCefrCard(_ data: [CEFRCoverage]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 4) {
                 Text("CEFR vocab coverage").font(.headline)
@@ -139,18 +139,18 @@ struct StatsView: View {
     private var detailLinks: some View {
         VStack(spacing: 8) {
             NavigationLink(destination: MistakesView()) {
-                detailLinkRow("Frequent mistakes", systemImage: "exclamationmark.bubble")
+                buildDetailLinkRow("Frequent mistakes", systemImage: "exclamationmark.bubble")
             }
             NavigationLink(destination: PhrasesView()) {
-                detailLinkRow("Frequent phrases", systemImage: "quote.bubble")
+                buildDetailLinkRow("Frequent phrases", systemImage: "quote.bubble")
             }
             NavigationLink(destination: CEFRDetailView()) {
-                detailLinkRow("CEFR detail", systemImage: "list.bullet.rectangle")
+                buildDetailLinkRow("CEFR detail", systemImage: "list.bullet.rectangle")
             }
         }
     }
 
-    private func detailLinkRow(_ title: String, systemImage: String) -> some View {
+    private func buildDetailLinkRow(_ title: String, systemImage: String) -> some View {
         HStack {
             Image(systemName: systemImage).foregroundStyle(.secondary).frame(width: 24)
             Text(title)

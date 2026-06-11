@@ -1,9 +1,7 @@
 @testable import PalkieTalkie
 import XCTest
 
-/// Lifecycle wrapper around PersonaPlexClient. Tests verify the protocol surface — open/close, send-control, send-audio,
-/// stream accessors all forward to the underlying client. We don't open a real WebSocket; we just confirm the surface
-/// type-checks against the RealtimeClient protocol and that close() doesn't crash without a prior open.
+/// Lifecycle wrapper around PersonaPlexClient. Tests verify the protocol surface — open/close, send-control, send-audio, stream accessors all forward to the underlying client. We don't open a real WebSocket; we just confirm the surface type-checks against the RealtimeClient protocol and that close() doesn't crash without a prior open.
 final class PersonaPlexSessionTests: XCTestCase {
     func testCloseBeforeOpenIsSafe() async {
         let session = PersonaPlexSession()
@@ -14,8 +12,7 @@ final class PersonaPlexSessionTests: XCTestCase {
 
     func testStreamsAccessibleBeforeOpen() async {
         let session = PersonaPlexSession()
-        // The protocol requires these properties to exist and be readable even on a freshly-constructed session — they
-        // back-fill into stale references the caller already holds.
+        // The protocol requires these properties to exist and be readable even on a freshly-constructed session — they back-fill into stale references the caller already holds.
         _ = await session.transcript
         _ = await session.inboundAudio
         _ = await session.errors
@@ -25,8 +22,7 @@ final class PersonaPlexSessionTests: XCTestCase {
     func testBargeInStreamFinishesImmediately() async {
         let session = PersonaPlexSession()
         let stream = await session.bargeIn
-        // PersonaPlex handles barge-in server-side, so the iOS-side stream is intentionally a no-op (finished
-        // immediately). Iterating should produce zero elements.
+        // PersonaPlex handles barge-in server-side, so the iOS-side stream is intentionally a no-op (finished immediately). Iterating should produce zero elements.
         var count = 0
         for await _ in stream {
             count += 1

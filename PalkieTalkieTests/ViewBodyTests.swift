@@ -2,30 +2,22 @@
 import SwiftUI
 import XCTest
 
-/// Exercise the `body` of every SwiftUI view in the app so the closure-literals inside ViewBuilder bodies get attributed
-/// to coverage. We don't render or assert on the rendered output — the goal is just to walk the view tree once so the
-/// expressions inside are reached.
+/// Exercise the `body` of every SwiftUI view in the app so the closure-literals inside ViewBuilder bodies get attributed to coverage. We don't render or assert on the rendered output — the goal is just to walk the view tree once so the expressions inside are reached.
 ///
-/// Views that read from the network on `.task` will hit a real backend during evaluation, but because we never await the
-/// .task closure (just construct the body), the network call never fires. Same for `.onAppear` / `.refreshable`.
+/// Views that read from the network on `.task` will hit a real backend during evaluation, but because we never await the .task closure (just construct the body), the network call never fires. Same for `.onAppear` / `.refreshable`.
 ///
-/// Views that need an `Environment` value (e.g. `SessionController`) are instantiated through
-/// `UIHostingController(rootView: view.environment(controller))` so the environment is in place before body is read.
+/// Views that need an `Environment` value (e.g. `SessionController`) are instantiated through `UIHostingController(rootView: view.environment(controller))` so the environment is in place before body is read.
 @MainActor
 final class ViewBodyTests: XCTestCase {
     private func host(_ view: some View) {
         let controller = UIHostingController(rootView: view)
-        // Force the SwiftUI view tree to be built and laid out. `loadViewIfNeeded` triggers
-        // makeUIView / body evaluation for the entire hierarchy without needing a window.
+        // Force the SwiftUI view tree to be built and laid out. `loadViewIfNeeded` triggers makeUIView / body evaluation for the entire hierarchy without needing a window.
         controller.loadViewIfNeeded()
         controller.view.layoutIfNeeded()
         _ = controller.view.intrinsicContentSize
     }
 
-    /// Long-press variant: render the view into a real window so `.task` blocks run, then wait for them to settle before
-    /// tearing down. Lets us reach the "loaded data" branches whose evaluation depends on the `.task` populating @State.
-    /// The backend call itself fails fast in the test bundle (no network / no Clerk token) so each `.task` resolves into
-    /// the error / empty-state branch — which is exactly the branch we want exercised.
+    /// Long-press variant: render the view into a real window so `.task` blocks run, then wait for them to settle before tearing down. Lets us reach the "loaded data" branches whose evaluation depends on the `.task` populating @State. The backend call itself fails fast in the test bundle (no network / no Clerk token) so each `.task` resolves into the error / empty-state branch — which is exactly the branch we want exercised.
     private func hostAndPump(_ view: some View) async {
         await TestHosting.host(view, settleMs: 400)
     }
@@ -216,9 +208,7 @@ final class ViewBodyTests: XCTestCase {
 
     // MARK: - Long-running .task variants for views that depend on backend data
 
-    // These tests host the view in a real window long enough for `.task` modifiers to run their first iteration. The
-    // backend call resolves into an error or empty-state inside the test bundle (no network / no Clerk token), which
-    // drives the error / empty-state branches of the view tree that the no-pump variants never reach.
+    // These tests host the view in a real window long enough for `.task` modifiers to run their first iteration. The backend call resolves into an error or empty-state inside the test bundle (no network / no Clerk token), which drives the error / empty-state branches of the view tree that the no-pump variants never reach.
 
     func testStatsViewAfterTaskRunsErrorPath() async {
         await hostAndPump(StatsView())

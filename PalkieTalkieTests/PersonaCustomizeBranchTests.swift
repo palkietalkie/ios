@@ -3,10 +3,7 @@ import SwiftUI
 import UIKit
 import XCTest
 
-/// PersonaCustomizeView's create + edit save paths. Drives both branches of the `save()` switch by hosting the view
-/// twice (persona = nil → POST /personas; persona = .some → PATCH /personas/<id>) with a `FakeTransport` that returns
-/// a canned 200. Body re-evaluation is enough for coverage of the closure literals; tapping isn't required since the
-/// task closures are statically-attributed.
+/// PersonaCustomizeView's create + edit save paths. Drives both branches of the `save()` switch by hosting the view twice (persona = nil → POST /personas; persona = .some → PATCH /personas/<id>) with a `FakeTransport` that returns a canned 200. Body re-evaluation is enough for coverage of the closure literals; tapping isn't required since the task closures are statically-attributed.
 @MainActor
 final class PersonaCustomizeBranchTests: XCTestCase {
     private func makeAPI(_ transport: FakeTransport) -> BackendAPI {

@@ -2,8 +2,7 @@
 import SwiftUI
 import XCTest
 
-/// MetricInfo statics + the MetricExplainerSheet body. The bigger StatsView coverage comes from ViewBodyTests rendering
-/// the body; here we cover the per-metric definitions individually.
+/// MetricInfo statics + the MetricExplainerSheet body. The bigger StatsView coverage comes from ViewBodyTests rendering the body; here we cover the per-metric definitions individually.
 @MainActor
 final class StatsViewHelpersTests: XCTestCase {
     func testAllMetricInfosHaveIdentifiers() {

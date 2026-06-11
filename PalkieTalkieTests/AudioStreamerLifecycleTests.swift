@@ -2,10 +2,7 @@
 @testable import PalkieTalkie
 import XCTest
 
-/// Try the real `AudioStreamer` lifecycle on the simulator. AVAudioEngine sometimes refuses to start without a mic
-/// (which the simulator lacks), so we treat a thrown `engineStartFailed` as acceptable — we still get coverage of the
-/// pre-engine setup code (format build, Opus init, Ogg writer/reader init, session-audio file open). If `start()`
-/// succeeds we also exercise `playOutput`, `playPCM16`, `stop`, and the session-audio close path.
+/// Try the real `AudioStreamer` lifecycle on the simulator. AVAudioEngine sometimes refuses to start without a mic (which the simulator lacks), so we treat a thrown `engineStartFailed` as acceptable — we still get coverage of the pre-engine setup code (format build, Opus init, Ogg writer/reader init, session-audio file open). If `start()` succeeds we also exercise `playOutput`, `playPCM16`, `stop`, and the session-audio close path.
 final class AudioStreamerLifecycleTests: XCTestCase {
     func testStartAndStopReachesPostEngineCleanup() async throws {
         // AVAudioEngine asserts via a C++ precondition (`IsFormatSampleRateAndChannelCountValid`) on simulators whose default input format isn't a valid record-capable format. Swift can't catch C++ assertions, so the test crashes the bundle instead of failing the case. Covered end-to-end by host-integration tests on the connected iPhone where the format IS valid.
@@ -43,10 +40,7 @@ final class AudioStreamerLifecycleTests: XCTestCase {
         throw XCTSkip("AVAudioEngine input-format precondition is environment-dependent on the simulator.")
     }
 
-    // `interruptPlayback()` precondition-fails if the engine isn't running ("required condition is false: _engine != nil"
-    // surfaces from AVAudioEngine internals). The "safe before start" path isn't actually safe — leaving the assertion
-    // off so the test bundle doesn't crash. Coverage on the actual interrupt path comes from the start→playOutput→stop
-    // test below, which runs interruptPlayback indirectly via stop().
+    // `interruptPlayback()` precondition-fails if the engine isn't running ("required condition is false: _engine != nil" surfaces from AVAudioEngine internals). The "safe before start" path isn't actually safe — leaving the assertion off so the test bundle doesn't crash. Coverage on the actual interrupt path comes from the start→playOutput→stop test below, which runs interruptPlayback indirectly via stop().
 
     func testInputChunksStreamAccessible() async {
         let streamer = AudioStreamer()

@@ -4,21 +4,6 @@ import OSLog
 private let signposter = OSSignposter(subsystem: "com.palkietalkie", category: "personaplex")
 private let logger = Logger(subsystem: "com.palkietalkie", category: "personaplex")
 
-struct TranscriptChunk: Identifiable {
-    let id: UUID
-    enum Speaker: String { case user, persona }
-    let speaker: Speaker
-    let text: String
-    let timestamp: Date
-
-    init(speaker: Speaker, text: String, timestamp: Date = Date()) {
-        id = UUID()
-        self.speaker = speaker
-        self.text = text
-        self.timestamp = timestamp
-    }
-}
-
 enum PersonaPlexError: Error {
     case invalidURL
     case socketClosed(URLSessionWebSocketTask.CloseCode)
@@ -26,8 +11,7 @@ enum PersonaPlexError: Error {
     case notConnected
 }
 
-/// Parsed binary frame from the PersonaPlex wire protocol. Pure value type so frame parsing is unit-testable without
-/// spinning up a WebSocket.
+/// Parsed binary frame from the PersonaPlex wire protocol. Pure value type so frame parsing is unit-testable without spinning up a WebSocket.
 enum PersonaPlexFrame: Equatable {
     case handshake(version: UInt8, model: UInt8)
     case audio(Data)
@@ -135,22 +119,14 @@ actor PersonaPlexClient {
     private var errorStream: AsyncStream<String>?
     private var errorContinuation: AsyncStream<String>.Continuation?
 
-    // Set true the first time the server sends its handshake byte (0x00). The audio pump must NOT start until this is
-    // true: the server's recv_loop only starts after step_system_prompts_async (~30s on cold start). If we send audio before that, the bytes either get buffered out of order or dropped, and sphn's stream decoder fails because the OpusHead pages arrived too early.
+    // Set true the first time the server sends its handshake byte (0x00). The audio pump must NOT start until this is true: the server's recv_loop only starts after step_system_prompts_async (~30s on cold start). If we send audio before that, the bytes either get buffered out of order or dropped, and sphn's stream decoder fails because the OpusHead pages arrived too early.
     private var handshakeReceived = false
     private var handshakeWaiters: [CheckedContinuation<Void, Never>] = []
 
     init() {
-        // Ephemeral session = no on-disk cache, no cookie store, NO TLS session resumption. Required for our use case:
-        // every conversation start creates a fresh WS. With `.default`, iOS caches the TLS session from a previous
-        // successful connection and tries to resume it on the next attempt. When Modal's container has scaled down or
-        // restarted, server rejects the resumption ticket — Secure Transport closes the connection with `-9816
-        // errSSLProtocol` ("TLS protocol error") before our code sees any HTTP. Ephemeral side-steps that by forcing a
-        // full TLS handshake every time. We also lose nothing because nothing on the WS path needs caching.
+        // Ephemeral session = no on-disk cache, no cookie store, NO TLS session resumption. Required for our use case: every conversation start creates a fresh WS. With `.default`, iOS caches the TLS session from a previous successful connection and tries to resume it on the next attempt. When Modal's container has scaled down or restarted, server rejects the resumption ticket — Secure Transport closes the connection with `-9816 errSSLProtocol` ("TLS protocol error") before our code sees any HTTP. Ephemeral side-steps that by forcing a full TLS handshake every time. We also lose nothing because nothing on the WS path needs caching.
         let config = URLSessionConfiguration.ephemeral
-        // Large but bounded timeouts. `greatestFiniteMagnitude` (~1.8e308) made CFNetwork's internal timer math
-        // unreliable. 1 hour resource cap covers any real conversation; 10-minute request idle covers Modal cold start
-        // (15-30s) with headroom.
+        // Large but bounded timeouts. `greatestFiniteMagnitude` (~1.8e308) made CFNetwork's internal timer math unreliable. 1 hour resource cap covers any real conversation; 10-minute request idle covers Modal cold start (15-30s) with headroom.
         config.timeoutIntervalForRequest = 600
         config.timeoutIntervalForResource = 3600
         session = URLSession(configuration: config)
@@ -214,9 +190,7 @@ actor PersonaPlexClient {
 
     /// Opens the WebSocket to PersonaPlex and sends the binary handshake frame.
     ///
-    /// Backend (`POST /conversation/start`) returns a fully-built `ws_url` that already includes `text_prompt`,
-    /// `voice_prompt`, `auth_token`, and sampling defaults as query params. Open it as-is — no client-side URL
-    /// construction.
+    /// Backend (`POST /conversation/start`) returns a fully-built `ws_url` that already includes `text_prompt`, `voice_prompt`, `auth_token`, and sampling defaults as query params. Open it as-is — no client-side URL construction.
     func connect(wsUrl: String) async throws {
         // Touch streams so continuations are wired before the read loop starts.
         _ = transcript
@@ -268,6 +242,12 @@ actor PersonaPlexClient {
         audioContinuation?.finish()
         metadataContinuation?.finish()
         errorContinuation?.finish()
+        // Resume anyone still parked in waitForServerHandshake() — e.g. a session closed (timeout/teardown) before the `\x00` byte arrived. Without this the continuation leaks. Callers race this against a timeout, so a late resume here is ignored.
+        let waiters = handshakeWaiters
+        handshakeWaiters.removeAll()
+        for w in waiters {
+            w.resume()
+        }
     }
 
     private func readLoop() async {

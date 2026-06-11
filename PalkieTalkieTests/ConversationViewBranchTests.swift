@@ -3,9 +3,7 @@ import SwiftUI
 import UIKit
 import XCTest
 
-/// ConversationView's body has a switch over SessionController.Phase that picks the mic background color, the
-/// status-content sub-view, and the symbol-effect. Default ViewBodyTests only hit the `.idle` branch; this file hosts
-/// the view with each phase set manually so the other branches are exercised.
+/// ConversationView's body has a switch over SessionController.Phase that picks the mic background color, the status-content sub-view, and the symbol-effect. Default ViewBodyTests only hit the `.idle` branch; this file hosts the view with each phase set manually so the other branches are exercised.
 @MainActor
 final class ConversationViewBranchTests: XCTestCase {
     private func makeController() -> SessionController {
@@ -69,6 +67,13 @@ final class ConversationViewBranchTests: XCTestCase {
         await host(ConversationView().environment(controller))
     }
 
+    func testConversationViewReconnectingPhase() async {
+        // Exercises the orange mic background + the "Reconnecting…" status sub-view added for mid-call network drops.
+        let controller = makeController()
+        controller.phase = .reconnecting
+        await host(ConversationView().environment(controller))
+    }
+
     func testConversationViewWithCaptionsOn() async {
         UserDefaults.standard.set(true, forKey: "captionsEnabled")
         let controller = makeController()
@@ -81,8 +86,7 @@ final class ConversationViewBranchTests: XCTestCase {
         UserDefaults.standard.set(false, forKey: "captionsEnabled")
     }
 
-    /// Phase enum has Equatable conformance; the .error case carries a String. Cover every branch of Phase comparison
-    /// to exercise the synthesized Equatable.
+    /// Phase enum has Equatable conformance; the .error case carries a String. Cover every branch of Phase comparison to exercise the synthesized Equatable.
     func testPhaseEquality() {
         XCTAssertEqual(SessionController.Phase.idle, SessionController.Phase.idle)
         XCTAssertNotEqual(SessionController.Phase.idle, SessionController.Phase.live)

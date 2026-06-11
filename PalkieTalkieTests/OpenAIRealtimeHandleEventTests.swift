@@ -1,10 +1,7 @@
 @testable import PalkieTalkie
 import XCTest
 
-/// Drives every branch of `OpenAIRealtimeClient.handleEvent(data:)` directly. The production code path uses a
-/// `URLSessionWebSocketTask` to receive these JSON frames; in tests we feed the same JSON shapes synthetically because
-/// the WS task is `final` (not injectable) and starting a real local WS server here would add infra complexity for
-/// little gain.
+/// Drives every branch of `OpenAIRealtimeClient.handleEvent(data:)` directly. The production code path uses a `URLSessionWebSocketTask` to receive these JSON frames; in tests we feed the same JSON shapes synthetically because the WS task is `final` (not injectable) and starting a real local WS server here would add infra complexity for little gain.
 final class OpenAIRealtimeHandleEventTests: XCTestCase {
     private func makeClient() -> OpenAIRealtimeClient {
         OpenAIRealtimeClient(instructions: "test instructions")

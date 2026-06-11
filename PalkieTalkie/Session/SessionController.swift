@@ -16,15 +16,18 @@ final class SessionController {
         case startingSession
         case connecting
         case live
+        // Mid-call connectivity loss (elevator / tunnel). The dead session is torn down and we wait here for the path to return, then auto-restart — instead of leaving a frozen `.live` mic the user can't escape.
+        case reconnecting
         case ending
         case error(String)
     }
 
     var phase: Phase = .idle
     var transcript: [TranscriptChunk] = []
-    // Persisted across app launches. Reads from UserDefaults on first access, writes through on every set. Default
-    // empty → `resolvePersonaIdIfNeeded()` picks the first curated preset the first time. After that, the user's choice
-    // from `PersonaPickerView` survives kill-and-relaunch.
+    /// True while the tutor is actively speaking. Drives the mic's swell/glow animation in ConversationView. Set when an AI (`.persona`) transcript chunk arrives, cleared after a short gap with no new AI chunk. This is the conversation-level "is it the AI's turn" signal — distinct from `phase == .live`, which stays true for the whole session.
+    var isAISpeaking: Bool = false
+    var aiSpeakingResetTask: Task<Void, Never>?
+    // Persisted across app launches. Reads from UserDefaults on first access, writes through on every set. Default empty → `resolvePersonaIdIfNeeded()` picks the first curated preset the first time. After that, the user's choice from `PersonaPickerView` survives kill-and-relaunch.
     private static let lastPersonaKey = "lastSelectedPersonaId"
     var selectedPersonaId: String = UserDefaults.standard.string(forKey: SessionController.lastPersonaKey) ?? "" {
         didSet { UserDefaults.standard.set(selectedPersonaId, forKey: Self.lastPersonaKey) }
@@ -35,11 +38,15 @@ final class SessionController {
     // MARK: - Collaborators (DI seams)
 
     private let context: ContextGathering
-    private let backend: ConversationBackend
+    let backend: ConversationBackend
     private let micPermission: MicrophonePermissionRequesting
     private let streamerFactory: AudioStreamerFactory
     private let sessionFactory: PersonaPlexSessionFactory
     private let openAIFactory: OpenAIRealtimeClientFactory
+    /// Test seam: forces the server-ready timeout (seconds) for both providers. nil in production, where OpenAI gets 20s and PersonaPlex 90s (cold start). Tests set a tiny value to exercise the timeout path without a 90s wait.
+    private let serverReadyTimeoutOverride: Double?
+    /// Internal (not private) so SessionController+NetworkRecovery.swift can reach it — same cross-file-extension reason as serverReadyContinuation.
+    let pathMonitor: NetworkPathMonitoring
 
     // MARK: - Live state
 
@@ -52,9 +59,10 @@ final class SessionController {
     private var observerTasks: [Task<Void, Never>] = []
     /// Tasks the controller scheduled to enforce the free-cap mid-session: one warns the AI to wrap up at ~30s remaining, the other hard-ends the session at 0s. Cancelled in teardown() so a manual end doesn't leave them pending.
     private var freeCapTasks: [Task<Void, Never>] = []
+    /// Lives for the whole session (across reconnects), not per-WS — so it can still observe the path coming back after a drop. Started lazily by `start()`, cancelled only by `end()` (never by `teardown()`, which runs on every drop). Internal so the NetworkRecovery extension can manage it.
+    var networkTask: Task<Void, Never>?
 
-    /// In-progress turn buffer. Stream emissions from the same speaker accumulate here; flush as one `transcripts` row
-    /// on speaker switch or session end. Per CLAUDE.md, a transcripts row = one TURN, not one realtime-stream fragment.
+    /// In-progress turn buffer. Stream emissions from the same speaker accumulate here; flush as one `transcripts` row on speaker switch or session end. Per CLAUDE.md, a transcripts row = one TURN, not one realtime-stream fragment.
     private struct TurnBuffer {
         let speaker: TranscriptChunk.Speaker
         var text: String
@@ -70,6 +78,8 @@ final class SessionController {
         streamerFactory: AudioStreamerFactory = DefaultAudioStreamerFactory(),
         sessionFactory: PersonaPlexSessionFactory = DefaultPersonaPlexSessionFactory(),
         openAIFactory: OpenAIRealtimeClientFactory = DefaultOpenAIRealtimeClientFactory(),
+        serverReadyTimeoutOverride: Double? = nil,
+        pathMonitor: NetworkPathMonitoring = DefaultNetworkPathMonitor(),
     ) {
         self.context = context
         self.backend = backend
@@ -77,6 +87,8 @@ final class SessionController {
         self.streamerFactory = streamerFactory
         self.sessionFactory = sessionFactory
         self.openAIFactory = openAIFactory
+        self.serverReadyTimeoutOverride = serverReadyTimeoutOverride
+        self.pathMonitor = pathMonitor
     }
 
     private func resolvePersonaIdIfNeeded() async throws -> Bool {
@@ -97,6 +109,7 @@ final class SessionController {
     }
 
     func start() async {
+        startNetworkMonitoringIfNeeded()
         let t0 = Date()
         phase = .gatheringContext
         let gatherInterval = signposter.beginInterval("conversation.gatherContext")
@@ -108,8 +121,7 @@ final class SessionController {
         do {
             try await micPermission.requestMicrophonePermission()
             guard try await resolvePersonaIdIfNeeded() else {
-                // No personas yet (backend still seeding, dev hiccup, etc). Stay idle silently — never block the user
-                // with a scary error.
+                // No personas yet (backend still seeding, dev hiccup, etc). Stay idle silently — never block the user with a scary error.
                 phase = .idle
                 return
             }
@@ -122,8 +134,7 @@ final class SessionController {
                     topicOverride: startContextOverride,
                 )
             } catch BackendError.http(404, _) {
-                // Cached persona ID is stale (user-created persona deleted, DB reset, preset list rotated). Re-resolve
-                // from /personas and retry once.
+                // Cached persona ID is stale (user-created persona deleted, DB reset, preset list rotated). Re-resolve from /personas and retry once.
                 logger.info("conversation/start 404 — refreshing persona from server")
                 guard try await pickFirstPersonaFromServer() else {
                     phase = .idle
@@ -161,10 +172,14 @@ final class SessionController {
             }
             signposter.endInterval("conversation.websocketConnect", connectInterval)
 
-            // Wait for the server's ready signal before pumping audio. PersonaPlex: `\x00` handshake byte (server's
-            // recv_loop only starts after step_system_prompts_async, ~30s on cold start). OpenAI: session.created
-            // event. In both cases, sending audio earlier means dropped frames.
-            await realtime.waitForServerReady()
+            // Wait for the server's ready signal before pumping audio — sending earlier drops frames. PersonaPlex emits a `\x00` handshake byte (its recv_loop only starts after step_system_prompts_async); OpenAI emits a session.created event.
+            // Bounded so a never-arriving signal (dead WS after a persona switch, exhausted quota, cold-start crash) can't hang on "Loading your tutor…" forever; tests pass serverReadyTimeoutOverride to shorten it.
+            // 20s for OpenAI: no cold start, session.created is sub-second, so this ceiling only trips on a genuine failure.
+            // 90s for PersonaPlex: Modal scale-to-zero boots a container + loads weights to VRAM (~10-20s) then runs the first system-prompt pass (~15-30s), so a cold start legitimately reaches ~30-60s before the handshake byte.
+            let readyTimeout = serverReadyTimeoutOverride ?? (response.provider == "openai" ? 20 : 90)
+            guard await awaitServerReady(realtime, timeoutSeconds: readyTimeout) else {
+                throw SessionStartError.serverReadyTimeout
+            }
             let tConnectEnd = Date()
 
             let streamer = try await streamerFactory.makeStreamer()
@@ -204,19 +219,24 @@ final class SessionController {
             // Free-cap mid-session enforcement. Fire-and-forget — a failed entitlement fetch leaves the session uncapped (premium-style) so a network blip doesn't end someone's conversation. Only schedules timers if the user is on free and a finite remaining window applies.
             scheduleFreeCapWrapUp(realtime: realtime)
         } catch {
-            let message = String(describing: error)
-            logger.error("conversation start failed: \(message, privacy: .public)")
-            phase = .error(message)
+            // Logs keep the full diagnostic; the UI shows the friendly message for errors that provide one (BackendError, SessionStartError), falling back to the raw describe otherwise.
+            logger.error("conversation start failed: \(String(describing: error), privacy: .public)")
+            let userMessage = (error as? LocalizedError)?.errorDescription ?? String(describing: error)
+            phase = .error(userMessage)
             await teardown()
         }
         // Consume the override exactly once — next session should fall back to normal context.
         startContextOverride = nil
     }
 
-    // Cold-start telemetry moved to `ColdStartReporter.swift` so the orchestrator stays focused on phase machine +
-    // collaborator wiring.
+    /// One-shot continuation parked by `awaitServerReady` (in SessionController+ServerReady.swift). Lives on the @MainActor instance so the ready-task and the timeout-task resolve it without sharing a mutable local across `@Sendable` closures.
+    var serverReadyContinuation: CheckedContinuation<Bool, Never>?
+
+    // Cold-start telemetry moved to `ColdStartReporter.swift` so the orchestrator stays focused on phase machine + collaborator wiring.
 
     func end() async {
+        // Explicit end (user left the Talk tab) — stop watching the path. A drop-driven teardown does NOT come through here, so the monitor keeps running to catch the path returning.
+        cancelNetworkMonitoring()
         phase = .ending
         // Flush any in-progress turn buffer before tearing down so the last utterance lands in transcripts. Without this, the final turn (often the AI's closing line, or whatever the user said before tapping end) is lost.
         flushPendingTurn(endedAt: Date())
@@ -236,36 +256,6 @@ final class SessionController {
             await uploadMicAudioIfAny(sessionId: id, streamer: streamer)
         }
         phase = .idle
-    }
-
-    /// Read the freshly-finalized mic wav from the streamer, deflate-compress it, POST to the backend, delete the local file. All steps best-effort; logs and continues on failure. Companion call below ships the model-output wav.
-    private func uploadMicAudioIfAny(sessionId: String, streamer: AudioStreamerType) async {
-        guard let url = await streamer.recordedSessionAudioURL else { return }
-        defer { try? FileManager.default.removeItem(at: url) }
-        do {
-            let wavData = try Data(contentsOf: url)
-            guard !wavData.isEmpty else { return }
-            // Apple's `NSData.compressed(using: .zlib)` produces a RAW DEFLATE stream — no zlib wrapper, no gzip header. The Content-Type the network layer sends ("audio/wav+deflate") matches; do NOT mislabel it as "gzip".
-            let deflated = try (wavData as NSData).compressed(using: .zlib) as Data
-            try await backend.uploadMicAudio(sessionId: sessionId, deflatedWav: deflated)
-        } catch {
-            logger.error("mic audio upload failed: \(String(describing: error), privacy: .public)")
-        }
-        await uploadModelAudioIfAny(sessionId: sessionId, streamer: streamer)
-    }
-
-    /// Mirror of `uploadMicAudioIfAny` for the model-output wav. Independent best-effort upload so a failure on one track doesn't poison the other.
-    private func uploadModelAudioIfAny(sessionId: String, streamer: AudioStreamerType) async {
-        guard let url = await streamer.recordedModelAudioURL else { return }
-        defer { try? FileManager.default.removeItem(at: url) }
-        do {
-            let wavData = try Data(contentsOf: url)
-            guard !wavData.isEmpty else { return }
-            let deflated = try (wavData as NSData).compressed(using: .zlib) as Data
-            try await backend.uploadModelAudio(sessionId: sessionId, deflatedWav: deflated)
-        } catch {
-            logger.error("model audio upload failed: \(String(describing: error), privacy: .public)")
-        }
     }
 
     private func startObservers(session: PersonaPlexSessionType) async {
@@ -307,7 +297,14 @@ final class SessionController {
                 }
             }
         }
-        observerTasks = [transcriptTask, errorTask]
+        let toolStream = await client.toolCalls
+        let toolTask = Task { [weak self] in
+            for await call in toolStream {
+                // Runs in its own task, off the audio path — the model keeps talking while recall resolves (async, like a human remembering mid-sentence), then the result is fed back.
+                await self?.handleToolCall(call, client: client)
+            }
+        }
+        observerTasks = [transcriptTask, errorTask, toolTask]
     }
 
     /// Fetch the entitlement, compute the smaller of the two remaining windows (day vs week), then schedule a wrap-up hint at `remaining - 30s` and a hard end at `remaining`. Premium users get no timers. Failures (network, decode) fail-open (no caps) — a single API blip should never end a paying user's conversation.
@@ -353,8 +350,8 @@ final class SessionController {
 
     private func appendTranscript(_ chunk: TranscriptChunk) {
         transcript.append(chunk)
-        // Aggregate stream fragments into turn rows. Speaker switch (or session end) flushes the in-flight buffer as
-        // one POST → one DB row. Fragments from the same speaker join into one turn's text.
+        markAISpeaking(for: chunk)
+        // Aggregate stream fragments into turn rows. Speaker switch (or session end) flushes the in-flight buffer as one POST → one DB row. Fragments from the same speaker join into one turn's text.
         if let pending = pendingTurn, pending.speaker == chunk.speaker {
             pendingTurn?.text += chunk.text
         } else {
@@ -380,7 +377,11 @@ final class SessionController {
         }
     }
 
-    private func teardown() async {
+    /// Internal (not private) so SessionController+NetworkRecovery.swift can tear a dropped session down before reconnecting.
+    func teardown() async {
+        aiSpeakingResetTask?.cancel()
+        aiSpeakingResetTask = nil
+        isAISpeaking = false
         for task in observerTasks {
             task.cancel()
         }

@@ -1,8 +1,7 @@
 @testable import PalkieTalkie
 import XCTest
 
-/// Lifecycle-level tests for PersonaPlexClient. The frame codec is covered separately in PersonaPlexClientTests; here we
-/// hit the WS open/close path with safe inputs (no real network) and verify the stream accessors return wired streams.
+/// Lifecycle-level tests for PersonaPlexClient. The frame codec is covered separately in PersonaPlexClientTests; here we hit the WS open/close path with safe inputs (no real network) and verify the stream accessors return wired streams.
 final class PersonaPlexClientLifecycleTests: XCTestCase {
     func testStreamsLazyInitOnce() async {
         let client = PersonaPlexClient()
@@ -73,8 +72,7 @@ final class PersonaPlexClientLifecycleTests: XCTestCase {
     }
 
     func testWaitForServerHandshakeBeforeReceivingResolvesEventually() async {
-        // No real WS = handshake never fires; the test just verifies the method exists and is callable. Use a short
-        // timeout so the assertion check is bounded.
+        // No real WS = handshake never fires; the test just verifies the method exists and is callable. Use a short timeout so the assertion check is bounded.
         let client = PersonaPlexClient()
         let handshakeTask = Task { await client.waitForServerHandshake() }
         try? await Task.sleep(nanoseconds: 30_000_000)

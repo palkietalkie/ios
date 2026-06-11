@@ -2,9 +2,7 @@ import Foundation
 import UIKit
 import UserNotifications
 
-/// Handles APNs registration and forwards the device token to the backend so scheduled-session reminders can be
-/// delivered. Used to be `PushNotifications.shared` + `BackendAPI.shared`; now backend is constructor-injected so
-/// tests can hand in a fake.
+/// Handles APNs registration and forwards the device token to the backend so scheduled-session reminders can be delivered. Used to be `PushNotifications.shared` + `BackendAPI.shared`; now backend is constructor-injected so tests can hand in a fake.
 final class PushNotifications: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
     private let backend: BackendAPI
 
@@ -41,9 +39,7 @@ final class PushNotifications: NSObject, UNUserNotificationCenterDelegate, @unch
 }
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
-    /// Set by `PalkieTalkieApp.init` so the OS-driven `didRegisterForRemoteNotifications` callback can forward the
-    /// device token. The UIApplicationDelegateAdaptor instantiates this class without arguments, so we can't pass the
-    /// `PushNotifications` instance through init — it has to live on a static the app sets at launch.
+    /// Set by `PalkieTalkieApp.init` so the OS-driven `didRegisterForRemoteNotifications` callback can forward the device token. The UIApplicationDelegateAdaptor instantiates this class without arguments, so we can't pass the `PushNotifications` instance through init — it has to live on a static the app sets at launch.
     nonisolated(unsafe) static var pushNotifications: PushNotifications?
 
     func application(

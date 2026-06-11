@@ -233,10 +233,75 @@ final class BackendEndpointsTests: XCTestCase {
 
     func testGetKG() async throws {
         let transport = FakeTransport()
-        transport.responseData = Data("[]".utf8)
+        transport.responseData = Data(#"{"nodes":[],"edges":[]}"#.utf8)
         let api = makeAPI(transport: transport)
         _ = try await api.getKG()
         XCTAssertEqual(transport.lastRequest?.url?.path, "/kg")
+    }
+
+    /// Cross-boundary contract: decode the EXACT JSON `backend/app/services/neo4j/fetch_kg.py` emits — `{nodes:[{id,type,name,attrs}], edges:[{src,rel,dst}]}` with attrs stringified. The old test fed a bare `[]` (iOS-internal shape) which never matched the backend, so the nodes/edges drift slipped through and every user saw an empty KG. Keep this byte-shape in lockstep with fetch_kg.py.
+    func testGetKGDecodesBackendWireShape() async throws {
+        let backendJSON = """
+        {
+          "nodes": [
+            {"id": "Naoto", "type": "person", "name": "Naoto", "attrs": {"relation": "brother", "age": "34"}},
+            {"id": "Coventry", "type": "place", "name": "Coventry", "attrs": {}}
+          ],
+          "edges": [
+            {"src": "Naoto", "rel": "LIVES_IN", "dst": "Coventry"}
+          ]
+        }
+        """
+        let transport = FakeTransport()
+        transport.responseData = Data(backendJSON.utf8)
+        let api = makeAPI(transport: transport)
+        let graph = try await api.getKG()
+        XCTAssertEqual(graph.nodes.count, 2)
+        XCTAssertEqual(graph.nodes.first?.name, "Naoto")
+        XCTAssertEqual(graph.nodes.first?.attrs["relation"], "brother")
+        XCTAssertEqual(graph.nodes.first?.attrs["age"], "34")
+        XCTAssertEqual(graph.edges.count, 1)
+        XCTAssertEqual(graph.edges.first?.rel, "LIVES_IN")
+        XCTAssertEqual(graph.edges.first?.dst, "Coventry")
+    }
+
+    // MARK: - Recall (realtime tool outputs)
+
+    func testRecallFactsFormatsEntitiesAndRelations() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data(#"""
+        {"entities":[{"name":"Naoto","type":"person","relations":[{"rel":"WORKS_AT","target":"Kawasaki"}]}]}
+        """#.utf8)
+        let api = makeAPI(transport: transport)
+        let out = try await api.recallFacts(query: "naoto")
+        XCTAssertEqual(out, "Naoto (person): WORKS_AT Kawasaki")
+        XCTAssertEqual(transport.lastRequest?.url?.path, "/recall/facts")
+    }
+
+    func testRecallFactsEmptyGivesReadableNote() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data(#"{"entities":[]}"#.utf8)
+        let api = makeAPI(transport: transport)
+        let out = try await api.recallFacts(query: "nobody")
+        XCTAssertEqual(out, "No matching facts found.")
+    }
+
+    func testRecallConversationsJoinsSnippets() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data(#"{"snippets":["talked about interviews","talked about climbing"]}"#.utf8)
+        let api = makeAPI(transport: transport)
+        let out = try await api.recallConversations(query: "interview")
+        XCTAssertEqual(out, "talked about interviews\ntalked about climbing")
+    }
+
+    func testSearchTranscriptsFormatsTurns() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data(#"""
+        {"turns":[{"speaker":"user","text":"I love bouldering","when":"2026-01-01T00:00:00Z"}]}
+        """#.utf8)
+        let api = makeAPI(transport: transport)
+        let out = try await api.searchTranscripts(query: "bouldering")
+        XCTAssertEqual(out, "user: I love bouldering")
     }
 
     // MARK: - Profile

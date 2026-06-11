@@ -1,8 +1,7 @@
 @testable import PalkieTalkie
 import XCTest
 
-/// Additional branches of SessionController that the original SessionControllerTests didn't cover. Each test pins
-/// one specific path:
+/// Additional branches of SessionController that the original SessionControllerTests didn't cover. Each test pins one specific path:
 /// - Resolve-persona returns false (empty `/personas`) → stay `.idle`.
 /// - Cached persona is non-UUID → must call `/personas`.
 /// - End with no in-flight session → no backend calls.
@@ -131,8 +130,7 @@ final class SessionControllerBranchTests: XCTestCase {
         }
     }
 
-    /// When the 404 retry's second `/personas` lookup also returns empty (DB still empty), we should stay `.idle`,
-    /// not raise an error.
+    /// When the 404 retry's second `/personas` lookup also returns empty (DB still empty), we should stay `.idle`, not raise an error.
     func testStaleCacheRetryFindsNothingStaysIdle() async {
         let stale = UUID().uuidString
         let backend = FakeConversationBackend(

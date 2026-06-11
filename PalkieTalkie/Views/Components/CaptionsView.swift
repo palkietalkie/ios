@@ -3,9 +3,7 @@ import SwiftUI
 // Live transcript renderer for the Talk screen, plus the CC toggle that shows/hides it.
 //
 // Single responsibility: present TranscriptChunks as readable flowing lines and let the user toggle captions on/off.
-// Speaker turn changes start a new line; consecutive same-speaker subword tokens (the model emits "uh", "he", "y", ...)
-// get concatenated so the user doesn't see one row per token. No "AI" / "You" labels — speaker is visually obvious from
-// voice context.
+// Speaker turn changes start a new line; consecutive same-speaker subword tokens (the model emits "uh", "he", "y", ...) get concatenated so the user doesn't see one row per token. No "AI" / "You" labels — speaker is visually obvious from voice context.
 
 /// Single rendered caption line — one speaker turn after consecutive-token concatenation.
 struct CaptionLine: Identifiable {
@@ -28,19 +26,36 @@ func mergedCaptions(_ chunks: [TranscriptChunk]) -> [CaptionLine] {
     return lines
 }
 
-/// CC button. `captions.bubble` SF Symbol already contains "CC" in its glyph — no separate text label.
+/// CC button, YouTube-style. The `captions.bubble` SF Symbol is just a speech bubble — users don't read it as captions, so render literal "CC" letters instead. Monochrome only (never a brand color): enabled is a brighter "CC" inside a filled pill; disabled is a dim "CC" with no fill. No underline. `.buttonStyle(.plain)` stops the toolbar from tinting the label blue. Styling is exposed as pure functions so the visual contract is unit-testable.
 struct CaptionsToggle: View {
     @Binding var enabled: Bool
+
+    /// Pill fill: a monochrome box when enabled, nothing when disabled. Never a brand color.
+    static func fill(enabled: Bool) -> Color {
+        enabled ? Color.primary.opacity(0.15) : .clear
+    }
+
+    /// "CC" letters: full brightness when enabled, dimmed when disabled.
+    static func foreground(enabled: Bool) -> Color {
+        enabled ? .primary : .secondary
+    }
 
     var body: some View {
         Button {
             enabled.toggle()
         } label: {
-            Image(systemName: enabled ? "captions.bubble.fill" : "captions.bubble")
-                .font(.system(size: 22))
-                .foregroundStyle(enabled ? .blue : .secondary)
-                .padding(.vertical, 4)
+            Text("CC")
+                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                .tracking(0.5)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .foregroundStyle(Self.foreground(enabled: enabled))
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Self.fill(enabled: enabled)),
+                )
         }
+        .buttonStyle(.plain)
         .accessibilityLabel(enabled ? "Hide captions" : "Show captions")
     }
 }
@@ -64,7 +79,8 @@ struct CaptionsScroll: View {
                 }
                 .padding(.vertical, 8)
             }
-            .frame(maxHeight: 220)
+            // Fill whatever vertical space ConversationView gives the captions block (it grants this view layout priority) rather than capping at a fixed 220pt that left the caption area cramped under the mic.
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .onChange(of: merged.count) { _, _ in
                 if let last = merged.last {
                     withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }

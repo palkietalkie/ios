@@ -1,4 +1,5 @@
 import Foundation
+import Network
 
 /// Injectable seams that SessionController depends on. Production wires the real implementations declared below as `Default*`; tests inject fakes that drive the phase machine without standing up audio / network / Clerk. Splitting these out of SessionController.swift keeps the orchestrator file focused on the state machine; the protocol surface here is what tests target.
 protocol ContextGathering: Sendable {
@@ -7,8 +8,7 @@ protocol ContextGathering: Sendable {
 
 extension ContextGatherer: ContextGathering {}
 
-/// Slice of `BackendAPI` the controller needs. Defining it as a protocol lets `SessionControllerTests` stub start / end
-/// without standing up the transport.
+/// Slice of `BackendAPI` the controller needs. Defining it as a protocol lets `SessionControllerTests` stub start / end without standing up the transport.
 protocol ConversationBackend: Sendable {
     func startConversation(
         personaId: String,
@@ -27,6 +27,10 @@ protocol ConversationBackend: Sendable {
     func uploadModelAudio(sessionId: String, deflatedWav: Data) async throws
     func getPersonas(search: String?, sort: String) async throws -> [PersonaDTO]
     func getEntitlement() async throws -> Entitlement
+    // Conversation-time recall, invoked when the realtime model calls a tool. Each returns concise text for the model to read back.
+    func recallFacts(query: String) async throws -> String
+    func recallConversations(query: String) async throws -> String
+    func searchTranscripts(query: String) async throws -> String
 }
 
 extension BackendAPI: ConversationBackend {}
@@ -42,8 +46,7 @@ struct DefaultMicrophonePermission: MicrophonePermissionRequesting {
     }
 }
 
-/// Factory for the audio streamer. Production returns a real `AudioStreamer` and starts it; tests return a fake that
-/// records `playOutput` calls.
+/// Factory for the audio streamer. Production returns a real `AudioStreamer` and starts it; tests return a fake that records `playOutput` calls.
 protocol AudioStreamerFactory: Sendable {
     func makeStreamer() async throws -> AudioStreamerType
 }
@@ -56,8 +59,7 @@ struct DefaultAudioStreamerFactory: AudioStreamerFactory {
     }
 }
 
-/// Factory for the PersonaPlex lifecycle. Returns a session that's ready to `open(wsUrl:)`. Tests inject a fake to
-/// assert open/close flow.
+/// Factory for the PersonaPlex lifecycle. Returns a session that's ready to `open(wsUrl:)`. Tests inject a fake to assert open/close flow.
 protocol PersonaPlexSessionFactory: Sendable {
     func makeSession() -> PersonaPlexSessionType
 }
@@ -68,8 +70,7 @@ struct DefaultPersonaPlexSessionFactory: PersonaPlexSessionFactory {
     }
 }
 
-/// Factory for the OpenAI Realtime client. Separate from `PersonaPlexSessionFactory` so the orchestrator wiring stays
-/// explicit per provider.
+/// Factory for the OpenAI Realtime client. Separate from `PersonaPlexSessionFactory` so the orchestrator wiring stays explicit per provider.
 protocol OpenAIRealtimeClientFactory: Sendable {
     func makeClient(instructions: String?) -> RealtimeClient
 }
@@ -77,5 +78,23 @@ protocol OpenAIRealtimeClientFactory: Sendable {
 struct DefaultOpenAIRealtimeClientFactory: OpenAIRealtimeClientFactory {
     func makeClient(instructions: String?) -> RealtimeClient {
         OpenAIRealtimeClient(instructions: instructions)
+    }
+}
+
+/// Connectivity seam. Emits `true` when a usable network path exists and `false` when it's gone, starting with the current status. Backs SessionController's mid-call drop detection + auto-reconnect (elevator / tunnel / dead zone). Tests inject a fake to drive transitions deterministically without a real radio.
+protocol NetworkPathMonitoring: Sendable {
+    func statuses() -> AsyncStream<Bool>
+}
+
+struct DefaultNetworkPathMonitor: NetworkPathMonitoring {
+    func statuses() -> AsyncStream<Bool> {
+        AsyncStream { continuation in
+            let monitor = NWPathMonitor()
+            monitor.pathUpdateHandler = { path in
+                continuation.yield(path.status == .satisfied)
+            }
+            monitor.start(queue: DispatchQueue(label: "com.palkietalkie.network-path"))
+            continuation.onTermination = { _ in monitor.cancel() }
+        }
     }
 }

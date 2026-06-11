@@ -1,9 +1,7 @@
 @testable import PalkieTalkie
 import XCTest
 
-/// Drives `PersonaPlexClient.connect()` + `close()` against a localhost URL the kernel rejects. Exercises the URL
-/// parsing, stream setup, WS task creation, handshake-send, and readLoop spin-up paths without needing a real
-/// PersonaPlex server.
+/// Drives `PersonaPlexClient.connect()` + `close()` against a localhost URL the kernel rejects. Exercises the URL parsing, stream setup, WS task creation, handshake-send, and readLoop spin-up paths without needing a real PersonaPlex server.
 final class PersonaPlexClientConnectTests: XCTestCase {
     func testConnectAndCloseAgainstLocalhostExitsCleanly() async {
         let client = PersonaPlexClient()

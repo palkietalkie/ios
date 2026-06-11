@@ -3,7 +3,7 @@ import XCTest
 
 /// Drives SessionController.end()'s audio-upload branches. Each test stages a wav file on disk, points the FakeAudioStreamer's recordedSessionAudioURL / recordedModelAudioURL at it, runs the start → end flow, and asserts the backend's uploadMicAudio / uploadModelAudio calls fired.
 @MainActor
-final class SessionControllerUploadTests: XCTestCase {
+final class SessionControllerAudioUploadTests: XCTestCase {
     private func makeWav(named name: String, bytes: Int = 200) throws -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(name)-\(UUID().uuidString).wav")
         try Data(repeating: 0xAA, count: bytes).write(to: url)

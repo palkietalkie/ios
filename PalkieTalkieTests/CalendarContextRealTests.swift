@@ -2,8 +2,7 @@ import EventKit
 @testable import PalkieTalkie
 import XCTest
 
-/// Tests the real CalendarContext actor (not just the protocol fake). EventKit in the test bundle has no permission, so
-/// every path returns empty. Still exercises the actor surface so its lines aren't dark.
+/// Tests the real CalendarContext actor (not just the protocol fake). EventKit in the test bundle has no permission, so every path returns empty. Still exercises the actor surface so its lines aren't dark.
 final class CalendarContextRealTests: XCTestCase {
     func testRealCalendarContextRequestAccessDeniedByDefault() async {
         let context = CalendarContext()

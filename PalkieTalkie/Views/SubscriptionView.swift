@@ -7,6 +7,7 @@ struct SubscriptionView: View {
     @State private var store: SubscriptionStore
     @State private var purchasing: SubscriptionID?
     @State private var entitlement: Entitlement?
+    @State private var entitlementError: String?
 
     init(service: (any SubscriptionService)? = nil) {
         if let service {
@@ -23,7 +24,7 @@ struct SubscriptionView: View {
                 upgradeSection
             }
             manageSection
-            if let err = store.error {
+            if let err = store.error ?? entitlementError {
                 Section {
                     Text(err).font(.callout).foregroundStyle(.red)
                 }
@@ -32,11 +33,21 @@ struct SubscriptionView: View {
         .navigationTitle("Subscription")
         .task {
             await store.loadProducts()
-            entitlement = try? await api.getEntitlement()
+            await loadEntitlement()
         }
         .refreshable {
             await store.loadProducts()
-            entitlement = try? await api.getEntitlement()
+            await loadEntitlement()
+        }
+    }
+
+    /// Surface entitlement-fetch failures instead of `try?`-swallowing them — a silently-missing entitlement shows the user the wrong plan/limits with no signal anything broke.
+    private func loadEntitlement() async {
+        do {
+            entitlement = try await api.getEntitlement()
+            entitlementError = nil
+        } catch {
+            entitlementError = "Couldn't load your plan: \(error.localizedDescription)"
         }
     }
 

@@ -4,6 +4,7 @@ struct CEFRDetailView: View {
     @Environment(\.backendAPI) private var api
     @State private var level: String = "B1"
     @State private var words: [CEFRWord] = []
+    @State private var loadError: String?
 
     var body: some View {
         VStack {
@@ -13,6 +14,10 @@ struct CEFRDetailView: View {
             .pickerStyle(.segmented)
             .padding(.horizontal)
 
+            if let loadError {
+                Text("Couldn't load words: \(loadError)")
+                    .font(.footnote).foregroundStyle(.red).padding(.horizontal)
+            }
             List(words) { word in
                 HStack {
                     Text(word.word)
@@ -25,7 +30,13 @@ struct CEFRDetailView: View {
         }
         .navigationTitle("CEFR \(level)")
         .task(id: level) {
-            words = await (try? api.getCEFRWords(level: level)) ?? []
+            // Surface failures instead of `try?`-swallowing them into an empty list (the KG-bug class).
+            do {
+                words = try await api.getCEFRWords(level: level)
+                loadError = nil
+            } catch {
+                loadError = error.localizedDescription
+            }
         }
     }
 }

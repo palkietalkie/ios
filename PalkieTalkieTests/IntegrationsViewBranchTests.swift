@@ -3,9 +3,7 @@ import SwiftUI
 import UIKit
 import XCTest
 
-/// IntegrationsView's three Toggle.onChange closures are unreachable without driving the toggle to ON. Construct the
-/// view with various canned backend states + toggle the bindings programmatically via ViewInspector so the `connect…`
-/// closures run.
+/// IntegrationsView's three Toggle.onChange closures are unreachable without driving the toggle to ON. Construct the view with various canned backend states + toggle the bindings programmatically via ViewInspector so the `connect…` closures run.
 @MainActor
 final class IntegrationsViewBranchTests: XCTestCase {
     private func makeAPI(_ transport: FakeTransport) -> BackendAPI {
@@ -57,8 +55,5 @@ final class IntegrationsViewBranchTests: XCTestCase {
         await host(IntegrationsView().environment(\.backendAPI, api))
     }
 
-    // "Both connected" branch unreachable from a unit test: refreshIntegrations sets googleConnected=true on the main
-    // actor, which triggers the Toggle.onChange closure, which calls connectGoogle(), which forwards to
-    // `OAuthFlow.shared.start(authURL:)` — that requires a UIWindowScene for `ASWebAuthenticationSession` and crashes
-    // in the test bundle. Skipping that specific combo; the "single connected" branches are still covered above.
+    // "Both connected" branch unreachable from a unit test: refreshIntegrations sets googleConnected=true on the main actor, which triggers the Toggle.onChange closure, which calls connectGoogle(), which forwards to `OAuthFlow.shared.start(authURL:)` — that requires a UIWindowScene for `ASWebAuthenticationSession` and crashes in the test bundle. Skipping that specific combo; the "single connected" branches are still covered above.
 }

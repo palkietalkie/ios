@@ -42,6 +42,23 @@ final class SubscriptionViewTests: XCTestCase {
         await TestHosting.host(NavigationStack { SubscriptionView(service: service) }, settleMs: 600)
     }
 
+    /// A failed `/entitlement` fetch must surface (entitlementError) instead of `try?`-swallowing — otherwise the user sees the wrong plan/limits silently. Hosting with a failing backendAPI drives the entitlement `.task` branch.
+    func testEntitlementLoadFailureHitsCatchBranch() async throws {
+        let service = FakeSubscriptionService()
+        service.loadResult = .success([:])
+        let transport = FakeTransport()
+        transport.responseStatus = 500
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        await TestHosting.host(
+            NavigationStack { SubscriptionView(service: service) }.environment(\.backendAPI, api),
+            settleMs: 600,
+        )
+    }
+
     private static var allFour: [SubscriptionID: SubscriptionProduct] {
         var dict: [SubscriptionID: SubscriptionProduct] = [:]
         for id in SubscriptionID.all {

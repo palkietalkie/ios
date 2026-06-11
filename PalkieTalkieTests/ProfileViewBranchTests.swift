@@ -40,10 +40,16 @@ final class ProfileViewBranchTests: XCTestCase {
             proficiency: ["beginner", "intermediate", "advanced"],
             tutorSpeakingSpeed: ["slow", "normal", "fast"],
         )))
-        try transport.enqueue(path: "/kg", data: Self.encode([
-            KGEntityDTO(id: "e1", type: "person", name: "Naoto", attrs: ["role": "brother", "city": "Coventry"]),
-            KGEntityDTO(id: "e2", type: "place", name: "SF", attrs: [:]),
-        ]))
+        try transport.enqueue(path: "/kg", data: Self.encode(KGGraphDTO(
+            nodes: [
+                KGEntityDTO(
+                    id: "e1", type: "person", name: "Naoto",
+                    attrs: ["role": "brother", "city": "Coventry"],
+                ),
+                KGEntityDTO(id: "e2", type: "place", name: "SF", attrs: [:]),
+            ],
+            edges: [],
+        )))
         let api = makeAPI(transport: transport)
         await TestHosting.host(NavigationStack { ProfileView() }.environment(\.backendAPI, api), settleMs: 800)
     }
@@ -57,7 +63,7 @@ final class ProfileViewBranchTests: XCTestCase {
             path: "/practice/options",
             data: Self.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [])),
         )
-        try transport.enqueue(path: "/kg", data: Self.encode([] as [KGEntityDTO]))
+        try transport.enqueue(path: "/kg", data: Self.encode(KGGraphDTO(nodes: [], edges: [])))
         let api = makeAPI(transport: transport)
         await TestHosting.host(NavigationStack { ProfileView() }.environment(\.backendAPI, api), settleMs: 800)
     }
@@ -97,7 +103,7 @@ final class ProfileViewBranchTests: XCTestCase {
             path: "/practice/options",
             data: Self.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [])),
         )
-        try transport.enqueue(path: "/kg", data: Self.encode([] as [KGEntityDTO]))
+        try transport.enqueue(path: "/kg", data: Self.encode(KGGraphDTO(nodes: [], edges: [])))
         let api = makeAPI(transport: transport)
         await TestHosting.host(NavigationStack { ProfileView() }.environment(\.backendAPI, api), settleMs: 800)
     }

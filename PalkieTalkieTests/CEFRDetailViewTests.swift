@@ -19,4 +19,19 @@ final class CEFRDetailViewTests: XCTestCase {
         let sut = CEFRDetailView()
         XCTAssertNoThrow(try sut.inspect().find(ViewType.Picker.self).pickerStyle())
     }
+
+    /// A failed word fetch must hit the catch branch (loadError) instead of `try?`-swallowing into an empty list. Hosting drives the `.task` so the catch branch actually runs.
+    func testLoadFailureHitsCatchBranch() async throws {
+        let transport = FakeTransport()
+        transport.responseStatus = 500
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        await TestHosting.host(
+            NavigationStack { CEFRDetailView() }.environment(\.backendAPI, api),
+            settleMs: 500,
+        )
+    }
 }

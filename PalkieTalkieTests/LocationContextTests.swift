@@ -1,8 +1,7 @@
 @testable import PalkieTalkie
 import XCTest
 
-/// In-memory location provider that replaces the CLLocationManager-backed one in tests. Lets `ContextGatherer` be
-/// exercised without permission prompts.
+/// In-memory location provider that replaces the CLLocationManager-backed one in tests. Lets `ContextGatherer` be exercised without permission prompts.
 actor FakeLocationProvider: LocationProviding {
     var fix: LocationFix?
     var city: String?

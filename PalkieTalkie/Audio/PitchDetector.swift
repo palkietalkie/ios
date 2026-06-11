@@ -3,8 +3,7 @@ import Foundation
 /// YIN-style fundamental-frequency estimator. Run on each mic buffer to get one F0 sample (or nil for unvoiced
 /// / silent frames). Pitch range across a session = max F0 minus min F0 across detected frames.
 ///
-/// Limited to 70-500 Hz — the range that covers natural human speech. Outside this we return nil so the
-/// stat doesn't get blown out by clipping artifacts, whistles, or DC drift.
+/// Limited to 70-500 Hz — the range that covers natural human speech. Outside this we return nil so the stat doesn't get blown out by clipping artifacts, whistles, or DC drift.
 enum PitchDetector {
     static let minHz: Float = 70
     static let maxHz: Float = 500
