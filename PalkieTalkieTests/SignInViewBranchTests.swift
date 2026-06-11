@@ -4,33 +4,33 @@ import UIKit
 import ViewInspector
 import XCTest
 
-/// Drive each of SignInView's four buttons via ViewInspector so the `Task { await ... }` closures execute. Every Clerk call fails inside the test bundle (no auth context wired) which exercises the catch branches that set the `status` message.
+/// View-level wiring: SignInView's Apple/Google buttons must route to the injected SignInService. Flow logic itself is covered exhaustively in SignInViewModelTests; these pin that the buttons are actually connected.
 @MainActor
 final class SignInViewBranchTests: XCTestCase {
     func testSignInViewRenders() async {
-        await TestHosting.host(SignInView())
+        await TestHosting.host(SignInView(service: FakeSignInService(), announcer: FakeAuthAnnouncer()))
     }
 
     func testSignInViewInWindowSurvivesLayout() async {
-        await TestHosting.host(SignInView(), settleMs: 500)
+        await TestHosting.host(SignInView(service: FakeSignInService(), announcer: FakeAuthAnnouncer()), settleMs: 500)
     }
 
-    /// Tap "Continue with Apple" — drives signInWithApple. Clerk throws in the test bundle, hits the catch branch.
-    func testTapAppleButtonHitsCatchBranch() async throws {
-        let sut = SignInView()
+    func testTapAppleButtonReachesService() async throws {
+        let svc = FakeSignInService()
+        let sut = SignInView(service: svc, announcer: FakeAuthAnnouncer())
         let buttons = try sut.inspect().findAll(ViewType.Button.self)
-        // First button is Apple per SignInView.body source order.
+        // Apple is the first button per body source order.
         try buttons[0].tap()
-        // Give the task a moment to surface the catch.
         try? await Task.sleep(nanoseconds: 200_000_000)
+        XCTAssertEqual(svc.appleCalls, 1)
     }
 
-    func testTapGoogleButtonHitsCatchBranch() async throws {
-        let sut = SignInView()
+    func testTapGoogleButtonReachesService() async throws {
+        let svc = FakeSignInService()
+        let sut = SignInView(service: svc, announcer: FakeAuthAnnouncer())
         let buttons = try sut.inspect().findAll(ViewType.Button.self)
         try buttons[1].tap()
         try? await Task.sleep(nanoseconds: 200_000_000)
+        XCTAssertEqual(svc.googleCalls, 1)
     }
-
-    // "Send email code" branch deliberately not driven by tapping — ViewInspector's setInput can't reach @State storage so the button stays disabled. The render-pipeline coverage from the two `host(SignInView(), …)` calls above is what hits the email-field code path.
 }

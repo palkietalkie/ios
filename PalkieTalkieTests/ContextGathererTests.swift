@@ -3,8 +3,7 @@ import XCTest
 
 /// The ContextGatherer fans out four async calls (location, weather, reverse-geocode, calendar) and packages them as
 /// `ConversationContext`. We can't easily inject the location stub today (LocationContext is a concrete actor) but we
-/// CAN exercise the path where location returns nil — the gatherer must still produce a valid context with default
-/// fields.
+/// CAN exercise the path where location returns nil — the gatherer must still produce a valid context with default fields.
 final class ContextGathererTests: XCTestCase {
     func testGatherProducesNonEmptyTimezoneAndTimeWhenNoLocation() async {
         let gatherer = ContextGatherer(

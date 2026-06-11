@@ -114,8 +114,7 @@ final class PersonaPlexClientTests: XCTestCase {
 
     // MARK: - Ping auto-pong
 
-    /// The contract: receiving a `ping` frame causes the client to send the same single-byte frame back. Verified at
-    /// the encoder layer — the transport hop is exercised separately in integration.
+    /// The contract: receiving a `ping` frame causes the client to send the same single-byte frame back. Verified at the encoder layer — the transport hop is exercised separately in integration.
     func testPingPongFrameIsSingleByte() {
         let pong = PersonaPlexClient.encodePing()
         XCTAssertEqual(pong.count, 1)

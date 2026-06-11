@@ -1,7 +1,7 @@
 @testable import PalkieTalkie
 import XCTest
 
-/// Direct unit tests for the ProfileViewModel — no SwiftUI render pipeline. Covers load / save / cache-init / display() helper / clerkDefaultDisplayName fallback.
+/// Direct unit tests for the ProfileViewModel — no SwiftUI render pipeline. Covers load / save / cache-init / clerkDefaultDisplayName fallback.
 @MainActor
 final class ProfileViewModelTests: XCTestCase {
     override func setUp() async throws {
@@ -64,13 +64,6 @@ final class ProfileViewModelTests: XCTestCase {
         XCTAssertTrue(vm.loaded)
     }
 
-    func testDisplayConvertsSnakeCaseToCapitalized() {
-        XCTAssertEqual(ProfileViewModel.display("lower_intermediate"), "Lower intermediate")
-        XCTAssertEqual(ProfileViewModel.display("normal"), "Normal")
-        XCTAssertEqual(ProfileViewModel.display("very_fast"), "Very fast")
-        XCTAssertEqual(ProfileViewModel.display(""), "")
-    }
-
     func testAccentsForTargetLanguageReturnsMatch() {
         let vm = ProfileViewModel()
         vm.languages = [
@@ -99,7 +92,10 @@ final class ProfileViewModelTests: XCTestCase {
         )
         try transport.enqueue(
             path: "/kg",
-            data: BackendAPI.encoder.encode([KGEntityDTO(id: "e1", type: "person", name: "Naoto", attrs: [:])]),
+            data: BackendAPI.encoder.encode(KGGraphDTO(
+                nodes: [KGEntityDTO(id: "e1", type: "person", name: "Naoto", attrs: [:])],
+                edges: [],
+            )),
         )
         let api = makeAPI(transport)
         let vm = ProfileViewModel()
@@ -109,6 +105,22 @@ final class ProfileViewModelTests: XCTestCase {
         XCTAssertEqual(vm.knowledgeGraph.count, 1)
         XCTAssertTrue(vm.loaded)
         XCTAssertNil(vm.saveError)
+    }
+
+    /// Regression: getKG() used to be `try?`, so a contract mismatch (backend `{nodes,edges}` vs an iOS bare-array decode) silently swallowed the error and showed every user an empty KG. Now a decode failure must surface in `kgError`. The bare `[]` here is exactly the pre-fix shape that no longer matches KGGraphDTO.
+    func testKGDecodeFailureSurfacesError() async throws {
+        let transport = FakeTransport()
+        try transport.enqueue(path: "/profile", data: BackendAPI.encoder.encode(Self.sampleProfile))
+        try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode([] as [LanguageDTO]))
+        try transport.enqueue(
+            path: "/practice/options",
+            data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [])),
+        )
+        transport.enqueue(path: "/kg", data: Data("[]".utf8))
+        let api = makeAPI(transport)
+        let vm = ProfileViewModel()
+        await vm.load(api: api)
+        XCTAssertNotNil(vm.kgError, "a KG decode failure must surface, not silently show an empty graph")
     }
 
     func testLoadFailureSetsErrorMessage() async {
@@ -130,7 +142,7 @@ final class ProfileViewModelTests: XCTestCase {
             path: "/practice/options",
             data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [])),
         )
-        try transport.enqueue(path: "/kg", data: BackendAPI.encoder.encode([] as [KGEntityDTO]))
+        try transport.enqueue(path: "/kg", data: BackendAPI.encoder.encode(KGGraphDTO(nodes: [], edges: [])))
         let api = makeAPI(transport)
         let vm = ProfileViewModel()
         vm.displayName = "New Name"
@@ -158,7 +170,7 @@ final class ProfileViewModelTests: XCTestCase {
             path: "/practice/options",
             data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [])),
         )
-        try transport.enqueue(path: "/kg", data: BackendAPI.encoder.encode([] as [KGEntityDTO]))
+        try transport.enqueue(path: "/kg", data: BackendAPI.encoder.encode(KGGraphDTO(nodes: [], edges: [])))
         let api = makeAPI(transport)
         let vm = ProfileViewModel()
         // Leave displayName / nativeLanguages / targetAccents / goals empty so they all serialize as nil.

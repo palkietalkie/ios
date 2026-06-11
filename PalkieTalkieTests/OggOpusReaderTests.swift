@@ -1,12 +1,9 @@
 @testable import PalkieTalkie
 import XCTest
 
-/// Regression test for the audio-doesn't-play bug. Server emits Ogg-Opus pages; if iOS forgets to demux them before
-/// feeding swift-opus's raw decoder, decoding silently fails and the user hears nothing while the model is generating
-/// audio fine server-side.
+/// Regression test for the audio-doesn't-play bug. Server emits Ogg-Opus pages; if iOS forgets to demux them before feeding swift-opus's raw decoder, decoding silently fails and the user hears nothing while the model is generating audio fine server-side.
 ///
-/// The contract here: feed the reader the byte stream that an `OggOpusWriter` (the upstream side) produced, get back
-/// the exact same Opus packets that went in, in order, with no header packets leaked through.
+/// The contract here: feed the reader the byte stream that an `OggOpusWriter` (the upstream side) produced, get back the exact same Opus packets that went in, in order, with no header packets leaked through.
 @MainActor
 final class OggOpusReaderTests: XCTestCase {
     func test_reader_round_trips_packets_through_writer() {
@@ -17,7 +14,7 @@ final class OggOpusReaderTests: XCTestCase {
             Data([0x30, 0x01, 0x02, 0x03, 0x04, 0x05]),
         ]
 
-        var stream = writer.headerBytes()
+        var stream = writer.buildHeaderBytes()
         for p in pkts {
             stream.append(writer.wrap(opusPacket: p, pcmSampleCount: 480))
         }
@@ -33,7 +30,7 @@ final class OggOpusReaderTests: XCTestCase {
         let writer = OggOpusWriter(sampleRate: 24000, channels: 1)
         let pkt = Data((0 ..< 50).map { UInt8($0 & 0xFF) })
 
-        var stream = writer.headerBytes()
+        var stream = writer.buildHeaderBytes()
         stream.append(writer.wrap(opusPacket: pkt, pcmSampleCount: 480))
 
         let reader = OggOpusReader()
@@ -47,10 +44,10 @@ final class OggOpusReaderTests: XCTestCase {
     }
 
     func test_reader_skips_header_packets() {
-        // headerBytes() emits OpusHead + OpusTags packets. Those are metadata; they must NOT reach the audio decoder.
+        // buildHeaderBytes() emits OpusHead + OpusTags packets. Those are metadata; they must NOT reach the audio decoder.
         let writer = OggOpusWriter(sampleRate: 24000, channels: 1)
         let reader = OggOpusReader()
-        let out = reader.feed(writer.headerBytes())
+        let out = reader.feed(writer.buildHeaderBytes())
         XCTAssertEqual(out, [], "header-only stream should yield zero playable packets")
     }
 }

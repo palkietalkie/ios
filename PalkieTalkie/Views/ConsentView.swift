@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// First-launch Privacy & Data screen. Shown until the user makes a choice (consent status reports `set=false`). Both
-/// toggles default to false — opt-in, not opt-out. User can flip them again later in More → Privacy & Data.
+/// First-launch Privacy & Data screen. Shown until the user makes a choice (consent status reports `set=false`). Both toggles default to false — opt-in, not opt-out. User can flip them again later in More → Privacy & Data.
 @MainActor
 struct ConsentView: View {
     let onContinue: () -> Void

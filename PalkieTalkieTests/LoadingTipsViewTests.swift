@@ -39,4 +39,14 @@ final class LoadingTipsViewTests: XCTestCase {
     func testHostsLoadingTipsViewRunsTaskRotation() async {
         await TestHosting.host(LoadingTipsView(tips: ["Tip A", "Tip B", "Tip C"]), settleMs: 300)
     }
+
+    /// A single-element tips array makes the shuffle deterministic, so the rendered tip must be exactly that one string — no other Text in the tip card. This pins that the view renders the caller's content verbatim (the shuffle reorders but never mutates/drops a tip), which the non-deterministic multi-tip test above can only check loosely.
+    func testSingleTipRendersVerbatim() throws {
+        let sut = LoadingTipsView(tips: ["Stress the noun, not the verb."])
+        let strings = try sut.inspect().findAll(ViewType.Text.self).compactMap { try? $0.string() }
+        XCTAssertTrue(
+            strings.contains("Stress the noun, not the verb."),
+            "the sole provided tip must render verbatim; got \(strings)",
+        )
+    }
 }

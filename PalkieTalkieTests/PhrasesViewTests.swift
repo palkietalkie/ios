@@ -50,4 +50,19 @@ final class PhrasesViewTests: XCTestCase {
         let texts = try sut.inspect().findAll(ViewType.Text.self).compactMap { try? $0.string() }
         XCTAssertFalse(texts.contains { $0.hasPrefix("Try:") }, "actual: \(texts)")
     }
+
+    /// A failed refresh must hit the catch branch (loadError) instead of `try?`-swallowing it. Cache stays; error surfaces. Hosting drives the `.task`.
+    func testRefreshFailureHitsCatchBranch() async throws {
+        let transport = FakeTransport()
+        transport.responseStatus = 500
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        await TestHosting.host(
+            NavigationStack { PhrasesView() }.environment(\.backendAPI, api),
+            settleMs: 500,
+        )
+    }
 }

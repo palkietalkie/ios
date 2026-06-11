@@ -26,4 +26,14 @@ final class InfiniteHorizontalCarouselTests: XCTestCase {
         }
         XCTAssertNoThrow(try view.inspect().scrollView().lazyHStack())
     }
+
+    /// The buffer renders `items.count × 100` virtual entries — that's the "feels infinite" depth (~5,000 cards each way) the doc comment promises. Counting the ForEach children here locks the copies multiplier: if a refactor drops it to a single copy, the swipe runway collapses and this fails.
+    func testRendersHundredCopiesOfEachItem() throws {
+        let items = (0 ..< 3).map { CarouselItem(id: $0) }
+        let view = InfiniteHorizontalCarousel(items: items, cardHeight: 100) { item in
+            Text("\(item.id)")
+        }
+        let forEach = try view.inspect().scrollView().lazyHStack().forEach(0)
+        XCTAssertEqual(forEach.count, items.count * 100)
+    }
 }

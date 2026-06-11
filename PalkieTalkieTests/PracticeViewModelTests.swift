@@ -52,12 +52,6 @@ final class PracticeViewModelTests: XCTestCase {
         XCTAssertTrue(vm.loaded)
     }
 
-    func testDisplaySnakeCaseToCapitalized() {
-        XCTAssertEqual(PracticeViewModel.display("very_slow"), "Very slow")
-        XCTAssertEqual(PracticeViewModel.display("normal"), "Normal")
-        XCTAssertEqual(PracticeViewModel.display(""), "")
-    }
-
     func testAccentsForTargetLanguageReturnsMatch() {
         let vm = PracticeViewModel()
         vm.languages = [LanguageDTO(name: "English", accents: ["US", "UK"])]

@@ -1,8 +1,7 @@
 @testable import PalkieTalkie
 import XCTest
 
-/// Drives `PersonaPlexClient.dispatchFrame(_:)` directly so every branch of the binary-frame switch runs without
-/// spinning up a real WebSocket. Production goes through `readLoop()` which forwards each received frame here.
+/// Drives `PersonaPlexClient.dispatchFrame(_:)` directly so every branch of the binary-frame switch runs without spinning up a real WebSocket. Production goes through `readLoop()` which forwards each received frame here.
 final class PersonaPlexDispatchTests: XCTestCase {
     func testHandshakeFrameUnblocksWaiters() async {
         let client = PersonaPlexClient()

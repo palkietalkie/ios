@@ -1,8 +1,7 @@
 import Foundation
 
 /// Thin assembler. The actual permission / geocoding / weather / EventKit work lives in `LocationContext`,
-/// `WeatherContext`, `CalendarContext`. This type only fans out the four concurrent requests and packages the result
-/// into the wire-shape `ConversationContext` the backend expects.
+/// `WeatherContext`, `CalendarContext`. This type only fans out the four concurrent requests and packages the result into the wire-shape `ConversationContext` the backend expects.
 actor ContextGatherer {
     static let shared = ContextGatherer()
 

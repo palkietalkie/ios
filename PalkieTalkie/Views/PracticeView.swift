@@ -38,12 +38,12 @@ struct PracticeView: View {
             Section("Level") {
                 Picker("Proficiency", selection: $model.proficiency) {
                     ForEach(model.practiceOptions?.proficiency ?? [], id: \.self) { slug in
-                        Text(PracticeViewModel.display(slug)).tag(slug)
+                        Text(formatSlugLabel(slug)).tag(slug)
                     }
                 }
                 Picker("Tutor speaking speed", selection: $model.tutorSpeakingSpeed) {
                     ForEach(model.practiceOptions?.tutorSpeakingSpeed ?? [], id: \.self) { slug in
-                        Text(PracticeViewModel.display(slug)).tag(slug)
+                        Text(formatSlugLabel(slug)).tag(slug)
                     }
                 }
             }

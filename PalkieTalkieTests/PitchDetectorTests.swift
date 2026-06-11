@@ -1,13 +1,11 @@
 @testable import PalkieTalkie
 import XCTest
 
-/// YIN-style fundamental-frequency estimator. Verified by feeding known sine waves and asserting the detected pitch lies
-/// in a tight band around the source. Also exercises the silence / out-of-range guards.
+/// YIN-style fundamental-frequency estimator. Verified by feeding known sine waves and asserting the detected pitch lies in a tight band around the source. Also exercises the silence / out-of-range guards.
 final class PitchDetectorTests: XCTestCase {
     private let sampleRate: Float = 24000
 
-    /// Synthesise a pure sine of `frequency` Hz at unit-ish amplitude. Length covers ~50ms so YIN has at least one full
-    /// tau window for any pitch we care about.
+    /// Synthesise a pure sine of `frequency` Hz at unit-ish amplitude. Length covers ~50ms so YIN has at least one full tau window for any pitch we care about.
     private func sineWave(frequency: Float, durationSec: Float = 0.05, amplitude: Float = 0.5) -> [Float] {
         let count = Int(durationSec * sampleRate)
         return (0 ..< count).map { sampleIndex in

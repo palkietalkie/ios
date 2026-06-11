@@ -3,8 +3,7 @@ import XCTest
 
 /// Unit-level coverage for the OpenAI Realtime client. The real WebSocket isn't exercised; we focus on:
 /// - `open` rejecting a missing ephemeral token before any network attempt
-/// - `waitForServerReady` resolving once we mimic the server's `session.created` event by exposing a test-only entry
-/// point indirectly (audio streams complete on close)
+/// - `waitForServerReady` resolving once we mimic the server's `session.created` event by exposing a test-only entry point indirectly (audio streams complete on close)
 /// - PCM16 frame layout: a fresh client exposes empty audio/transcript/error streams that close cleanly on `close()`
 final class OpenAIRealtimeClientTests: XCTestCase {
     func testOpenWithoutTokenThrows() async {
@@ -64,9 +63,7 @@ final class OpenAIRealtimeClientTests: XCTestCase {
     func testWaitForServerReadyDoesNotBlockAfterClose() async {
         let client = OpenAIRealtimeClient(instructions: nil)
         await client.close()
-        // After close, the audio stream task is finished. waitForServerReady would block forever if ready is never set;
-        // this test only confirms the API surface exists and is callable. A timeout-based assertion would be flaky;
-        // instead we just confirm the call type-checks at the protocol level.
+        // After close, the audio stream task is finished. waitForServerReady would block forever if ready is never set; this test only confirms the API surface exists and is callable. A timeout-based assertion would be flaky; instead we just confirm the call type-checks at the protocol level.
         let _: RealtimeClient = client
     }
 }

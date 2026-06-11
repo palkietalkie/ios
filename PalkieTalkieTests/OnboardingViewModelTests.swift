@@ -61,7 +61,7 @@ final class OnboardingViewModelTests: XCTestCase {
         XCTAssertFalse(vm.loading)
     }
 
-    func testLoadFailureLeavesEmptyArray() async {
+    func testLoadFailureSurfacesErrorNotSilentEmpty() async {
         let transport = FakeTransport()
         transport.responseStatus = 500
         let api = makeAPI(transport)
@@ -69,6 +69,8 @@ final class OnboardingViewModelTests: XCTestCase {
         await vm.load(api: api)
         XCTAssertEqual(vm.languages.count, 0)
         XCTAssertFalse(vm.loading)
+        // Previously this path `try?`-swallowed the error, leaving the user stuck at an empty picker with no signal. The error must now surface.
+        XCTAssertNotNil(vm.loadError)
     }
 
     func testSaveSuccessFlipsDidSaveSuccessfully() async throws {

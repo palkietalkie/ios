@@ -1,16 +1,11 @@
 import SwiftUI
 
-/// Flippable English speaking tips displayed while the inference container is cold-starting (gatheringContext /
-/// startingSession / connecting phases).
-/// Tips rotate every 8 seconds, shuffled per session. The shuffle and timer live in `@State` so they survive parent
-/// re-evaluations — otherwise every phase change would reshuffle and restart the timer, making tips flash by in 1-2s
-/// instead of 8s.
+/// Flippable English speaking tips displayed while the inference container is cold-starting (gatheringContext / startingSession / connecting phases).
+/// Tips rotate every 8 seconds, shuffled per session. The shuffle and timer live in `@State` so they survive parent re-evaluations — otherwise every phase change would reshuffle and restart the timer, making tips flash by in 1-2s instead of 8s.
 struct LoadingTipsView: View {
     private static let rotationInterval: TimeInterval = 8
 
-    // @State initialized in init via _shuffledTips = State(initialValue: ...). This is the SwiftUI-supported way to
-    // give a State a non-default initial value AND have it survive parent re-evaluations — using a plain `let` would
-    // reshuffle every time the parent re-renders this view.
+    // @State initialized in init via _shuffledTips = State(initialValue: ...). This is the SwiftUI-supported way to give a State a non-default initial value AND have it survive parent re-evaluations — using a plain `let` would reshuffle every time the parent re-renders this view.
     @State private var shuffledTips: [String]
     @State private var index: Int = 0
 

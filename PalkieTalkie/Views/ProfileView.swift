@@ -56,6 +56,12 @@ struct ProfileView: View {
                     }
                 }
                 Section("Knowledge Graph (read-only)") {
+                    if let kgError = model.kgError {
+                        Text("Couldn't load your knowledge graph: \(kgError)")
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .textSelection(.enabled)
+                    }
                     if model.knowledgeGraph.isEmpty {
                         Text(
                             "No entities yet. As you talk, the AI starts recognizing the people, places, and projects.",

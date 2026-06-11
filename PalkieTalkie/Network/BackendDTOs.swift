@@ -180,11 +180,58 @@ struct DailyContentDTO: Codable {
     let sections: [RawSection]
 }
 
+/// One node in the knowledge graph. Wire shape owned by the backend (`app/services/neo4j/fetch_kg.py`): id/type/name/attrs, attrs stringified. Keep in sync with that file and `BackendDTOsTests` KG decode contract test.
 struct KGEntityDTO: Codable {
     let id: String
     let type: String
     let name: String
     let attrs: [String: String]
+}
+
+/// One relation in the knowledge graph (a → b). Not rendered yet; decoded so the full `{nodes, edges}` payload round-trips and the contract stays honest.
+struct KGEdgeDTO: Codable, Identifiable {
+    let src: String
+    let rel: String
+    let dst: String
+    var id: String {
+        "\(src)|\(rel)|\(dst)"
+    }
+}
+
+/// Full `/kg` response. Backend returns `{nodes, edges}`; the earlier iOS code decoded a bare `[KGEntityDTO]`, which silently failed to decode and showed every user an empty KG even when the graph had data.
+struct KGGraphDTO: Codable {
+    let nodes: [KGEntityDTO]
+    let edges: [KGEdgeDTO]
+}
+
+/// Conversation-time recall payloads. Shapes match `backend/app/routers/recall.py`.
+struct RecallRelationDTO: Codable {
+    let rel: String?
+    let target: String
+}
+
+struct RecallEntityDTO: Codable {
+    let name: String
+    let type: String
+    let relations: [RecallRelationDTO]
+}
+
+struct RecallFactsDTO: Codable {
+    let entities: [RecallEntityDTO]
+}
+
+struct RecallConversationsDTO: Codable {
+    let snippets: [String]
+}
+
+struct RecallTurnDTO: Codable {
+    let speaker: String
+    let text: String
+    let when: String
+}
+
+struct RecallTranscriptsDTO: Codable {
+    let turns: [RecallTurnDTO]
 }
 
 struct ConversationContext: Codable {

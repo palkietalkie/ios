@@ -17,11 +17,11 @@ struct TalkAboutTodayView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     ForEach(sections) { section in
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(headerKey(for: section.topic))
+                            Text(resolveHeaderKey(for: section.topic))
                                 .font(.title3.bold())
                                 .padding(.horizontal)
                             InfiniteHorizontalCarousel(items: section.items, cardHeight: 180) { item in
-                                card(item)
+                                buildCard(item)
                             }
                         }
                     }
@@ -44,7 +44,7 @@ struct TalkAboutTodayView: View {
     }
 
     /// Map topic slug → localized header. Slugs are owned by backend (constants.TOPICS); xcstrings carries the locale-aware display string. Unknown slugs render as the slug itself so the UI never blanks out on a server-side addition that iOS hasn't picked up a string for yet.
-    private func headerKey(for topic: String) -> LocalizedStringKey {
+    private func resolveHeaderKey(for topic: String) -> LocalizedStringKey {
         switch topic {
         case "politics": "Politics"
         case "business": "Business"
@@ -54,14 +54,14 @@ struct TalkAboutTodayView: View {
         }
     }
 
-    private func card(_ item: TalkItem) -> some View {
+    private func buildCard(_ item: TalkItem) -> some View {
         Button {
             session.startContextOverride = item.title + " — " + item.summary
             onTopicSelected()
             Task { await session.start() }
         } label: {
             ZStack(alignment: .bottomLeading) {
-                imageBackground(for: item)
+                buildImageBackground(for: item)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.title)
                         .font(.headline)
@@ -85,7 +85,7 @@ struct TalkAboutTodayView: View {
         .buttonStyle(.plain)
     }
 
-    private func imageBackground(for item: TalkItem) -> some View {
+    private func buildImageBackground(for item: TalkItem) -> some View {
         Group {
             if let url = URL(string: item.imageUrl), !item.imageUrl.isEmpty {
                 AsyncImage(url: url) { phase in

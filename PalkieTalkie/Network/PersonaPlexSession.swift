@@ -1,17 +1,13 @@
 import Foundation
 
-/// Lifecycle protocol the orchestrator (`SessionController`) depends on. Lets us swap a fake session for
-/// `SessionControllerTests` without spinning up a real WebSocket. Inherits from `RealtimeClient` so the orchestrator
-/// can treat a PersonaPlex session as a generic realtime client when wiring cross-provider plumbing (cold-start
-/// telemetry, observer streams).
+/// Lifecycle protocol the orchestrator (`SessionController`) depends on. Lets us swap a fake session for `SessionControllerTests` without spinning up a real WebSocket. Inherits from `RealtimeClient` so the orchestrator can treat a PersonaPlex session as a generic realtime client when wiring cross-provider plumbing (cold-start telemetry, observer streams).
 protocol PersonaPlexSessionType: RealtimeClient {
     func open(wsUrl: String) async throws
     func send(control action: PersonaPlexClient.ControlAction) async throws
     func send(audio opusFrame: Data) async throws
 }
 
-/// Thin lifecycle wrapper around `PersonaPlexClient`. `SessionController` only sees this surface
-/// (open/close/send-control + streams) so the orchestrator's dependency-injection seam is one protocol, not several.
+/// Thin lifecycle wrapper around `PersonaPlexClient`. `SessionController` only sees this surface (open/close/send-control + streams) so the orchestrator's dependency-injection seam is one protocol, not several.
 actor PersonaPlexSession: PersonaPlexSessionType, RealtimeClient {
     private let client: PersonaPlexClient
 
@@ -23,8 +19,7 @@ actor PersonaPlexSession: PersonaPlexSessionType, RealtimeClient {
         try await client.connect(wsUrl: wsUrl)
     }
 
-    /// RealtimeClient adapter — PersonaPlex doesn't use the ephemeral token (it bakes an HMAC ticket directly into
-    /// wsUrl).
+    /// RealtimeClient adapter — PersonaPlex doesn't use the ephemeral token (it bakes an HMAC ticket directly into wsUrl).
     func open(wsUrl: String, ephemeralToken _: String?) async throws {
         try await client.connect(wsUrl: wsUrl)
     }
@@ -58,8 +53,7 @@ actor PersonaPlexSession: PersonaPlexSessionType, RealtimeClient {
     }
 
     var bargeIn: AsyncStream<Void> {
-        // PersonaPlex handles barge-in server-side via Inner Monologue — the WS just stops sending audio frames the
-        // moment user speech is detected, so iOS doesn't need to interrupt local playback. Return a finished stream.
+        // PersonaPlex handles barge-in server-side via Inner Monologue — the WS just stops sending audio frames the moment user speech is detected, so iOS doesn't need to interrupt local playback. Return a finished stream.
         get async { AsyncStream<Void> { $0.finish() } }
     }
 

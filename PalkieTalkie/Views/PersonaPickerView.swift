@@ -105,7 +105,7 @@ struct PersonaPickerView: View {
     private func personaTitleRow(_ persona: PersonaDTO) -> some View {
         HStack(spacing: 6) {
             Text(persona.name).font(.headline).foregroundStyle(.primary)
-            badge(for: persona)
+            buildBadge(for: persona)
             if persona.id == session.selectedPersonaId {
                 Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
             }
@@ -113,17 +113,17 @@ struct PersonaPickerView: View {
     }
 
     @ViewBuilder
-    private func badge(for persona: PersonaDTO) -> some View {
+    private func buildBadge(for persona: PersonaDTO) -> some View {
         if persona.isPreset {
-            chip(text: "Preset", color: .gray)
+            buildChip(text: "Preset", color: .gray)
         } else if persona.isOwner {
-            chip(text: "Mine", color: .blue)
+            buildChip(text: "Mine", color: .blue)
         } else if persona.isPublic {
-            chip(text: "Community", color: .purple)
+            buildChip(text: "Community", color: .purple)
         }
     }
 
-    private func chip(text: String, color: Color) -> some View {
+    private func buildChip(text: String, color: Color) -> some View {
         Text(text)
             .font(.caption2)
             .padding(.horizontal, 6)

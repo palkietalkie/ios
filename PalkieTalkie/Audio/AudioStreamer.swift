@@ -313,7 +313,7 @@ actor AudioStreamer {
             packet.removeSubrange(encodedSize ..< packet.count)
 
             guard let oggWriter else { continue }
-            var oggBytes = oggWriter.headerBytes()
+            var oggBytes = oggWriter.buildHeaderBytes()
             let wasFirst = !oggBytes.isEmpty
             oggBytes.append(oggWriter.wrap(opusPacket: packet, pcmSampleCount: UInt64(frameLen)))
             if wasFirst {

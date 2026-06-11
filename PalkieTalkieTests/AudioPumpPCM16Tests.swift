@@ -2,8 +2,7 @@ import Foundation
 @testable import PalkieTalkie
 import XCTest
 
-/// PCM16 pump tests — mirror the Opus / PersonaPlex variant in AudioPumpTests. Verifies the OpenAI path correctly waits
-/// on the realtime client's handshake before forwarding audio, plus barge-in signals trigger interruptPlayback.
+/// PCM16 pump tests — mirror the Opus / PersonaPlex variant in AudioPumpTests. Verifies the OpenAI path correctly waits on the realtime client's handshake before forwarding audio, plus barge-in signals trigger interruptPlayback.
 @MainActor
 final class AudioPumpPCM16Tests: XCTestCase {
     func testPCM16PumpWaitsForServerReadyBeforeSendingAudio() async throws {

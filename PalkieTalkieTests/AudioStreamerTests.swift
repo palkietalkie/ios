@@ -3,9 +3,7 @@ import Opus
 @testable import PalkieTalkie
 import XCTest
 
-/// We don't boot AVAudioEngine in tests (the simulator has no mic and CI doesn't either). Instead we verify the Opus
-/// codec contract the streamer depends on: 24kHz mono, 480-sample frames (20ms VoIP), encode→decode round-trip produces
-/// a buffer of the expected size.
+/// We don't boot AVAudioEngine in tests (the simulator has no mic and CI doesn't either). Instead we verify the Opus codec contract the streamer depends on: 24kHz mono, 480-sample frames (20ms VoIP), encode→decode round-trip produces a buffer of the expected size.
 final class AudioStreamerTests: XCTestCase {
     private var opusFormat: AVAudioFormat {
         AVAudioFormat(

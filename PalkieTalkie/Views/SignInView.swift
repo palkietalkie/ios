@@ -1,15 +1,20 @@
-import AuthenticationServices
-import ClerkKit
 import SwiftUI
 
 struct SignInView: View {
-    @State private var email = ""
-    @State private var code = ""
-    @State private var pendingSignIn: SignIn?
-    @State private var status: String?
-    @State private var inProgress = false
+    /// Shared control height so the email/code fields line up with the .controlSize(.large) sign-in buttons.
+    private static let controlHeight: CGFloat = 50
+
+    @State private var model: SignInViewModel
+
+    init(service: (any SignInService)? = nil, announcer: (any AuthAnnouncing)? = nil) {
+        _model = State(initialValue: SignInViewModel(
+            service: service ?? ClerkSignInService(),
+            announcer: announcer ?? AppEnvironment.makeProductionAnnouncer(),
+        ))
+    }
 
     var body: some View {
+        @Bindable var model = model
         VStack(spacing: 24) {
             Text("Palkie Talkie").font(.largeTitle.bold())
             Text("Voice fluency. Real personalities. No drills.")
@@ -18,98 +23,71 @@ struct SignInView: View {
 
             VStack(spacing: 12) {
                 Button {
-                    Task { await signInWithApple() }
+                    Task { await model.signInWithApple() }
                 } label: {
                     Label("Continue with Apple", systemImage: "apple.logo")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .disabled(inProgress)
+                .disabled(model.inProgress)
 
                 Button {
-                    Task { await signInWithGoogle() }
+                    Task { await model.signInWithGoogle() }
                 } label: {
                     Label("Continue with Google", systemImage: "g.circle.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
-                .disabled(inProgress)
+                .disabled(model.inProgress)
 
                 Divider().padding(.vertical, 8)
 
-                if pendingSignIn == nil {
-                    TextField("Email", text: $email)
-                        .textFieldStyle(.roundedBorder)
+                if !model.awaitingCode {
+                    // Match the .controlSize(.large) buttons: TextField ignores .controlSize, so set the height explicitly.
+                    TextField("Email", text: $model.email)
                         .textContentType(.emailAddress)
                         .keyboardType(.emailAddress)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
+                        .padding(.horizontal, 12)
+                        .frame(height: Self.controlHeight)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(Color(.systemGray3), lineWidth: 1),
+                        )
                     Button("Send email code") {
-                        Task { await sendEmailCode() }
+                        Task { await model.sendEmailCode() }
                     }
-                    .disabled(email.isEmpty || inProgress)
+                    .frame(maxWidth: .infinity)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(model.email.isEmpty || model.inProgress)
                 } else {
-                    TextField("Verification code", text: $code)
-                        .textFieldStyle(.roundedBorder)
+                    TextField("Verification code", text: $model.code)
                         .keyboardType(.numberPad)
+                        .padding(.horizontal, 12)
+                        .frame(height: Self.controlHeight)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(Color(.systemGray3), lineWidth: 1),
+                        )
                     Button("Verify") {
-                        Task { await verifyEmailCode() }
+                        Task { await model.verifyEmailCode() }
                     }
-                    .disabled(code.isEmpty || inProgress)
+                    .frame(maxWidth: .infinity)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(model.code.isEmpty || model.inProgress)
                 }
             }
             .padding()
 
-            if let status {
+            if let status = model.status {
                 Text(status).foregroundStyle(.secondary).font(.footnote)
             }
         }
         .padding()
-    }
-
-    private func signInWithGoogle() async {
-        inProgress = true
-        defer { inProgress = false }
-        do {
-            _ = try await Clerk.shared.auth.signInWithOAuth(provider: .google)
-        } catch {
-            status = "Google sign-in failed: \(error.localizedDescription)"
-        }
-    }
-
-    private func signInWithApple() async {
-        inProgress = true
-        defer { inProgress = false }
-        do {
-            _ = try await Clerk.shared.auth.signInWithApple()
-        } catch {
-            status = "Apple sign-in failed: \(error.localizedDescription)"
-        }
-    }
-
-    private func sendEmailCode() async {
-        inProgress = true
-        defer { inProgress = false }
-        do {
-            pendingSignIn = try await Clerk.shared.auth.signInWithEmailCode(emailAddress: email)
-            status = "Code sent. Check your email."
-        } catch {
-            status = "Couldn't send code: \(error.localizedDescription)"
-        }
-    }
-
-    private func verifyEmailCode() async {
-        inProgress = true
-        defer { inProgress = false }
-        guard let signIn = pendingSignIn else { return }
-        do {
-            _ = try await signIn.verifyCode(code)
-            pendingSignIn = nil
-            code = ""
-        } catch {
-            status = "Verification failed: \(error.localizedDescription)"
-        }
     }
 }

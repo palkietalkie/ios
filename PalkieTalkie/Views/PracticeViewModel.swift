@@ -39,14 +39,6 @@ final class PracticeViewModel {
         languages.first(where: { $0.name == targetLanguage })?.accents ?? []
     }
 
-    static func display(_ slug: String) -> String {
-        let words = slug.split(separator: "_").map(String.init)
-        guard let first = words.first else { return slug }
-        let head = first.prefix(1).uppercased() + first.dropFirst().lowercased()
-        let tail = words.dropFirst().map { $0.lowercased() }
-        return ([head] + tail).joined(separator: " ")
-    }
-
     func load(api: BackendAPI) async {
         do {
             async let profileTask = api.getProfile()

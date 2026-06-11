@@ -3,19 +3,14 @@ import SwiftUI
 import UIKit
 import XCTest
 
-/// Drives the SUCCESS branches of every BackendAPI-dependent view by injecting a `FakeTransport` with canned data
-/// via the new `.environment(\.backendAPI, …)` seam. Without dependency injection these branches were unreachable
-/// because the production `BackendAPI.shared` always failed in the test bundle (no Clerk session → 401 / network
-/// error). Refactoring out the singleton made this possible.
+/// Drives the SUCCESS branches of every BackendAPI-dependent view by injecting a `FakeTransport` with canned data via the new `.environment(\.backendAPI, …)` seam. Without dependency injection these branches were unreachable because the production `BackendAPI.shared` always failed in the test bundle (no Clerk session → 401 / network error). Refactoring out the singleton made this possible.
 ///
 /// Each test:
 /// 1. Builds a `FakeTransport` that maps path-substrings → canned `(data, status)` responses.
 /// 2. Constructs `BackendAPI(transport: FakeTransport(...), auth: StubAuthing())`.
 /// 3. Hosts the view in a real window long enough for its `.task` modifier to run, then asserts the view rendered.
 ///
-/// The window hosting (vs raw `_ = view.body`) is important: it makes SwiftUI actually evaluate `.task` closures so
-/// the success-branch `@State` mutations fire. Coverage attributes the success branches to the test, not just to the
-/// stale `phase == .idle` branch the no-environment tests hit.
+/// The window hosting (vs raw `_ = view.body`) is important: it makes SwiftUI actually evaluate `.task` closures so the success-branch `@State` mutations fire. Coverage attributes the success branches to the test, not just to the stale `phase == .idle` branch the no-environment tests hit.
 @MainActor
 final class ViewSuccessPathTests: XCTestCase {
     override func setUp() async throws {
@@ -180,8 +175,7 @@ final class ViewSuccessPathTests: XCTestCase {
         let api = makeAPI(transport)
         var continued = false
         await host(ConsentView(onContinue: { continued = true }).environment(\.backendAPI, api))
-        // The Continue button is user-driven; just rendering the success branch is enough for coverage. The actual
-        // submit path is exercised by directly invoking the ViewInspector-driven button test below.
+        // The Continue button is user-driven; just rendering the success branch is enough for coverage. The actual submit path is exercised by directly invoking the ViewInspector-driven button test below.
         _ = continued
     }
 
@@ -221,10 +215,13 @@ final class ViewSuccessPathTests: XCTestCase {
             proficiency: ["beginner", "intermediate", "advanced"],
             tutorSpeakingSpeed: ["slow", "normal", "fast"],
         )
-        let kg = [
-            KGEntityDTO(id: "e1", type: "person", name: "Naoto", attrs: ["relation": "brother"]),
-            KGEntityDTO(id: "e2", type: "place", name: "Tokyo", attrs: ["country": "Japan"]),
-        ]
+        let kg = KGGraphDTO(
+            nodes: [
+                KGEntityDTO(id: "e1", type: "person", name: "Naoto", attrs: ["relation": "brother"]),
+                KGEntityDTO(id: "e2", type: "place", name: "Tokyo", attrs: ["country": "Japan"]),
+            ],
+            edges: [],
+        )
         try transport.enqueue(path: "/profile/practice-options", data: BackendAPI.encoder.encode(practiceOptions))
         try transport.enqueue(path: "/profile", data: BackendAPI.encoder.encode(profile))
         try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode(languages))

@@ -1,10 +1,7 @@
 @testable import PalkieTalkie
 import XCTest
 
-/// Cover the production `Authing` conformer (`ClerkAuthAdapter`) + the test conformer (`StubAuthing`). Clerk's static
-/// singleton state isn't injectable, so we can only black-box the signed-out branch of the adapter — tests confirm it
-/// returns nil getters and the right error type without crashing. `StubAuthing` is covered directly because it's the
-/// surface every View-test uses.
+/// Cover the production `Authing` conformer (`ClerkAuthAdapter`) + the test conformer (`StubAuthing`). Clerk's static singleton state isn't injectable, so we can only black-box the signed-out branch of the adapter — tests confirm it returns nil getters and the right error type without crashing. `StubAuthing` is covered directly because it's the surface every View-test uses.
 final class ClerkAuthTests: XCTestCase {
     // MARK: - ClerkAuthAdapter (signed-out branch in test bundle)
 

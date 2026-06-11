@@ -23,6 +23,7 @@ final class ProfileViewModel {
     var languages: [LanguageDTO] = []
     var practiceOptions: PracticeOptionsDTO?
     var knowledgeGraph: [KGEntityDTO] = []
+    var kgError: String?
     var pronunciationSuggestion: String = ""
     var saveError: String?
     var loaded: Bool = false
@@ -50,15 +51,6 @@ final class ProfileViewModel {
 
     var accentsForTargetLanguage: [String] {
         languages.first(where: { $0.name == targetLanguage })?.accents ?? []
-    }
-
-    /// Snake-case slug → display label ("lower_intermediate" → "Lower intermediate").
-    static func display(_ slug: String) -> String {
-        let words = slug.split(separator: "_").map(String.init)
-        guard let first = words.first else { return slug }
-        let head = first.prefix(1).uppercased() + first.dropFirst().lowercased()
-        let tail = words.dropFirst().map { $0.lowercased() }
-        return ([head] + tail).joined(separator: " ")
     }
 
     func load(api: BackendAPI) async {
@@ -91,9 +83,14 @@ final class ProfileViewModel {
         } catch {
             saveError = error.localizedDescription
         }
-        if let freshKG = try? await api.getKG() {
-            knowledgeGraph = freshKG
-            JSONCache.save(freshKG, key: Self.kgKey)
+        // Surface KG load/decode failures instead of swallowing with `try?` — a silently-failed decode (the nodes/edges contract drift) is exactly how a populated KG showed up empty for real users.
+        do {
+            let freshKG = try await api.getKG()
+            knowledgeGraph = freshKG.nodes
+            JSONCache.save(freshKG.nodes, key: Self.kgKey)
+            kgError = nil
+        } catch {
+            kgError = error.localizedDescription
         }
     }
 

@@ -28,8 +28,7 @@ final class OpenAIRealtimeClientExtraTests: XCTestCase {
         let client = OpenAIRealtimeClient(instructions: nil)
         let bargeIn = await client.bargeIn
         await client.close()
-        // bargeIn doesn't get finished by close() yet (OpenAIRealtimeClient.close finishes audio/transcript/error but
-        // not bargeIn). Just confirm we can read the stream type without crashing.
+        // bargeIn doesn't get finished by close() yet (OpenAIRealtimeClient.close finishes audio/transcript/error but not bargeIn). Just confirm we can read the stream type without crashing.
         XCTAssertNotNil(bargeIn)
     }
 

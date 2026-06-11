@@ -30,4 +30,17 @@ final class AppEnvironmentTests: XCTestCase {
         let api: BackendAPI? = AppEnvironment.makeProductionBackendAPI()
         XCTAssertNotNil(api)
     }
+
+    /// The auth announcer factory must produce a usable `AuthAnnouncing` (it reads BACKEND_URL and wires the Clerk adapter). SignInViewModel defaults to this factory, so a fatalError on a missing/unparseable URL would crash sign-in at construction — guard the happy path here. Skips when the test-host Info.plist hasn't loaded BACKEND_URL yet (same intermittency as the BackendAPI factory test).
+    func testProductionAnnouncerBuildsWithoutThrowing() throws {
+        guard let url = Bundle.main.object(forInfoDictionaryKey: "BACKEND_URL") as? String,
+              !url.isEmpty
+        else {
+            throw XCTSkip(
+                "BACKEND_URL not in test-host Info.plist yet; the factory would fatalError. Re-run picks it up once the host app's bundle is ready.",
+            )
+        }
+        let announcer: (any AuthAnnouncing)? = AppEnvironment.makeProductionAnnouncer()
+        XCTAssertNotNil(announcer)
+    }
 }

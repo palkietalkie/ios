@@ -22,9 +22,7 @@ enum OpenAIRealtimeError: Error {
 ///   `response.audio_transcript.done` — terminator; we mostly ignore (display happens token-by-token).
 ///   `error`                          — server-side error string.
 ///
-/// We do NOT speak the binary Ogg-Opus protocol PersonaPlex uses. Caller passes raw PCM16 little-endian to
-/// `send(audio:)`; we base64-encode and wrap in the JSON event. `inboundAudio` yields raw PCM16 chunks for the speaker
-/// side.
+/// We do NOT speak the binary Ogg-Opus protocol PersonaPlex uses. Caller passes raw PCM16 little-endian to `send(audio:)`; we base64-encode and wrap in the JSON event. `inboundAudio` yields raw PCM16 chunks for the speaker side.
 actor OpenAIRealtimeClient: RealtimeClient {
     private var task: URLSessionWebSocketTask?
     private let session: URLSession
@@ -37,19 +35,17 @@ actor OpenAIRealtimeClient: RealtimeClient {
     private var errorContinuation: AsyncStream<String>.Continuation?
     private var bargeInStream: AsyncStream<Void>?
     private var bargeInContinuation: AsyncStream<Void>.Continuation?
+    private var toolCallStream: AsyncStream<ToolCall>?
+    private var toolCallContinuation: AsyncStream<ToolCall>.Continuation?
 
-    // Ready-state gating. Unlike PersonaPlex (which sends a `\x00` handshake byte), OpenAI Realtime's server is warm
-    // from the moment we receive the first `session.created` event. We track that event as the "ready" signal so the
-    // audio pump unblocks predictably.
+    // Ready-state gating. Unlike PersonaPlex (which sends a `\x00` handshake byte), OpenAI Realtime's server is warm from the moment we receive the first `session.created` event. We track that event as the "ready" signal so the audio pump unblocks predictably.
     private var ready = false
     private var readyWaiters: [CheckedContinuation<Void, Never>] = []
 
     /// First-event wall-clock for relative-time diagnostics. Set lazily on first event so logs show `t=…ms` rather than absolute timestamps — easier to read the ordering between `response.output_audio.delta` and `conversation.item.input_audio_transcription.completed`.
     private var firstEventAt: Date?
 
-    /// Persona prompt to push via `session.update` after the WS opens. Captured in the initializer because the OpenAI
-    /// Realtime protocol requires the client to send instructions on every new session (the ephemeral token doesn't
-    /// carry them).
+    /// Persona prompt to push via `session.update` after the WS opens. Captured in the initializer because the OpenAI Realtime protocol requires the client to send instructions on every new session (the ephemeral token doesn't carry them).
     private let instructions: String?
 
     init(instructions: String? = nil) {
@@ -75,6 +71,10 @@ actor OpenAIRealtimeClient: RealtimeClient {
 
     nonisolated var bargeIn: AsyncStream<Void> {
         get async { await bargeInStreamMaybeInit() }
+    }
+
+    nonisolated var toolCalls: AsyncStream<ToolCall> {
+        get async { await toolCallStreamMaybeInit() }
     }
 
     private func audioStreamMaybeInit() -> AsyncStream<Data> {
@@ -113,6 +113,15 @@ actor OpenAIRealtimeClient: RealtimeClient {
         return s
     }
 
+    private func toolCallStreamMaybeInit() -> AsyncStream<ToolCall> {
+        if let existing = toolCallStream { return existing }
+        let s = AsyncStream<ToolCall> { continuation in
+            self.toolCallContinuation = continuation
+        }
+        toolCallStream = s
+        return s
+    }
+
     func waitForServerReady() async {
         if ready { return }
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
@@ -128,9 +137,7 @@ actor OpenAIRealtimeClient: RealtimeClient {
         for w in waiters {
             w.resume()
         }
-        // Trigger the AI's opening turn. OpenAI Realtime won't generate audio until the client sends `response.create`
-        // (or the user sends audio that triggers VAD). Per product spec, the persona should open the conversation in
-        // character — so we kick the response immediately after session.created.
+        // Trigger the AI's opening turn. OpenAI Realtime won't generate audio until the client sends `response.create` (or the user sends audio that triggers VAD). Per product spec, the persona should open the conversation in character — so we kick the response immediately after session.created.
         Task { try? await triggerResponse() }
     }
 
@@ -217,6 +224,13 @@ actor OpenAIRealtimeClient: RealtimeClient {
         audioContinuation?.finish()
         transcriptContinuation?.finish()
         errorContinuation?.finish()
+        toolCallContinuation?.finish()
+        // Resume anyone still parked in waitForServerReady() — e.g. a session closed (timeout/teardown) before `session.created` arrived. Without this the continuation leaks. Callers race this against a timeout, so a late resume here is ignored.
+        let waiters = readyWaiters
+        readyWaiters.removeAll()
+        for w in waiters {
+            w.resume()
+        }
     }
 
     private func readLoop() async {
@@ -244,9 +258,7 @@ actor OpenAIRealtimeClient: RealtimeClient {
         errorContinuation?.finish()
     }
 
-    /// Visible to the test bundle so we can feed synthetic JSON event frames at the unit-test layer without spinning up
-    /// a real WebSocket. Production callers go through `readLoop()` which receives from the WS task and forwards into
-    /// this method.
+    /// Visible to the test bundle so we can feed synthetic JSON event frames at the unit-test layer without spinning up a real WebSocket. Production callers go through `readLoop()` which receives from the WS task and forwards into this method.
     func handleEvent(data: Data) {
         guard let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let type = parsed["type"] as? String
@@ -278,6 +290,8 @@ actor OpenAIRealtimeClient: RealtimeClient {
             if let transcriptText = parsed["transcript"] as? String, !transcriptText.isEmpty {
                 transcriptContinuation?.yield(.init(speaker: .user, text: transcriptText))
             }
+        case "response.function_call_arguments.done":
+            yieldToolCall(from: parsed)
         case "error":
             let nested = parsed["error"] as? [String: Any]
             let message = (nested?["message"] as? String)
@@ -286,6 +300,38 @@ actor OpenAIRealtimeClient: RealtimeClient {
             errorContinuation?.yield(message)
         default:
             break
+        }
+    }
+
+    /// Parse a `response.function_call_arguments.done` event and forward it as a `ToolCall`. arguments is a JSON string like {"query":"..."}. Split out of `handleEvent` to keep that switch under SwiftLint's complexity budget.
+    private func yieldToolCall(from parsed: [String: Any]) {
+        guard let callId = parsed["call_id"] as? String, let name = parsed["name"] as? String else {
+            return
+        }
+        let argsString = parsed["arguments"] as? String ?? "{}"
+        var query = ""
+        if let argsData = argsString.data(using: .utf8),
+           let obj = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any],
+           let q = obj["query"] as? String
+        {
+            query = q
+        }
+        toolCallContinuation?.yield(ToolCall(callId: callId, name: name, query: query))
+    }
+
+    /// Return a tool result to the model and let it continue: a `function_call_output` item carrying the result, then `response.create`. Sent as a separate async step from the audio pump, so a slow recall never stalls playback — the model keeps talking and weaves the result in when it lands.
+    func submitToolOutput(callId: String, output: String) async {
+        guard let task else { return }
+        let item: [String: Any] = [
+            "type": "conversation.item.create",
+            "item": ["type": "function_call_output", "call_id": callId, "output": output],
+        ]
+        let create: [String: Any] = ["type": "response.create"]
+        for payload in [item, create] {
+            guard let data = try? JSONSerialization.data(withJSONObject: payload, options: []),
+                  let json = String(data: data, encoding: .utf8)
+            else { continue }
+            try? await task.send(.string(json))
         }
     }
 }

@@ -9,8 +9,7 @@ struct LocationFix: Equatable {
     let longitude: Double
 }
 
-/// One-shot location provider. Async wrapper around CLLocationManager so callers don't depend on its delegate model and
-/// so we can swap a fake in tests via the `LocationProviding` protocol.
+/// One-shot location provider. Async wrapper around CLLocationManager so callers don't depend on its delegate model and so we can swap a fake in tests via the `LocationProviding` protocol.
 protocol LocationProviding: Sendable {
     func requestOnce() async -> LocationFix?
     func reverseGeocode(_ fix: LocationFix) async -> String?
@@ -43,8 +42,7 @@ actor LocationContext: LocationProviding {
     }
 }
 
-/// CoreLocation is delegate-based; this bridges it to async/await with a one-shot continuation. Holding the delegate on
-/// the actor lets us reuse the same CLLocationManager.
+/// CoreLocation is delegate-based; this bridges it to async/await with a one-shot continuation. Holding the delegate on the actor lets us reuse the same CLLocationManager.
 final class LocationDelegate: NSObject, CLLocationManagerDelegate, @unchecked Sendable {
     private let manager = CLLocationManager()
     private var continuation: CheckedContinuation<CLLocation?, Never>?
@@ -55,13 +53,10 @@ final class LocationDelegate: NSObject, CLLocationManagerDelegate, @unchecked Se
         manager.delegate = self
     }
 
-    /// Returns the device location if Location permission is already granted. Does NOT prompt the user — permission
-    /// requests live behind the Integrations toggle so we don't blast users with three permission prompts on first
-    /// launch.
+    /// Returns the device location if Location permission is already granted. Does NOT prompt the user — permission requests live behind the Integrations toggle so we don't blast users with three permission prompts on first launch.
     func requestOnce() async -> CLLocation? {
         let status = manager.authorizationStatus
-        // Only proceed if already granted. .notDetermined → return nil silently; the user hasn't opted in yet via
-        // Integrations.
+        // Only proceed if already granted. .notDetermined → return nil silently; the user hasn't opted in yet via Integrations.
         guard status == .authorizedWhenInUse || status == .authorizedAlways else {
             return nil
         }

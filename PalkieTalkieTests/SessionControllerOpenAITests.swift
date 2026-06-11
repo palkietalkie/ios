@@ -2,13 +2,10 @@ import Foundation
 @testable import PalkieTalkie
 import XCTest
 
-/// Coverage for the OpenAI provider branch in SessionController.start(). The PersonaPlex path is already covered by
-/// SessionControllerTests; this file pins the alternate provider wiring (factory selection, ephemeral token forwarded,
-/// PCM16 pump used).
+/// Coverage for the OpenAI provider branch in SessionController.start(). The PersonaPlex path is already covered by SessionControllerTests; this file pins the alternate provider wiring (factory selection, ephemeral token forwarded, PCM16 pump used).
 @MainActor
 final class SessionControllerOpenAITests: XCTestCase {
-    /// Fake RealtimeClient that conforms to the protocol but doesn't open a real WebSocket. Records what the controller
-    /// hands it so the OpenAI branch can be asserted.
+    /// Fake RealtimeClient that conforms to the protocol but doesn't open a real WebSocket. Records what the controller hands it so the OpenAI branch can be asserted.
     final class FakeRealtimeClient: RealtimeClient, @unchecked Sendable {
         nonisolated(unsafe) var openCount = 0
         nonisolated(unsafe) var closeCount = 0
