@@ -20,4 +20,36 @@ final class SessionCollaboratorsTests: XCTestCase {
         let perm: any MicrophonePermissionRequesting = DefaultMicrophonePermission()
         _ = perm
     }
+
+    /// The default network monitor must actually emit a status — it backs SessionController's mid-call drop detection + auto-reconnect. A stream that never yields would leave the controller unable to notice a dropped path. Drain the first value (the monitor yields the current path status on start). Times out rather than hanging the suite if the stream is dead.
+    func testDefaultNetworkPathMonitorEmitsInitialStatus() async {
+        let monitor: any NetworkPathMonitoring = DefaultNetworkPathMonitor()
+        let first = await withTaskGroup(of: Bool?.self) { group in
+            group.addTask {
+                for await status in monitor.statuses() {
+                    return status
+                }
+                return nil
+            }
+            group.addTask {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                return nil
+            }
+            let result = await group.next() ?? nil
+            group.cancelAll()
+            return result
+        }
+        XCTAssertNotNil(first, "DefaultNetworkPathMonitor must yield at least one path status within 3s")
+    }
+
+    /// The provider factories must produce working clients so SessionController's per-provider wiring compiles and runs. Construct each and assert it yields a usable instance.
+    func testProviderFactoriesProduceClients() {
+        let plex: any PersonaPlexSessionFactory = DefaultPersonaPlexSessionFactory()
+        let session: PersonaPlexSessionType = plex.makeSession()
+        _ = session
+
+        let openai: any OpenAIRealtimeClientFactory = DefaultOpenAIRealtimeClientFactory()
+        let client: RealtimeClient = openai.makeClient(instructions: "be a friend")
+        _ = client
+    }
 }

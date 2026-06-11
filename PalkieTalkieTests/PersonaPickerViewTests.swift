@@ -22,4 +22,43 @@ final class PersonaPickerViewTests: XCTestCase {
             XCTAssertEqual(option.id, option.rawValue)
         }
     }
+
+    /// Hosts the picker with one preset, one owner, and one community persona so all three badge branches (`buildBadge` → `buildChip`) actually render without crashing. The list also exercises the row + like-column builders end to end.
+    func testHostsPopulatedListRendersAllBadgeBranches() async throws {
+        let transport = FakeTransport()
+        let personas = [
+            PersonaDTO(id: "p1", name: "Riley", description: "deadpan",
+                       voiceId: "NATM1", role: "Comedian", age: "30s",
+                       background: nil, vocabularyRegister: nil,
+                       conversationalStyle: nil, topicalPreferences: nil,
+                       isPreset: true, isPublic: false, isOwner: false,
+                       likeCount: 0, likedByMe: false),
+            PersonaDTO(id: "p2", name: "Brooke", description: "sharp",
+                       voiceId: "NATM2", role: nil, age: nil,
+                       background: nil, vocabularyRegister: nil,
+                       conversationalStyle: nil, topicalPreferences: nil,
+                       isPreset: false, isPublic: false, isOwner: true,
+                       likeCount: 5, likedByMe: true),
+            PersonaDTO(id: "p3", name: "Tay", description: "friendly",
+                       voiceId: "NATM3", role: nil, age: nil,
+                       background: nil, vocabularyRegister: nil,
+                       conversationalStyle: nil, topicalPreferences: nil,
+                       isPreset: false, isPublic: true, isOwner: false,
+                       likeCount: 12, likedByMe: false),
+        ]
+        transport.responseData = try BackendAPI.encoder.encode(personas)
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        let session = SessionController(backend: api)
+        await TestHosting.host(
+            NavigationStack { PersonaPickerView() }
+                .environment(\.backendAPI, api)
+                .environment(session),
+            settleMs: 700,
+        )
+        UserDefaults.standard.removeObject(forKey: "cache.personas")
+    }
 }

@@ -21,4 +21,15 @@ final class ConsentViewTests: XCTestCase {
         let sut = ConsentView(onContinue: {})
         XCTAssertNoThrow(try sut.inspect().find(button: "Continue"))
     }
+
+    /// The two toggles are the two distinct consent dimensions from `/CLAUDE.md` (personalization/memory + product improvement). Their labels are the user-facing copy; locking both so a refactor can't collapse them into one toggle or silently reword the consent ask.
+    func testTwoConsentTogglesHaveDistinctLabels() throws {
+        let sut = ConsentView(onContinue: {})
+        XCTAssertNoThrow(try sut.inspect().find(ViewType.Toggle.self, where: { toggle in
+            try toggle.labelView().text().string() == "Personalize my experience"
+        }))
+        XCTAssertNoThrow(try sut.inspect().find(ViewType.Toggle.self, where: { toggle in
+            try toggle.labelView().text().string() == "Help improve Palkie Talkie"
+        }))
+    }
 }

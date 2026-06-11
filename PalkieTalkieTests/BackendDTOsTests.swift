@@ -34,6 +34,51 @@ final class BackendDTOsTests: XCTestCase {
         XCTAssertEqual(summary.id, "abc", "Identifiable id must be sessionId so SwiftUI lists key by it")
     }
 
+    /// The `/kg` payload is `{nodes, edges}`, not a bare `[KGEntityDTO]`. An earlier build decoded the bare array, silently failed, and showed every user an empty graph even when populated. This pins the wrapped shape decodes and that the edge's synthesized Identifiable id is `src|rel|dst`.
+    func testKGGraphDecodesNodesAndEdgesAndEdgeID() throws {
+        let json = """
+        {
+          "nodes": [
+            {"id": "n1", "type": "person", "name": "Ayumi", "attrs": {"role": "friend"}}
+          ],
+          "edges": [
+            {"src": "n1", "rel": "works_at", "dst": "n2"}
+          ]
+        }
+        """
+        let data = try XCTUnwrap(json.data(using: .utf8))
+        let graph = try BackendAPI.decoder.decode(KGGraphDTO.self, from: data)
+        XCTAssertEqual(graph.nodes.count, 1)
+        XCTAssertEqual(graph.nodes.first?.name, "Ayumi")
+        XCTAssertEqual(graph.nodes.first?.attrs["role"], "friend")
+        XCTAssertEqual(graph.edges.count, 1)
+        XCTAssertEqual(
+            graph.edges.first?.id,
+            "n1|works_at|n2",
+            "edge id must be src|rel|dst for stable SwiftUI list keying",
+        )
+    }
+
+    /// Recall payloads (`recall.py`) nest entity → relations and transcript turns. Decode the full shape so a wire-name drift (e.g. `target` → `to`) is caught here rather than surfacing as the model getting empty recall mid-conversation.
+    func testRecallFactsAndTranscriptsRoundTrip() throws {
+        let factsJSON = """
+        {"entities": [{"name": "freee", "type": "company", "relations": [{"rel": "works_at", "target": "Ayumi"}]}]}
+        """
+        let facts = try BackendAPI.decoder.decode(RecallFactsDTO.self, from: XCTUnwrap(factsJSON.data(using: .utf8)))
+        XCTAssertEqual(facts.entities.first?.relations.first?.target, "Ayumi")
+        XCTAssertEqual(facts.entities.first?.relations.first?.rel, "works_at")
+
+        let turnsJSON = """
+        {"turns": [{"speaker": "user", "text": "hi", "when": "2026-06-01T09:00:00Z"}]}
+        """
+        let transcripts = try BackendAPI.decoder.decode(
+            RecallTranscriptsDTO.self,
+            from: XCTUnwrap(turnsJSON.data(using: .utf8)),
+        )
+        XCTAssertEqual(transcripts.turns.first?.speaker, "user")
+        XCTAssertEqual(transcripts.turns.first?.text, "hi")
+    }
+
     func testBackendErrorErrorDescriptionsFormatHumanReadable() {
         XCTAssertEqual(BackendError.invalidURL.errorDescription, "Invalid backend URL")
         XCTAssertEqual(BackendError.notAuthenticated(reason: "no jwt").errorDescription, "Not signed in (no jwt)")
