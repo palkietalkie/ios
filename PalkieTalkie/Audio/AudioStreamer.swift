@@ -47,6 +47,8 @@ actor AudioStreamer {
     private let sessionAudioRecorder = WavAudioRecorder(prefix: "session", sampleRate: UInt32(AudioStreamer.sampleRate))
     /// Mirror for the AI's RAW PCM16 output as it arrives from the realtime model — written from `playPCM16` BEFORE any iOS playback DSP touches the bytes. Lets us compare the model's raw stream to what the user perceived and pinpoint truncation between the two.
     private let modelAudioRecorder = WavAudioRecorder(prefix: "model", sampleRate: UInt32(AudioStreamer.sampleRate))
+    /// The 0-or-1 leftover byte from the previous OpenAI audio chunk that didn't complete a 2-byte sample; prepended to the next chunk so a sample straddling the boundary isn't dropped. `Data()` = empty = nothing carried. See JARGON: PCM16 (streaming note) and Data. Reset at start().
+    private var pcm16Carry = Data()
 
     /// URL of the wav file containing the user-side audio from the most-recently-finished session. Cleared on next start(). Returned for upload + local cleanup by SessionController.end(). Nil if no session has finished yet.
     var recordedSessionAudioURL: URL? {
@@ -135,6 +137,7 @@ actor AudioStreamer {
         // Begin session-audio recording: write PCM16 samples to a temp wav file as they're ingested. SessionController.end() picks this up, gzips, uploads, deletes. 14-day retention server-side; nothing persists on the device past the next session.
         sessionAudioRecorder.open()
         modelAudioRecorder.open()
+        pcm16Carry = Data()
 
         // The tap block must be @Sendable — capture only the actor + raw Float32 bytes. Samples are converted off-actor (in the audio thread) so we never block AVAudio's real-time path.
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { [weak self] buffer, _ in
@@ -186,17 +189,24 @@ actor AudioStreamer {
         modelAudioRecorder.append(pcm16Bytes)
         // Reuse the same AVAudioFormat instance that engine.connect was called with — see playbackFormat declaration.
         guard let format = playbackFormat else { return }
-        let sampleCount = pcm16Bytes.count / MemoryLayout<Int16>.size
-        guard sampleCount > 0 else { return }
+        // Frame across chunk boundaries, carrying any trailing odd byte. A per-chunk `count / 2` drops that byte and byte-shifts every following sample into static until the stream self-realigns.
+        let (samples, carry) = AudioMath.framePCM16(carry: pcm16Carry, appending: pcm16Bytes)
+        pcm16Carry = carry
+        guard !samples.isEmpty else { return }
+        // Hearing-safety guard. Realtime audio has shipped corrupt bursts of full-scale white-noise static that pin most samples to the rail; played raw they are an acoustic-trauma risk in earbuds. Drop the chunk — a few ms of silence is imperceptible, a 0 dBFS noise blast is not. The raw bytes are still recorded above for diagnosis.
+        if AudioMath.isSaturatedBurst(samples) {
+            logger.error(
+                "playPCM16 DROPPED corrupt full-scale burst: \(Int(AudioMath.railFraction(samples) * 100), privacy: .public)% of \(samples.count, privacy: .public) samples at rail — protecting hearing",
+            )
+            return
+        }
         guard let buffer = AVAudioPCMBuffer(
-            pcmFormat: format, frameCapacity: AVAudioFrameCount(sampleCount),
+            pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count),
         ) else { return }
-        buffer.frameLength = AVAudioFrameCount(sampleCount)
-        pcm16Bytes.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
-            guard let src = raw.bindMemory(to: Int16.self).baseAddress else { return }
-            guard let dst = buffer.floatChannelData?[0] else { return }
-            for i in 0 ..< sampleCount {
-                dst[i] = Float(src[i]) / 32768.0
+        buffer.frameLength = AVAudioFrameCount(samples.count)
+        if let dst = buffer.floatChannelData?[0] {
+            samples.withUnsafeBufferPointer { src in
+                if let base = src.baseAddress { dst.update(from: base, count: samples.count) }
             }
         }
         playPCM16Count += 1
@@ -205,7 +215,7 @@ actor AudioStreamer {
             let p = AudioMath.peakAmplitude(of: buffer)
             logger
                 .error(
-                    "playPCM16 sched #\(n, privacy: .public): \(pcm16Bytes.count, privacy: .public)B → frames=\(sampleCount, privacy: .public) peak=\(p, privacy: .public) engineRunning=\(self.engine.isRunning, privacy: .public) playerPlaying=\(self.playerNode.isPlaying, privacy: .public)",
+                    "playPCM16 sched #\(n, privacy: .public): \(pcm16Bytes.count, privacy: .public)B → frames=\(samples.count, privacy: .public) peak=\(p, privacy: .public) engineRunning=\(self.engine.isRunning, privacy: .public) playerPlaying=\(self.playerNode.isPlaying, privacy: .public)",
                 )
         }
         playerNode.scheduleBuffer(buffer, completionHandler: nil)
@@ -226,6 +236,11 @@ actor AudioStreamer {
         for pkt in packets {
             do {
                 let pcm = try decoder.decode(pkt)
+                // Same hearing-safety guard as the OpenAI path — never schedule a full-scale-static burst.
+                if AudioMath.isSaturatedBurst(pcm) {
+                    logger.error("playOutput DROPPED corrupt full-scale burst — protecting hearing")
+                    continue
+                }
                 playOutputCount += 1
                 if playOutputCount <= 3 || playOutputCount % 100 == 0 {
                     let p = AudioMath.peakAmplitude(of: pcm)

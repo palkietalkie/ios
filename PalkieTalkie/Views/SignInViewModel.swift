@@ -35,7 +35,7 @@ final class SignInViewModel {
             status = "Apple sign-in failed: \(error.localizedDescription)"
             _ = await announcer.announce(.failed(
                 method: "Apple",
-                reason: error.localizedDescription,
+                reason: diagnoseAuthError(error),
                 email: nil,
                 threadTs: nil,
             ))
@@ -52,7 +52,7 @@ final class SignInViewModel {
             status = "Google sign-in failed: \(error.localizedDescription)"
             _ = await announcer.announce(.failed(
                 method: "Google",
-                reason: error.localizedDescription,
+                reason: diagnoseAuthError(error),
                 email: nil,
                 threadTs: nil,
             ))
@@ -85,7 +85,7 @@ final class SignInViewModel {
                 status = "Couldn't send code: \(error.localizedDescription)"
                 _ = await announcer.announce(.failed(
                     method: "Email",
-                    reason: error.localizedDescription,
+                    reason: diagnoseAuthError(error),
                     email: trimmed,
                     threadTs: nil,
                 ))
@@ -108,7 +108,7 @@ final class SignInViewModel {
             status = "Verification failed: \(error.localizedDescription)"
             _ = await announcer.announce(.failed(
                 method: "Email",
-                reason: error.localizedDescription,
+                reason: diagnoseAuthError(error),
                 email: email,
                 threadTs: emailThreadTs,
             ))

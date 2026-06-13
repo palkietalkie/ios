@@ -7,3 +7,5 @@ set -e
 REPO="$(git rev-parse --show-toplevel)"
 echo "[pre-push] paired-test guard (same check CI runs)..."
 bash "$REPO/scripts/ci/check_test_pair.sh" origin/main
+echo "[pre-push] swift file-name PascalCase guard..."
+bash "$REPO/scripts/ci/check_swift_pascal_case.sh"

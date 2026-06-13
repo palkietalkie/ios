@@ -202,7 +202,10 @@ final class SignInViewModelTests: XCTestCase {
         let ann = FakeAuthAnnouncer()
         let vm = SignInViewModel(service: svc, announcer: ann)
         await vm.signInWithApple()
-        XCTAssertEqual(ann.events, [.failed(method: "Apple", reason: "boom", email: nil, threadTs: nil)])
+        XCTAssertEqual(
+            ann.events,
+            [.failed(method: "Apple", reason: diagnoseAuthError(FakeSignInService.Boom()), email: nil, threadTs: nil)],
+        )
     }
 
     func testGoogleSuccessAnnouncesGoogleMethod() async {
@@ -218,7 +221,10 @@ final class SignInViewModelTests: XCTestCase {
         let ann = FakeAuthAnnouncer()
         let vm = SignInViewModel(service: svc, announcer: ann)
         await vm.signInWithGoogle()
-        XCTAssertEqual(ann.events, [.failed(method: "Google", reason: "boom", email: nil, threadTs: nil)])
+        XCTAssertEqual(
+            ann.events,
+            [.failed(method: "Google", reason: diagnoseAuthError(FakeSignInService.Boom()), email: nil, threadTs: nil)],
+        )
     }
 
     /// The email flow announces twice: a pre-auth parent (carrying the typed address) on send, then a success reply threaded under the returned parent ts on verify — so the two land as one Slack thread.
@@ -248,7 +254,12 @@ final class SignInViewModelTests: XCTestCase {
         XCTAssertTrue(vm.awaitingCode, "a failed verify must keep the user on code entry, not bounce them out")
         XCTAssertEqual(ann.events, [
             .emailCodeRequested(email: "newuser@example.com"),
-            .failed(method: "Email", reason: "boom", email: "newuser@example.com", threadTs: "parent.ts"),
+            .failed(
+                method: "Email",
+                reason: diagnoseAuthError(FakeSignInService.Boom()),
+                email: "newuser@example.com",
+                threadTs: "parent.ts",
+            ),
         ])
     }
 
@@ -260,6 +271,14 @@ final class SignInViewModelTests: XCTestCase {
         let vm = SignInViewModel(service: svc, announcer: ann)
         vm.email = "wes@gitauto.ai"
         await vm.sendEmailCode()
-        XCTAssertEqual(ann.events, [.failed(method: "Email", reason: "boom", email: "wes@gitauto.ai", threadTs: nil)])
+        XCTAssertEqual(
+            ann.events,
+            [.failed(
+                method: "Email",
+                reason: diagnoseAuthError(FakeSignInService.Boom()),
+                email: "wes@gitauto.ai",
+                threadTs: nil,
+            )],
+        )
     }
 }
