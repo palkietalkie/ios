@@ -153,4 +153,97 @@ final class AudioMathTests: XCTestCase {
         data.append(littleEndian: UInt16(0x1234))
         XCTAssertEqual(data, Data([0x34, 0x12]))
     }
+
+    // MARK: - Saturated-burst hearing-safety guard
+
+    func testCleanSpeechIsNotASaturatedBurst() {
+        // A 24kHz sine at -6 dBFS — loud, normal speech-band audio. Zero samples at the rail.
+        let samples: [Float] = (0 ..< 480).map { 0.5 * sin(2 * .pi * 200 * Float($0) / 24000) }
+        XCTAssertEqual(AudioMath.railFraction(samples), 0, accuracy: 0.0001)
+        XCTAssertFalse(AudioMath.isSaturatedBurst(samples))
+    }
+
+    func testFullScaleStaticBurstIsDetected() {
+        // The measured fingerprint: ~99% of samples pinned to ±full-scale (a square-wave white-noise burst).
+        let samples: [Float] = (0 ..< 480).map { $0 % 2 == 0 ? 1.0 : -1.0 }
+        XCTAssertEqual(AudioMath.railFraction(samples), 1.0, accuracy: 0.0001)
+        XCTAssertTrue(AudioMath.isSaturatedBurst(samples))
+    }
+
+    func testQuarterRailedChunkIsDropped() {
+        // 25% at the rail exceeds the 20% gate → dropped. (Real speech never reaches this.)
+        var samples = [Float](repeating: 0.1, count: 480)
+        for i in 0 ..< 120 {
+            samples[i] = 1.0
+        }
+        XCTAssertTrue(AudioMath.isSaturatedBurst(samples))
+    }
+
+    func testTenPercentRailedChunkIsKept() {
+        // 10% at the rail is below the gate → kept; protects against false-dropping a genuinely loud transient.
+        var samples = [Float](repeating: 0.1, count: 480)
+        for i in 0 ..< 48 {
+            samples[i] = 1.0
+        }
+        XCTAssertFalse(AudioMath.isSaturatedBurst(samples))
+    }
+
+    func testEmptyChunkIsNotASaturatedBurst() {
+        XCTAssertFalse(AudioMath.isSaturatedBurst([]))
+    }
+
+    // MARK: - PCM16 chunk framing (odd-byte carry)
+
+    func testFramePCM16EvenChunkDecodesAllSamples() {
+        // Two little-endian Int16 samples: 0x0100 = 256, 0x7FFF = 32767.
+        let (samples, carry) = AudioMath.framePCM16(carry: Data(), appending: Data([0x00, 0x01, 0xFF, 0x7F]))
+        XCTAssertEqual(samples.count, 2)
+        XCTAssertEqual(samples[0], 256.0 / 32768.0, accuracy: 1e-6)
+        XCTAssertEqual(samples[1], 32767.0 / 32768.0, accuracy: 1e-6)
+        XCTAssertTrue(carry.isEmpty)
+    }
+
+    func testFramePCM16OddChunkCarriesTrailingByte() {
+        // 3 bytes = one whole sample (0x4000 = 16384) + one leftover byte that MUST be carried, not dropped.
+        let (samples, carry) = AudioMath.framePCM16(carry: Data(), appending: Data([0x00, 0x40, 0x00]))
+        XCTAssertEqual(samples.count, 1)
+        XCTAssertEqual(samples[0], 16384.0 / 32768.0, accuracy: 1e-6)
+        XCTAssertEqual(carry, Data([0x00]))
+    }
+
+    func testFramePCM16SampleStraddlingOddBoundaryReconstructsIdentically() {
+        // The bug this fixes: the same byte stream split on an odd boundary must yield identical samples.
+        let stream = Data([0x11, 0x22, 0x33, 0x44]) // samples 0x2211, 0x4433
+        let (reference, _) = AudioMath.framePCM16(carry: Data(), appending: stream)
+        // Split after 1 byte (odd) across two chunks — the old per-chunk `count / 2` would corrupt this.
+        let (first, carry1) = AudioMath.framePCM16(carry: Data(), appending: Data([0x11]))
+        let (second, carry2) = AudioMath.framePCM16(carry: carry1, appending: Data([0x22, 0x33, 0x44]))
+        XCTAssertTrue(first.isEmpty) // one byte → no whole sample yet
+        XCTAssertEqual(second.count, 2)
+        XCTAssertTrue(carry2.isEmpty)
+        XCTAssertEqual(second[0], reference[0], accuracy: 1e-6)
+        XCTAssertEqual(second[1], reference[1], accuracy: 1e-6)
+    }
+
+    func testFramePCM16EmptyChunkWithCarryHoldsByte() {
+        let (samples, carry) = AudioMath.framePCM16(carry: Data([0xAB]), appending: Data())
+        XCTAssertTrue(samples.isEmpty)
+        XCTAssertEqual(carry, Data([0xAB]))
+    }
+
+    func testSaturatedBurstBufferOverloadMatches() throws {
+        let format = try XCTUnwrap(AVAudioFormat(
+            commonFormat: .pcmFormatFloat32,
+            sampleRate: 24000,
+            channels: 1,
+            interleaved: false,
+        ))
+        let buffer = try XCTUnwrap(AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 480))
+        buffer.frameLength = 480
+        let ch = try XCTUnwrap(buffer.floatChannelData?[0])
+        for i in 0 ..< 480 {
+            ch[i] = i % 2 == 0 ? 1.0 : -1.0
+        }
+        XCTAssertTrue(AudioMath.isSaturatedBurst(buffer))
+    }
 }

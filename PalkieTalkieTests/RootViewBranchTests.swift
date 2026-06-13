@@ -35,4 +35,10 @@ final class RootViewBranchTests: XCTestCase {
         let api = makeAPI(transport)
         await TestHosting.host(RootView().environment(\.backendAPI, api), settleMs: 600)
     }
+
+    /// Signed-out (no Clerk user in tests) → resolveRootDestination returns .signIn, so RootView renders SignInView through the new switch without crashing.
+    func testHostingSignedOutRendersSignInBranch() async {
+        let api = makeAPI(FakeTransport())
+        await TestHosting.host(RootView().environment(\.backendAPI, api), settleMs: 300)
+    }
 }

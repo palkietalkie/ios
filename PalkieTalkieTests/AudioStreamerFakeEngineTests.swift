@@ -65,7 +65,10 @@ final class AudioStreamerFakeEngineTests: XCTestCase {
     /// setVoiceProcessingEnabled failure is logged but not thrown — streamer continues. Assert no crash + engine still starts.
     func testStartHandlesVoiceProcessingErrorGracefully() async {
         let fakeEngine = FakeAudioEngine()
-        (fakeEngine.inputNode as! FakeInputNode).voiceProcessingError = NSError(domain: "vp", code: -1)
+        guard let input = fakeEngine.inputNode as? FakeInputNode else {
+            return XCTFail("inputNode should be FakeInputNode")
+        }
+        input.voiceProcessingError = NSError(domain: "vp", code: -1)
         let streamer = AudioStreamer(engine: fakeEngine, playerNode: FakePlayerNode())
         try? await streamer.start()
         let running = await streamer.isRunning
@@ -215,6 +218,26 @@ final class AudioStreamerFakeEngineTests: XCTestCase {
         let streamer = AudioStreamer(engine: fakeEngine, playerNode: FakePlayerNode())
         try await streamer.start()
         await streamer.playPCM16(Data())
+        await streamer.stop()
+    }
+
+    /// Hearing-safety guard: a clean chunk is scheduled, but a full-scale white-noise burst (every sample railed) is DROPPED, not played. Fails before the guard — the burst would be scheduled.
+    func testPlayPCM16DropsFullScaleStaticBurst() async throws {
+        let fakeEngine = FakeAudioEngine()
+        let player = FakePlayerNode()
+        let streamer = AudioStreamer(engine: fakeEngine, playerNode: player)
+        try await streamer.start()
+
+        func pcm16(_ sample: (Int) -> Int16) -> Data {
+            Data((0 ..< 480).flatMap { i in withUnsafeBytes(of: sample(i).littleEndian) { Array($0) } })
+        }
+
+        await streamer.playPCM16(pcm16 { _ in 1000 }) // small, clean amplitude
+        XCTAssertEqual(player.scheduledBuffers.count, 1, "clean audio is scheduled")
+
+        await streamer.playPCM16(pcm16 { $0 % 2 == 0 ? 32767 : -32768 }) // every sample at the rail
+        XCTAssertEqual(player.scheduledBuffers.count, 1, "saturated static burst is dropped, not scheduled")
+
         await streamer.stop()
     }
 }

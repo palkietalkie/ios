@@ -11,45 +11,45 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            switch resolveRootDestination(
+                isLoading: isLoading,
+                userSignedIn: clerk.user != nil,
+                consentSet: consentSet,
+                profileComplete: profileComplete,
+            ) {
+            case .loading:
                 ProgressView("Loading…")
-            } else if clerk.user == nil {
+            case .signIn:
                 SignInView()
-            } else if consentSet == false {
+            case .consent:
                 ConsentView(onContinue: { consentSet = true })
-            } else if profileComplete == false {
+            case .onboarding:
                 OnboardingView(onContinue: { profileComplete = true })
-            } else {
+            case .main:
                 MainTabView()
-                    .task { await loadGatesIfNeeded() }
             }
         }
         .task { isLoading = false }
-        .onChange(of: clerk.user?.id) { _, _ in
-            consentSet = nil
-            profileComplete = nil
-            Task { await loadGatesIfNeeded() }
-        }
+        // ONE loader keyed to the signed-in user: it cancels + re-runs on sign-in/out, so there's never a second concurrent load racing the first (the old `.onChange` + `MainTabView.task` pair did, which is what made the screen flip).
+        .task(id: clerk.user?.id) { await resolveGates() }
     }
 
-    private func loadGatesIfNeeded() async {
-        if consentSet == nil {
-            do {
-                let current = try await api.getConsent()
-                consentSet = current.set
-            } catch {
-                // If the backend isn't reachable, don't gate the user behind consent — fail open so they can still use the app. They'll see the screen on the next launch when the network recovers.
-                consentSet = true
-            }
+    private func resolveGates() async {
+        guard clerk.user != nil else { return }
+        // Clear any prior user's gate values up front so the user lands on `.loading` until THIS user's gates are fetched, never on a stale `.main`.
+        consentSet = nil
+        profileComplete = nil
+        do {
+            consentSet = try await api.getConsent().set
+        } catch {
+            // Fail open: a backend hiccup must not strand the user behind the consent gate; they'll see it next launch when the network recovers.
+            consentSet = true
         }
-        if profileComplete == nil {
-            do {
-                let profile = try await api.getProfile()
-                profileComplete = !profile.nativeLanguages.isEmpty && !profile.targetAccents.isEmpty
-            } catch {
-                // Same fail-open posture as consent — don't strand the user behind a sheet if the backend is unreachable.
-                profileComplete = true
-            }
+        do {
+            let profile = try await api.getProfile()
+            profileComplete = !profile.nativeLanguages.isEmpty && !profile.targetAccents.isEmpty
+        } catch {
+            profileComplete = true
         }
     }
 }
