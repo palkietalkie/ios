@@ -17,7 +17,7 @@ struct ProfileView: View {
                             : model.email)
                     }
                     LabeledContent("Preferred name") {
-                        TextField("e.g. Wes", text: $model.displayName)
+                        TextField("e.g. Wes", text: $model.preferredName)
                             .multilineTextAlignment(.trailing)
                     }
                     LabeledContent("Pronunciation") {

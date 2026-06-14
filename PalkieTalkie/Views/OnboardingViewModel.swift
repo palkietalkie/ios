@@ -47,7 +47,7 @@ final class OnboardingViewModel {
         saving = true
         defer { saving = false }
         let update = ProfileUpdate(
-            displayName: nil,
+            preferredName: nil,
             namePronunciation: nil,
             nativeLanguages: Array(nativeLanguages),
             targetLanguage: targetLanguage,

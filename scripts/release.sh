@@ -2,8 +2,9 @@
 # Build, sign, and upload a prod App Store / TestFlight build of Palkie Talkie.
 #
 # Usage: ./scripts/release.sh
-# The build number is set automatically from the git commit count (monotonic — Apple
-# rejects duplicate build numbers). Commit before re-running so the number advances.
+# The build number is the highest already on App Store Connect + 1 (clean sequential
+# +1; Apple just requires it to increase). Derived from ASC, not git, so it never
+# jumps when commit count diverges from upload count.
 #
 # Reads APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD from ios/.env (gitignored).
 # Release config bakes prod into the build (api.palkietalkie.com + pk_live Clerk) via project.yml.
@@ -20,7 +21,10 @@ set +a
 : "${APPLE_ID:?APPLE_ID missing in ios/.env}"
 : "${APPLE_APP_SPECIFIC_PASSWORD:?APPLE_APP_SPECIFIC_PASSWORD missing in ios/.env}"
 
-BUILD_NUMBER="$(git rev-list --count HEAD)"
+# Next build number = highest on ASC + 1. Runs in the backend venv (needs httpx/jwt + the asc/ modules); the subshell keeps that activation out of this script's env.
+# shellcheck source=/dev/null
+BUILD_NUMBER="$(cd "$IOS_DIR/../backend" && source .venv/bin/activate && python -m scripts.asc.next_build_number)"
+: "${BUILD_NUMBER:?could not compute next build number from ASC}"
 # Build artifacts live under ios/build/ (gitignored, inspectable later) — /tmp gets wiped on reboot, which is why a failed-review build couldn't be examined after the fact.
 OUT="$IOS_DIR/build/release"
 ARCHIVE="$OUT/PalkieTalkie.xcarchive"

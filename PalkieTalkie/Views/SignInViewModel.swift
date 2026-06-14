@@ -32,6 +32,8 @@ final class SignInViewModel {
             try await service.signInWithApple()
             _ = await announcer.announce(.succeeded(method: "Apple", threadTs: nil))
         } catch {
+            // Backing out of the Apple sheet isn't a failure — clear any message and don't alert the feed.
+            guard !isUserCancellation(error) else { status = nil; return }
             status = "Apple sign-in failed: \(error.localizedDescription)"
             _ = await announcer.announce(.failed(
                 method: "Apple",
@@ -49,6 +51,8 @@ final class SignInViewModel {
             try await service.signInWithGoogle()
             _ = await announcer.announce(.succeeded(method: "Google", threadTs: nil))
         } catch {
+            // Dismissing the Google web sheet (canceledLogin) isn't a failure — no error, no alert.
+            guard !isUserCancellation(error) else { status = nil; return }
             status = "Google sign-in failed: \(error.localizedDescription)"
             _ = await announcer.announce(.failed(
                 method: "Google",
@@ -65,6 +69,11 @@ final class SignInViewModel {
         email = trimmed
         guard !trimmed.isEmpty else {
             status = "Enter your email address."
+            return
+        }
+        // Reject autofill junk ("Sign in with Apple", "Hide My Email") before it round-trips to Clerk and fires a failure alert — an instant inline hint is better UX and keeps the feed clean.
+        guard isValidEmailFormat(trimmed) else {
+            status = "Enter a valid email address."
             return
         }
         inProgress = true

@@ -70,7 +70,7 @@ final class PracticeViewModel {
         saving = true
         defer { saving = false }
         let update = ProfileUpdate(
-            displayName: nil,
+            preferredName: nil,
             namePronunciation: nil,
             nativeLanguages: nil,
             targetLanguage: targetLanguage,

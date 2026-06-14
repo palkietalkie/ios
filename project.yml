@@ -74,10 +74,13 @@ targets:
           BACKEND_URL: "https://palkietalkie-api-dev.fly.dev"
           PERSONAPLEX_HOST: "wss://palkietalkie-dev--api.modal.run"
           CLERK_PUBLISHABLE_KEY: "pk_test_Y3V0ZS10aWNrLTQxLmNsZXJrLmFjY291bnRzLmRldiQ"
+          # Distinct home-screen label so a dev install is never mistaken for the prod build (bundle id stays the same — a dev bundle id would break dev's native Apple Sign In, which is registered to com.palkietalkie.app).
+          APP_DISPLAY_NAME: "PT Dev"
         Release:
           BACKEND_URL: "https://api.palkietalkie.com"
           PERSONAPLEX_HOST: "wss://palkietalkie--api.modal.run"
           CLERK_PUBLISHABLE_KEY: "pk_live_Y2xlcmsucGFsa2lldGFsa2llLmNvbSQ"
+          APP_DISPLAY_NAME: "Palkie Talkie"
     # Explicit Info.plist (xcodegen writes it) so we can add the OAuth URL scheme cleanly. Runtime values read via Bundle.main.object(forInfoDictionaryKey:).
     entitlements:
       path: PalkieTalkie/PalkieTalkie.entitlements
@@ -87,7 +90,7 @@ targets:
     info:
       path: PalkieTalkie/Info.plist
       properties:
-        CFBundleDisplayName: "Palkie Talkie"
+        CFBundleDisplayName: "$(APP_DISPLAY_NAME)"
         # Portrait-only. The mic UI is portrait-anchored and landscape adds no value.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

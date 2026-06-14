@@ -24,7 +24,7 @@ final class PracticeViewModelTests: XCTestCase {
     }
 
     private static let sampleProfile = ProfileDTO(
-        email: "wes@example.com", displayName: "Wes",
+        email: "wes@example.com", preferredName: "Wes",
         namePronunciation: nil, namePronunciationSuggestion: nil,
         nativeLanguages: ["Japanese"],
         targetLanguage: "English",

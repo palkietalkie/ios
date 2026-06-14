@@ -310,7 +310,7 @@ final class BackendEndpointsTests: XCTestCase {
         let transport = FakeTransport()
         let profile = ProfileDTO(
             email: "x@y.test",
-            displayName: "Wes",
+            preferredName: "Wes",
             namePronunciation: nil,
             namePronunciationSuggestion: nil,
             nativeLanguages: ["Japanese"],
@@ -325,11 +325,11 @@ final class BackendEndpointsTests: XCTestCase {
         transport.responseData = try BackendAPI.encoder.encode(profile)
         let api = makeAPI(transport: transport)
         let got = try await api.getProfile()
-        XCTAssertEqual(got.displayName, "Wes")
+        XCTAssertEqual(got.preferredName, "Wes")
         XCTAssertEqual(transport.lastRequest?.url?.path, "/profile")
 
         let update = ProfileUpdate(
-            displayName: "Wes", namePronunciation: nil,
+            preferredName: "Wes", namePronunciation: nil,
             nativeLanguages: ["Japanese"], targetLanguage: "English",
             targetAccents: ["American", "British"], proficiency: nil, tutorSpeakingSpeed: nil,
             goals: nil, locationCity: nil, timezone: nil,

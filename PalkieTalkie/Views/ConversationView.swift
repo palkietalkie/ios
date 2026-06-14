@@ -36,11 +36,10 @@ struct ConversationView: View {
                 .frame(maxHeight: .infinity)
             }
             .padding()
-            .toolbar {
-                // CC toggle sits top-right (YouTube-style), out of the center column so it never crowds or moves the mic.
-                ToolbarItem(placement: .topBarTrailing) {
-                    CaptionsToggle(enabled: $captionsEnabled)
-                }
+            // CC toggle sits top-right (YouTube-style), out of the center column so it never crowds or moves the mic. Placed as an overlay rather than a `.toolbar` item so it doesn't get the iOS 26 Liquid-Glass capsule the toolbar draws behind items — we want only CaptionsToggle's own rect fill, no circular ring.
+            .overlay(alignment: .topTrailing) {
+                CaptionsToggle(enabled: $captionsEnabled)
+                    .padding()
             }
             .task {
                 // AI starts the conversation the moment the screen appears — no button. If we land here mid-session, leave it alone.
