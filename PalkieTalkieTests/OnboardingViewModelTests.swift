@@ -77,7 +77,7 @@ final class OnboardingViewModelTests: XCTestCase {
         let transport = FakeTransport()
         let profile = ProfileDTO(
             email: nil,
-            displayName: nil,
+            preferredName: nil,
             namePronunciation: nil,
             namePronunciationSuggestion: nil,
             nativeLanguages: ["Japanese"],

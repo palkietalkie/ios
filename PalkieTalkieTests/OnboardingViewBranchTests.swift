@@ -35,7 +35,7 @@ final class OnboardingViewBranchTests: XCTestCase {
         let transport = FakeTransport()
         let languages = [LanguageDTO(name: "English", accents: ["US"])]
         let profile = ProfileDTO(
-            email: nil, displayName: nil, namePronunciation: nil,
+            email: nil, preferredName: nil, namePronunciation: nil,
             namePronunciationSuggestion: nil,
             nativeLanguages: ["Japanese"], targetLanguage: "English",
             targetAccents: ["US"], proficiency: "intermediate",

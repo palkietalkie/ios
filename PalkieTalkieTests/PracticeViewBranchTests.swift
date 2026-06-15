@@ -48,7 +48,7 @@ final class PracticeViewBranchTests: XCTestCase {
         let transport = FakeTransport()
         var p = Self.profile
         p = ProfileDTO(
-            email: p.email, displayName: p.displayName, namePronunciation: p.namePronunciation,
+            email: p.email, preferredName: p.preferredName, namePronunciation: p.namePronunciation,
             namePronunciationSuggestion: p.namePronunciationSuggestion,
             nativeLanguages: p.nativeLanguages,
             targetLanguage: p.targetLanguage,
@@ -73,7 +73,7 @@ final class PracticeViewBranchTests: XCTestCase {
 
     private static let profile = ProfileDTO(
         email: "wes@example.com",
-        displayName: "Wes",
+        preferredName: "Wes",
         namePronunciation: "WESS",
         namePronunciationSuggestion: nil,
         nativeLanguages: ["Japanese"],

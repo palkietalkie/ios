@@ -85,7 +85,7 @@ final class ProfileViewBranchTests: XCTestCase {
         var p = profile(pronSuggestion: "WESS")
         p = ProfileDTO(
             email: p.email,
-            displayName: p.displayName,
+            preferredName: p.preferredName,
             namePronunciation: "", // empty so suggestion renders
             namePronunciationSuggestion: "WESS",
             nativeLanguages: p.nativeLanguages,
@@ -120,7 +120,7 @@ final class ProfileViewBranchTests: XCTestCase {
     private func profile(pronSuggestion: String?) -> ProfileDTO {
         ProfileDTO(
             email: "wes@example.com",
-            displayName: "Wes",
+            preferredName: "Wes",
             namePronunciation: "WESS",
             namePronunciationSuggestion: pronSuggestion,
             nativeLanguages: ["Japanese", "English"],

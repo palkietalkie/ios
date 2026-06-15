@@ -198,7 +198,7 @@ final class ViewSuccessPathTests: XCTestCase {
         let transport = FakeTransport()
         let profile = ProfileDTO(
             email: "wes@example.test",
-            displayName: "Wes",
+            preferredName: "Wes",
             namePronunciation: "WESS",
             namePronunciationSuggestion: nil,
             nativeLanguages: ["Japanese"],
@@ -332,7 +332,7 @@ final class ViewSuccessPathTests: XCTestCase {
         let consent = ConsentDTO(personalization: true, productImprovement: true, set: true)
         let profile = ProfileDTO(
             email: "wes@example.test",
-            displayName: "Wes",
+            preferredName: "Wes",
             namePronunciation: nil,
             namePronunciationSuggestion: nil,
             nativeLanguages: ["Japanese"],
@@ -369,7 +369,7 @@ final class ViewSuccessPathTests: XCTestCase {
         let consent = ConsentDTO(personalization: true, productImprovement: true, set: true)
         let emptyProfile = ProfileDTO(
             email: nil,
-            displayName: nil,
+            preferredName: nil,
             namePronunciation: nil,
             namePronunciationSuggestion: nil,
             nativeLanguages: [],

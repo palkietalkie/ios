@@ -14,6 +14,8 @@ final class FakeSignInService: SignInService {
     var throwOnSignIn = false
     var throwOnSignUp = false
     var throwOnVerify = false
+    /// The error thrown on any `throwOn…` path. Defaults to a generic failure; set it to a cancellation error to exercise the no-announce path.
+    var errorToThrow: Error = Boom()
 
     struct Boom: LocalizedError { var errorDescription: String? {
         "boom"
@@ -21,12 +23,12 @@ final class FakeSignInService: SignInService {
 
     func signInWithApple() async throws {
         appleCalls += 1
-        if throwOnApple { throw Boom() }
+        if throwOnApple { throw errorToThrow }
     }
 
     func signInWithGoogle() async throws {
         googleCalls += 1
-        if throwOnGoogle { throw Boom() }
+        if throwOnGoogle { throw errorToThrow }
     }
 
     func signInWithEmailCode(_ email: String) async throws {
@@ -261,6 +263,45 @@ final class SignInViewModelTests: XCTestCase {
                 threadTs: "parent.ts",
             ),
         ])
+    }
+
+    // MARK: Noise control — cancellations and invalid input must NOT alert the feed
+
+    /// Dismissing the Google sheet (canceledLogin) is a choice, not a broken funnel — no error shown, no @channel ping.
+    func testGoogleCancellationIsSilentNoAnnounce() async {
+        let svc = FakeSignInService()
+        svc.throwOnGoogle = true
+        svc.errorToThrow = OAuthError.userCancelled
+        let ann = FakeAuthAnnouncer()
+        let vm = SignInViewModel(service: svc, announcer: ann)
+        await vm.signInWithGoogle()
+        XCTAssertNil(vm.status, "a user cancel must not surface as an error")
+        XCTAssertEqual(ann.events, [], "a cancel must not fire a failure alert")
+    }
+
+    func testAppleCancellationIsSilentNoAnnounce() async {
+        let svc = FakeSignInService()
+        svc.throwOnApple = true
+        svc.errorToThrow = OAuthError.userCancelled
+        let ann = FakeAuthAnnouncer()
+        let vm = SignInViewModel(service: svc, announcer: ann)
+        await vm.signInWithApple()
+        XCTAssertNil(vm.status)
+        XCTAssertEqual(ann.events, [])
+    }
+
+    /// Autofill junk ("Sign in with Apple") in the email field must be rejected client-side — no Clerk round-trip, no failure alert.
+    func testInvalidEmailRejectedBeforeServiceAndFeed() async {
+        let svc = FakeSignInService()
+        let ann = FakeAuthAnnouncer()
+        let vm = SignInViewModel(service: svc, announcer: ann)
+        vm.email = "Sign in with Apple"
+        await vm.sendEmailCode()
+        XCTAssertEqual(svc.signInEmails, [], "junk must never reach Clerk")
+        XCTAssertEqual(svc.signUpEmails, [])
+        XCTAssertEqual(ann.events, [], "invalid input must not fire a failure alert")
+        XCTAssertFalse(vm.awaitingCode)
+        XCTAssertNotNil(vm.status)
     }
 
     func testEmailSendFailureAnnouncesFailure() async {

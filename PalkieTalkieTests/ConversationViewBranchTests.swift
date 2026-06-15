@@ -31,6 +31,15 @@ final class ConversationViewBranchTests: XCTestCase {
         await TestHosting.host(view, settleMs: 200)
     }
 
+    func testConversationViewWithCaptionsEnabledRendersOverlay() async {
+        // The CC toggle sits in a top-trailing overlay (not the toolbar) so it carries no Liquid-Glass capsule ring. With captions on, host the view to exercise that overlay branch + the captions region.
+        UserDefaults.standard.set(true, forKey: "captionsEnabled")
+        defer { UserDefaults.standard.removeObject(forKey: "captionsEnabled") }
+        let controller = makeController()
+        controller.phase = .live
+        await host(ConversationView().environment(controller))
+    }
+
     func testConversationViewLivePhase() async {
         let controller = makeController()
         controller.phase = .live

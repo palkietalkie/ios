@@ -12,7 +12,7 @@ final class ProfileViewModel {
     static let kgKey = "cache.knowledge_graph"
 
     var email: String = ""
-    var displayName: String = ""
+    var preferredName: String = ""
     var namePronunciation: String = ""
     var nativeLanguages: Set<String> = []
     var targetLanguage: String = "English"
@@ -37,7 +37,7 @@ final class ProfileViewModel {
         knowledgeGraph = JSONCache.load([KGEntityDTO].self, key: Self.kgKey) ?? []
         if let cached = JSONCache.load(ProfileDTO.self, key: Self.profileKey) {
             email = cached.email ?? ""
-            displayName = cached.displayName ?? ""
+            preferredName = cached.preferredName ?? ""
             namePronunciation = cached.namePronunciation ?? ""
             nativeLanguages = Set(cached.nativeLanguages)
             targetLanguage = cached.targetLanguage
@@ -68,7 +68,7 @@ final class ProfileViewModel {
                 JSONCache.save(freshOptions, key: Self.practiceOptionsKey)
             }
             email = profile.email ?? ""
-            displayName = profile.displayName ?? Self.clerkDefaultDisplayName()
+            preferredName = profile.preferredName ?? Self.clerkDefaultPreferredName()
             namePronunciation = profile.namePronunciation ?? ""
             pronunciationSuggestion = profile.namePronunciationSuggestion ?? ""
             nativeLanguages = Set(profile.nativeLanguages)
@@ -98,7 +98,7 @@ final class ProfileViewModel {
         saving = true
         defer { saving = false }
         let update = ProfileUpdate(
-            displayName: displayName.isEmpty ? nil : displayName,
+            preferredName: preferredName.isEmpty ? nil : preferredName,
             // Send the actual value, even if empty. The user clearing the field IS the intent — the backend's COALESCE PATCH semantics treat `null` as "keep existing", so the only way to persist a clear is to send the empty string explicitly.
             namePronunciation: namePronunciation,
             nativeLanguages: nativeLanguages.isEmpty ? nil : Array(nativeLanguages),
@@ -121,7 +121,7 @@ final class ProfileViewModel {
         }
     }
 
-    static func clerkDefaultDisplayName() -> String {
+    static func clerkDefaultPreferredName() -> String {
         guard let user = Clerk.shared.user else { return "" }
         if let first = user.firstName, !first.isEmpty { return first }
         let firstPart = user.firstName ?? ""

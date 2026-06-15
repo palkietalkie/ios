@@ -254,7 +254,7 @@ struct CalendarEventDTO: Codable {
 
 struct ProfileDTO: Codable {
     let email: String?
-    let displayName: String?
+    let preferredName: String?
     let namePronunciation: String?
     /// Placeholder suggestion computed server-side when `namePronunciation` is empty; iOS shows it as the TextField prompt so the user sees the AI's guess without it being committed. Never persisted client-side — only the user typing into the field stores anything.
     let namePronunciationSuggestion: String?
@@ -269,7 +269,7 @@ struct ProfileDTO: Codable {
 }
 
 struct ProfileUpdate: Codable {
-    let displayName: String?
+    let preferredName: String?
     let namePronunciation: String?
     let nativeLanguages: [String]?
     let targetLanguage: String?

@@ -85,4 +85,24 @@ final class BackendDTOsTests: XCTestCase {
         XCTAssertEqual(BackendError.http(404, "missing").errorDescription, "HTTP 404: missing")
         XCTAssertEqual(BackendError.decoding("oops").errorDescription, "Couldn't decode response: oops")
     }
+
+    /// The profile DTOs carry the user's name as `preferred_name` on the wire (renamed from display_name). Pin the snake_case mapping so a regression back to displayName/display_name is caught here, not as a field the backend silently drops.
+    func testProfilePreferredNameUsesSnakeCaseWire() throws {
+        let update = ProfileUpdate(
+            preferredName: "Wes", namePronunciation: nil, nativeLanguages: nil,
+            targetLanguage: nil, targetAccents: nil, proficiency: nil,
+            tutorSpeakingSpeed: nil, goals: nil, locationCity: nil, timezone: nil,
+        )
+        let json = try String(data: BackendAPI.encoder.encode(update), encoding: .utf8) ?? ""
+        XCTAssertTrue(json.contains("preferred_name"))
+        XCTAssertFalse(json.contains("display_name"))
+        // ProfileDTO has required (non-optional) fields; include them so the decode exercises preferred_name without throwing on missing keys.
+        let dtoJSON =
+            #"{"preferred_name": "Wes", "native_languages": [], "target_language": "English", "target_accents": [], "proficiency": "intermediate", "tutor_speaking_speed": "normal"}"#
+        let decoded = try BackendAPI.decoder.decode(
+            ProfileDTO.self,
+            from: XCTUnwrap(dtoJSON.data(using: .utf8)),
+        )
+        XCTAssertEqual(decoded.preferredName, "Wes")
+    }
 }

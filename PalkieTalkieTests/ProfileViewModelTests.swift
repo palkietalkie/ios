@@ -1,7 +1,7 @@
 @testable import PalkieTalkie
 import XCTest
 
-/// Direct unit tests for the ProfileViewModel — no SwiftUI render pipeline. Covers load / save / cache-init / clerkDefaultDisplayName fallback.
+/// Direct unit tests for the ProfileViewModel — no SwiftUI render pipeline. Covers load / save / cache-init / clerkDefaultPreferredName fallback.
 @MainActor
 final class ProfileViewModelTests: XCTestCase {
     override func setUp() async throws {
@@ -28,7 +28,7 @@ final class ProfileViewModelTests: XCTestCase {
 
     private static let sampleProfile = ProfileDTO(
         email: "wes@example.com",
-        displayName: "Wes",
+        preferredName: "Wes",
         namePronunciation: "WESS",
         namePronunciationSuggestion: nil,
         nativeLanguages: ["Japanese"],
@@ -41,9 +41,9 @@ final class ProfileViewModelTests: XCTestCase {
         timezone: "America/Los_Angeles",
     )
 
-    func testClerkDefaultDisplayNameReturnsEmptyWithoutSignedInUser() {
+    func testClerkDefaultPreferredNameReturnsEmptyWithoutSignedInUser() {
         // No Clerk user in the test bundle → first guard returns "".
-        let name = ProfileViewModel.clerkDefaultDisplayName()
+        let name = ProfileViewModel.clerkDefaultPreferredName()
         XCTAssertEqual(name, "")
     }
 
@@ -59,7 +59,7 @@ final class ProfileViewModelTests: XCTestCase {
         try JSONCache.save(Self.sampleProfile, key: ProfileViewModel.profileKey)
         let vm = ProfileViewModel()
         XCTAssertEqual(vm.email, "wes@example.com")
-        XCTAssertEqual(vm.displayName, "Wes")
+        XCTAssertEqual(vm.preferredName, "Wes")
         XCTAssertEqual(vm.namePronunciation, "WESS")
         XCTAssertTrue(vm.loaded)
     }
@@ -101,7 +101,7 @@ final class ProfileViewModelTests: XCTestCase {
         let vm = ProfileViewModel()
         await vm.load(api: api)
         XCTAssertEqual(vm.email, "wes@example.com")
-        XCTAssertEqual(vm.displayName, "Wes")
+        XCTAssertEqual(vm.preferredName, "Wes")
         XCTAssertEqual(vm.knowledgeGraph.count, 1)
         XCTAssertTrue(vm.loaded)
         XCTAssertNil(vm.saveError)
@@ -145,7 +145,7 @@ final class ProfileViewModelTests: XCTestCase {
         try transport.enqueue(path: "/kg", data: BackendAPI.encoder.encode(KGGraphDTO(nodes: [], edges: [])))
         let api = makeAPI(transport)
         let vm = ProfileViewModel()
-        vm.displayName = "New Name"
+        vm.preferredName = "New Name"
         await vm.save(api: api)
         XCTAssertNotNil(vm.savedAt)
         XCTAssertNil(vm.saveError)
@@ -173,7 +173,7 @@ final class ProfileViewModelTests: XCTestCase {
         try transport.enqueue(path: "/kg", data: BackendAPI.encoder.encode(KGGraphDTO(nodes: [], edges: [])))
         let api = makeAPI(transport)
         let vm = ProfileViewModel()
-        // Leave displayName / nativeLanguages / targetAccents / goals empty so they all serialize as nil.
+        // Leave preferredName / nativeLanguages / targetAccents / goals empty so they all serialize as nil.
         await vm.save(api: api)
         let patch = transport.requests.first(where: { $0.httpMethod == "PATCH" })
         let body = patch?.httpBody ?? Data()
