@@ -21,8 +21,8 @@ set +a
 : "${APPLE_ID:?APPLE_ID missing in ios/.env}"
 : "${APPLE_APP_SPECIFIC_PASSWORD:?APPLE_APP_SPECIFIC_PASSWORD missing in ios/.env}"
 
-# Next build number = highest on ASC + 1. Pure-shell iOS tooling (openssl/curl/jq, no Python/uv); the .p8 lives in the gitignored backend secrets dir.
-BUILD_NUMBER="$("$IOS_DIR/scripts/next-build-number.sh" --key-path "$IOS_DIR/../backend/secrets/apple_asc_api.p8")"
+# Next build number = highest on ASC + 1. Pure-shell, self-contained iOS tooling (reads the ASC key from APPLE_ASC_API_KEY_BASE64, sourced from .env above).
+BUILD_NUMBER="$("$IOS_DIR/scripts/next-build-number.sh")"
 : "${BUILD_NUMBER:?could not compute next build number from ASC}"
 # Build artifacts live under ios/build/ (gitignored, inspectable later) — /tmp gets wiped on reboot, which is why a failed-review build couldn't be examined after the fact.
 OUT="$IOS_DIR/build/release"
@@ -69,4 +69,8 @@ echo "[release] uploading to App Store Connect ..."
 xcrun altool --upload-app -f "$EXPORT_DIR/PalkieTalkie.ipa" -t ios \
 	-u "$APPLE_ID" -p "$APPLE_APP_SPECIFIC_PASSWORD"
 
-echo "[release] done — build 1.0 ($BUILD_NUMBER) uploaded. Appears in App Store Connect > TestFlight after ~5-15 min processing."
+# Upload alone leaves the build un-submitted (external testers never see it). Wait out Apple processing, then submit for Beta App Review so a release actually ships.
+echo "[release] waiting for processing + submitting build $BUILD_NUMBER for TestFlight beta review ..."
+"$IOS_DIR/scripts/submit-build.sh" --version "$BUILD_NUMBER" --wait
+
+echo "[release] done — build 1.0 ($BUILD_NUMBER) uploaded + submitted for beta review. External testers get it once Apple approves."
