@@ -21,9 +21,8 @@ set +a
 : "${APPLE_ID:?APPLE_ID missing in ios/.env}"
 : "${APPLE_APP_SPECIFIC_PASSWORD:?APPLE_APP_SPECIFIC_PASSWORD missing in ios/.env}"
 
-# Next build number = highest on ASC + 1. Runs in the backend venv (needs httpx/jwt + the asc/ modules); the subshell keeps that activation out of this script's env.
-# shellcheck source=/dev/null
-BUILD_NUMBER="$(cd "$IOS_DIR/../backend" && source .venv/bin/activate && python -m scripts.asc.next_build_number)"
+# Next build number = highest on ASC + 1. Pure-shell iOS tooling (openssl/curl/jq, no Python/uv); the .p8 lives in the gitignored backend secrets dir.
+BUILD_NUMBER="$("$IOS_DIR/scripts/next-build-number.sh" --key-path "$IOS_DIR/../backend/secrets/apple_asc_api.p8")"
 : "${BUILD_NUMBER:?could not compute next build number from ASC}"
 # Build artifacts live under ios/build/ (gitignored, inspectable later) — /tmp gets wiped on reboot, which is why a failed-review build couldn't be examined after the fact.
 OUT="$IOS_DIR/build/release"
