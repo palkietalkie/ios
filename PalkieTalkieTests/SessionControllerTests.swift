@@ -552,4 +552,49 @@ final class SessionControllerTests: XCTestCase {
         let closeCount = await rig.session.closeCount
         XCTAssertEqual(closeCount, 1)
     }
+
+    func testEndReportsTutorEmotionCounts() async {
+        let backend = FakeConversationBackend(
+            startResponse: StartResponse(
+                sessionId: "srv-emo",
+                textPrompt: "",
+                voiceId: "",
+                wsUrl: "wss://test",
+                provider: "personaplex",
+                ephemeralToken: nil,
+            ),
+            endResponse: EndResponse(sessionId: "srv-emo", durationSeconds: 0),
+        )
+        let streamer = FakeAudioStreamer()
+        streamer.emotionCountsValue = ["laugh": 2, "cheer": 1, "gasp": 0, "sigh": 1, "groan": 0]
+        let rig = makeController(backend: backend, streamer: streamer)
+        await rig.controller.start()
+        await rig.controller.end()
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertEqual(backend.aiEmotionCalls.count, 1)
+        let call = backend.aiEmotionCalls[0]
+        XCTAssertEqual(call.laugh, 2)
+        XCTAssertEqual(call.cheer, 1)
+        XCTAssertEqual(call.sigh, 1)
+    }
+
+    func testEndDoesNotReportWhenNoTutorEmotions() async {
+        let backend = FakeConversationBackend(
+            startResponse: StartResponse(
+                sessionId: "srv-noemo",
+                textPrompt: "",
+                voiceId: "",
+                wsUrl: "wss://test",
+                provider: "personaplex",
+                ephemeralToken: nil,
+            ),
+            endResponse: EndResponse(sessionId: "srv-noemo", durationSeconds: 0),
+        )
+        let streamer = FakeAudioStreamer() // emotionCountsValue defaults to empty
+        let rig = makeController(backend: backend, streamer: streamer)
+        await rig.controller.start()
+        await rig.controller.end()
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertTrue(backend.aiEmotionCalls.isEmpty, "no reaction means no event posted")
+    }
 }

@@ -5,14 +5,11 @@ import SwiftUI
 struct OnboardingView: View {
     let onContinue: () -> Void
     @Environment(\.backendAPI) private var api
-    @State private var model = OnboardingViewModel()
-    /// Which step is on screen. View-only navigation state — the answers live in `model`, so back/forward never discards a selection.
-    @State private var step: Step = .native
-    /// Slide direction for the transition: true = moving forward (new slides in from trailing), false = going back.
-    @State private var advancing = true
+    @State private var model: OnboardingViewModel
 
-    enum Step: Int, CaseIterable {
-        case native, target, accents
+    init(onContinue: @escaping () -> Void, model: OnboardingViewModel = OnboardingViewModel()) {
+        self.onContinue = onContinue
+        _model = State(initialValue: model)
     }
 
     var body: some View {
@@ -48,15 +45,15 @@ struct OnboardingView: View {
                     .contentShape(Rectangle())
             }
             .accessibilityLabel("Back")
-            .opacity(step == .native ? 0 : 1)
-            .disabled(step == .native)
+            .opacity(model.step == .native ? 0 : 1)
+            .disabled(model.step == .native)
 
             HStack(spacing: 6) {
-                ForEach(Step.allCases, id: \.rawValue) { s in
+                ForEach(OnboardingViewModel.Step.allCases, id: \.rawValue) { s in
                     Capsule()
-                        .fill(s.rawValue <= step.rawValue ? Color.accentColor : Color(.systemGray4))
+                        .fill(s.rawValue <= model.step.rawValue ? Color.accentColor : Color(.systemGray4))
                         .frame(height: 4)
-                        .animation(.easeInOut, value: step)
+                        .animation(.easeInOut, value: model.step)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -71,15 +68,15 @@ struct OnboardingView: View {
 
     private var stepBody: some View {
         currentStep
-            .id(step)
+            .id(model.step)
             .transition(.asymmetric(
-                insertion: .move(edge: advancing ? .trailing : .leading).combined(with: .opacity),
-                removal: .move(edge: advancing ? .leading : .trailing).combined(with: .opacity),
+                insertion: .move(edge: model.advancing ? .trailing : .leading).combined(with: .opacity),
+                removal: .move(edge: model.advancing ? .leading : .trailing).combined(with: .opacity),
             ))
     }
 
     @ViewBuilder private var currentStep: some View {
-        switch step {
+        switch model.step {
         case .native:
             StepScaffold(
                 title: "What's your native language?",
@@ -90,7 +87,7 @@ struct OnboardingView: View {
                     isSelected: { model.nativeLanguages.contains($0) },
                     display: localizedLanguageName,
                 ) {
-                    toggleNative($0)
+                    model.toggleNative($0)
                 }
             }
         case .target:
@@ -103,7 +100,7 @@ struct OnboardingView: View {
                     isSelected: { model.targetLanguage == $0 },
                     display: localizedLanguageName,
                 ) {
-                    pickTarget($0)
+                    model.pickTarget($0)
                 }
             }
         case .accents:
@@ -114,15 +111,17 @@ struct OnboardingView: View {
                 VStack(spacing: 8) {
                     HStack {
                         Spacer()
-                        Button(allAccentsSelected ? "Clear all" : "Select all") { toggleAllAccents() }
-                            .font(.subheadline)
+                        Button(model.allAccentsSelected ? "Clear all" : "Select all") {
+                            model.toggleAllAccents()
+                        }
+                        .font(.subheadline)
                     }
                     ChoiceList(
                         options: model.accentsForTargetLanguage,
                         isSelected: { model.targetAccents.contains($0) },
                         display: localizedAccentName,
                     ) {
-                        toggleAccent($0)
+                        model.toggleAccent($0)
                     }
                 }
             }
@@ -141,75 +140,28 @@ struct OnboardingView: View {
             Button {
                 advance()
             } label: {
-                Text(step == .accents ? "Get started" : "Continue")
+                Text(model.isLastStep ? "Get started" : "Continue")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .disabled(!stepValid || model.saving)
+            .disabled(!model.stepValid || model.saving)
         }
         .padding()
     }
 
-    // MARK: - Navigation + selection
-
-    private var stepValid: Bool {
-        switch step {
-        case .native: !model.nativeLanguages.isEmpty
-        case .target: !model.targetLanguage.isEmpty
-        case .accents: !model.targetAccents.isEmpty
-        }
-    }
+    // MARK: - Navigation (animation only; the logic lives in the model)
 
     private func advance() {
-        guard stepValid else { return }
-        if let next = Step(rawValue: step.rawValue + 1) {
-            advancing = true
-            withAnimation(.easeInOut(duration: 0.3)) { step = next }
-        } else {
+        if model.isLastStep {
             Task { await model.save(api: api) }
+        } else {
+            withAnimation(.easeInOut(duration: 0.3)) { model.advanceStep() }
         }
     }
 
     private func goBack() {
-        guard let prev = Step(rawValue: step.rawValue - 1) else { return }
-        advancing = false
-        withAnimation(.easeInOut(duration: 0.3)) { step = prev }
-    }
-
-    private func toggleNative(_ name: String) {
-        if model.nativeLanguages.contains(name) {
-            model.nativeLanguages.remove(name)
-        } else {
-            model.nativeLanguages.insert(name)
-        }
-    }
-
-    private func pickTarget(_ name: String) {
-        model.targetLanguage = name
-        model.filterAccentsForTargetLanguage(name)
-    }
-
-    private var allAccentsSelected: Bool {
-        let all = model.accentsForTargetLanguage
-        return !all.isEmpty && model.targetAccents.isSuperset(of: all)
-    }
-
-    private func toggleAllAccents() {
-        let all = model.accentsForTargetLanguage
-        if allAccentsSelected {
-            model.targetAccents.subtract(all)
-        } else {
-            model.targetAccents.formUnion(all)
-        }
-    }
-
-    private func toggleAccent(_ name: String) {
-        if model.targetAccents.contains(name) {
-            model.targetAccents.remove(name)
-        } else {
-            model.targetAccents.insert(name)
-        }
+        withAnimation(.easeInOut(duration: 0.3)) { model.goBack() }
     }
 }
 

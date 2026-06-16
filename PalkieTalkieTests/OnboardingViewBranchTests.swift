@@ -55,6 +55,33 @@ final class OnboardingViewBranchTests: XCTestCase {
         await host(OnboardingView(onContinue: {}).environment(\.backendAPI, api))
     }
 
+    /// Render the view at the .target step (injected model) so the second step's StepScaffold + single-select ChoiceList branch renders.
+    func testHostsAtTargetStep() async throws {
+        let model = OnboardingViewModel()
+        model.languages = [
+            LanguageDTO(name: "English", accents: ["US"]),
+            LanguageDTO(name: "Japanese", accents: ["Tokyo"]),
+        ]
+        model.nativeLanguages = ["Japanese"]
+        model.targetLanguage = "English"
+        model.step = .target
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode([LanguageDTO(name: "English", accents: ["US"])])
+        await host(OnboardingView(onContinue: {}, model: model).environment(\.backendAPI, makeAPI(transport)))
+    }
+
+    /// Render at the .accents step with one accent already chosen so the select-all/clear-all toggle + the checked-row branch render.
+    func testHostsAtAccentsStepWithSelection() async throws {
+        let model = OnboardingViewModel()
+        model.languages = [LanguageDTO(name: "English", accents: ["US General", "UK RP"])]
+        model.targetLanguage = "English"
+        model.targetAccents = ["US General"]
+        model.step = .accents
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode([LanguageDTO(name: "English", accents: ["US General"])])
+        await host(OnboardingView(onContinue: {}, model: model).environment(\.backendAPI, makeAPI(transport)))
+    }
+
     /// Onboarding body when user already has accents picked — renders the non-empty-accents text branch in the LabeledContent label.
     func testOnboardingRendersWithAccentsAlreadySelected() async throws {
         let transport = FakeTransport()

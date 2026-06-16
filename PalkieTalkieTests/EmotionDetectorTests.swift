@@ -79,3 +79,80 @@ final class AffinityCountersTests: XCTestCase {
         XCTAssertEqual(c.count(.gasp), 0)
     }
 }
+
+final class EmotionPresentCategoriesTests: XCTestCase {
+    private let threshold = EmotionDetector.confidenceThreshold
+
+    func testLabelAboveThresholdIsPresent() {
+        XCTAssertEqual(
+            EmotionDetector.presentCategories(in: [("laughter", 0.9)], threshold: threshold),
+            [.laugh],
+        )
+    }
+
+    func testLabelBelowThresholdIsIgnored() {
+        XCTAssertTrue(
+            EmotionDetector.presentCategories(in: [("laughter", 0.2)], threshold: threshold).isEmpty,
+        )
+    }
+
+    func testNonEmotionalTopLabelDoesNotMaskAnEmotionalOne() {
+        // "speech" outranks the laugh but maps to no category; the laugh still registers.
+        XCTAssertEqual(
+            EmotionDetector.presentCategories(
+                in: [("speech", 0.95), ("laughter", 0.6)], threshold: threshold,
+            ),
+            [.laugh],
+        )
+    }
+
+    func testEveryClearingCategoryIsPresentTogether() {
+        XCTAssertEqual(
+            EmotionDetector.presentCategories(
+                in: [("giggling", 0.7), ("sigh", 0.8), ("typing", 0.99)], threshold: threshold,
+            ),
+            [.laugh, .sigh],
+        )
+    }
+
+    func testNegativeCategoryRegisters() {
+        XCTAssertEqual(
+            EmotionDetector.presentCategories(in: [("groaning", 0.6)], threshold: threshold),
+            [.groan],
+        )
+    }
+
+    func testEmptyInputIsEmpty() {
+        XCTAssertTrue(EmotionDetector.presentCategories(in: [], threshold: threshold).isEmpty)
+    }
+}
+
+final class AffinityCounterEdgeTests: XCTestCase {
+    func testNegativeCategoriesEdgeIndependently() {
+        var c = AffinityCounters()
+        c.observe(present: [.sigh])
+        c.observe(present: [.sigh, .groan])
+        c.observe(present: [])
+        c.observe(present: [.groan])
+        XCTAssertEqual(c.count(.sigh), 1)
+        XCTAssertEqual(c.count(.groan), 2)
+    }
+
+    func testSimultaneousCategoriesEachCountOnce() {
+        var c = AffinityCounters()
+        c.observe(present: [.laugh, .cheer, .gasp])
+        XCTAssertEqual(c.count(.laugh), 1)
+        XCTAssertEqual(c.count(.cheer), 1)
+        XCTAssertEqual(c.count(.gasp), 1)
+    }
+
+    func testReEdgesAfterAGap() {
+        var c = AffinityCounters()
+        c.observe(present: [.laugh])
+        c.observe(present: [])
+        c.observe(present: [.laugh])
+        c.observe(present: [])
+        c.observe(present: [.laugh])
+        XCTAssertEqual(c.count(.laugh), 3)
+    }
+}

@@ -385,6 +385,20 @@ final class BackendEndpointsTests: XCTestCase {
         XCTAssertEqual(json["event_type"] as? String, "pitch_range")
     }
 
+    func testRecordAIEmotionsPostsPerCategoryCounts() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data("{}".utf8)
+        let api = makeAPI(transport: transport)
+        try await api.recordAIEmotions(sessionId: "S-11", laugh: 3, cheer: 1, gasp: 0, sigh: 2, groan: 1)
+        XCTAssertEqual(transport.lastRequest?.url?.path, "/events")
+        let body = try XCTUnwrap(transport.lastRequest?.httpBody)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["event_type"] as? String, "ai_emotion")
+        let props = try XCTUnwrap(json["props"] as? [String: Any])
+        XCTAssertEqual(props["laugh"] as? Int, 3)
+        XCTAssertEqual(props["sigh"] as? Int, 2)
+    }
+
     // MARK: - Integrations
 
     func testListIntegrations() async throws {

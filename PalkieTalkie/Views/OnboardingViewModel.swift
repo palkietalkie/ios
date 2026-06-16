@@ -17,12 +17,83 @@ final class OnboardingViewModel {
     /// Flag flipped after save() succeeds; the view observes and calls its onContinue closure.
     var didSaveSuccessfully: Bool = false
 
+    /// Which wizard step is on screen. Lives here (not as view @State) so the navigation logic is unit-testable without rendering.
+    enum Step: Int, CaseIterable {
+        case native, target, accents
+    }
+
+    var step: Step = .native
+    /// Slide direction for the view's transition: true = forward, false = back. Set by advance/goBack.
+    var advancing: Bool = true
+
     var accentsForTargetLanguage: [String] {
         languages.first(where: { $0.name == targetLanguage })?.accents ?? []
     }
 
     var canContinue: Bool {
         !nativeLanguages.isEmpty && !targetAccents.isEmpty
+    }
+
+    var stepValid: Bool {
+        switch step {
+        case .native: !nativeLanguages.isEmpty
+        case .target: !targetLanguage.isEmpty
+        case .accents: !targetAccents.isEmpty
+        }
+    }
+
+    var isLastStep: Bool {
+        step == .accents
+    }
+
+    /// Move to the next step when the current one is valid. Returns false when already on the last step (the caller should save instead).
+    @discardableResult
+    func advanceStep() -> Bool {
+        guard stepValid, let next = Step(rawValue: step.rawValue + 1) else { return false }
+        advancing = true
+        step = next
+        return true
+    }
+
+    func goBack() {
+        guard let prev = Step(rawValue: step.rawValue - 1) else { return }
+        advancing = false
+        step = prev
+    }
+
+    func toggleNative(_ name: String) {
+        if nativeLanguages.contains(name) {
+            nativeLanguages.remove(name)
+        } else {
+            nativeLanguages.insert(name)
+        }
+    }
+
+    func pickTarget(_ name: String) {
+        targetLanguage = name
+        filterAccentsForTargetLanguage(name)
+    }
+
+    func toggleAccent(_ name: String) {
+        if targetAccents.contains(name) {
+            targetAccents.remove(name)
+        } else {
+            targetAccents.insert(name)
+        }
+    }
+
+    var allAccentsSelected: Bool {
+        let all = accentsForTargetLanguage
+        return !all.isEmpty && targetAccents.isSuperset(of: Set(all))
+    }
+
+    func toggleAllAccents() {
+        let all = Set(accentsForTargetLanguage)
+        if allAccentsSelected {
+            targetAccents.subtract(all)
+        } else {
+            targetAccents.formUnion(all)
+        }
     }
 
     func filterAccentsForTargetLanguage(_ newValue: String) {

@@ -101,13 +101,23 @@ final class EmotionDetector: NSObject, SNResultsObserving, @unchecked Sendable {
         }
     }
 
+    /// Which affinity categories a classifier window puts "present": labels that map to a category AND clear the confidence threshold. Scans every prediction, not just the top one ("speech" usually outranks a laugh, but the laugh still clears the bar and is the signal we want). Pure and static so the core observer decision is unit-testable without a live SNClassificationResult, which the simulator can't produce.
+    static func presentCategories(
+        in predictions: [(identifier: String, confidence: Double)],
+        threshold: Double,
+    ) -> Set<AffinityEmotion> {
+        Set(
+            predictions
+                .filter { $0.confidence >= threshold }
+                .compactMap { AffinityEmotion.category(for: $0.identifier) },
+        )
+    }
+
     func request(_: SNRequest, didProduce result: SNResult) {
         guard let classification = result as? SNClassificationResult else { return }
-        // Scan every label, not just the top one: "speech" usually outranks a laugh, but the laugh still clears the threshold and is the signal we want.
-        let present = Set(
-            classification.classifications
-                .filter { $0.confidence >= Self.confidenceThreshold }
-                .compactMap { AffinityEmotion.category(for: $0.identifier) },
+        let present = Self.presentCategories(
+            in: classification.classifications.map { ($0.identifier, $0.confidence) },
+            threshold: Self.confidenceThreshold,
         )
         state.withLock { $0.observe(present: present) }
     }

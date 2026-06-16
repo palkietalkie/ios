@@ -110,3 +110,104 @@ final class OnboardingViewModelTests: XCTestCase {
         XCTAssertNotNil(vm.saveError)
     }
 }
+
+@MainActor
+final class OnboardingWizardLogicTests: XCTestCase {
+    private func loadedModel() -> OnboardingViewModel {
+        let vm = OnboardingViewModel()
+        vm.languages = [
+            LanguageDTO(name: "English", accents: ["US General", "UK RP", "Australian"]),
+            LanguageDTO(name: "Japanese", accents: ["Tokyo", "Osaka"]),
+        ]
+        return vm
+    }
+
+    func testStepValidPerStep() {
+        let vm = loadedModel()
+        XCTAssertFalse(vm.stepValid, "native step invalid with no native language")
+        vm.nativeLanguages = ["Japanese"]
+        XCTAssertTrue(vm.stepValid)
+        vm.step = .target
+        XCTAssertTrue(vm.stepValid, "target defaults to English, so valid")
+        vm.step = .accents
+        XCTAssertFalse(vm.stepValid, "accents step invalid with none picked")
+        vm.targetAccents = ["US General"]
+        XCTAssertTrue(vm.stepValid)
+    }
+
+    func testAdvanceStepBlockedWhenInvalid() {
+        let vm = loadedModel()
+        XCTAssertFalse(vm.advanceStep(), "no native language → cannot advance")
+        XCTAssertEqual(vm.step, .native)
+    }
+
+    func testAdvanceStepMovesForwardWhenValid() {
+        let vm = loadedModel()
+        vm.nativeLanguages = ["Japanese"]
+        XCTAssertTrue(vm.advanceStep())
+        XCTAssertEqual(vm.step, .target)
+        XCTAssertTrue(vm.advancing, "moving forward sets advancing")
+    }
+
+    func testAdvanceStepReturnsFalseOnLastStep() {
+        let vm = loadedModel()
+        vm.step = .accents
+        vm.targetAccents = ["US General"]
+        XCTAssertFalse(vm.advanceStep(), "no step after accents → caller should save")
+        XCTAssertEqual(vm.step, .accents)
+        XCTAssertTrue(vm.isLastStep)
+    }
+
+    func testGoBackMovesBackAndSetsDirection() {
+        let vm = loadedModel()
+        vm.step = .target
+        vm.goBack()
+        XCTAssertEqual(vm.step, .native)
+        XCTAssertFalse(vm.advancing, "going back clears advancing")
+    }
+
+    func testGoBackAtFirstStepIsNoOp() {
+        let vm = loadedModel()
+        vm.goBack()
+        XCTAssertEqual(vm.step, .native)
+    }
+
+    func testToggleNativeAddsThenRemoves() {
+        let vm = loadedModel()
+        vm.toggleNative("Japanese")
+        XCTAssertEqual(vm.nativeLanguages, ["Japanese"])
+        vm.toggleNative("Japanese")
+        XCTAssertTrue(vm.nativeLanguages.isEmpty)
+    }
+
+    func testPickTargetSetsLanguageAndDropsUnsupportedAccents() {
+        let vm = loadedModel()
+        vm.targetAccents = ["Tokyo", "US General"]
+        vm.pickTarget("Japanese")
+        XCTAssertEqual(vm.targetLanguage, "Japanese")
+        XCTAssertEqual(vm.targetAccents, ["Tokyo"], "US General isn't a Japanese accent, so it's dropped")
+    }
+
+    func testToggleAccentAddsThenRemoves() {
+        let vm = loadedModel()
+        vm.toggleAccent("UK RP")
+        XCTAssertEqual(vm.targetAccents, ["UK RP"])
+        vm.toggleAccent("UK RP")
+        XCTAssertTrue(vm.targetAccents.isEmpty)
+    }
+
+    func testToggleAllAccentsSelectsAllThenClears() {
+        let vm = loadedModel() // targetLanguage defaults to English → 3 accents
+        XCTAssertFalse(vm.allAccentsSelected)
+        vm.toggleAllAccents()
+        XCTAssertTrue(vm.allAccentsSelected)
+        XCTAssertEqual(vm.targetAccents, ["US General", "UK RP", "Australian"])
+        vm.toggleAllAccents()
+        XCTAssertTrue(vm.targetAccents.isEmpty)
+    }
+
+    func testAllAccentsSelectedFalseWhenNoAccentsAvailable() {
+        let vm = OnboardingViewModel() // no languages loaded → no accents
+        XCTAssertFalse(vm.allAccentsSelected, "an empty accent set is not 'all selected'")
+    }
+}
