@@ -46,4 +46,31 @@ final class ProfileViewTests: XCTestCase {
         XCTAssertTrue(texts.contains("Preferred name"))
         XCTAssertTrue(texts.contains("Pronunciation"))
     }
+
+    /// Native languages render through localizedLanguageName, not the raw backend string. Locks the display path so a refactor that drops the wrapper (showing a bare slug under a non-English UI locale) is caught.
+    func testNativeLanguagesRenderLocalizedDisplay() throws {
+        let cached = ProfileDTO(
+            email: "wes@example.com",
+            preferredName: "Wes",
+            namePronunciation: nil,
+            namePronunciationSuggestion: nil,
+            nativeLanguages: ["Japanese"],
+            targetLanguage: "English",
+            targetAccents: ["US General"],
+            proficiency: "intermediate",
+            tutorSpeakingSpeed: "normal",
+            goals: nil,
+            locationCity: nil,
+            timezone: nil,
+        )
+        JSONCache.save(cached, key: "cache.profile")
+        defer { UserDefaults.standard.removeObject(forKey: "cache.profile") }
+
+        let sut = ProfileView()
+        let texts = try sut.inspect().findAll(ViewType.Text.self).compactMap { try? $0.string() }
+        XCTAssertTrue(
+            texts.contains(localizedLanguageName("Japanese")),
+            "native language must render via localizedLanguageName; saw \(texts)",
+        )
+    }
 }

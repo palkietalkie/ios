@@ -70,4 +70,46 @@ final class OpenAIRealtimeClientExtraTests: XCTestCase {
             // Other errors are acceptable — the contract here is "doesn't deadlock".
         }
     }
+
+    /// web_fetch arrives with a "url" argument (not "query"); recall tools send "query". Both must surface as ToolCall.query. Before the url fallback this yielded an empty query and web_fetch fetched nothing.
+    func testFunctionCallWithURLArgumentSurfacesAsQuery() async {
+        let client = OpenAIRealtimeClient(instructions: nil)
+        let calls = await client.toolCalls
+        await client.handleEvent(data: Data(
+            #"{"type":"response.function_call_arguments.done","call_id":"c9","name":"web_fetch","arguments":"{\"url\":\"https://news/x\"}"}"#
+                .utf8,
+        ))
+        let task = Task { () -> ToolCall? in
+            for await call in calls {
+                return call
+            }
+            return nil
+        }
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        task.cancel()
+        await client.close()
+        let received = await task.value
+        XCTAssertEqual(received?.name, "web_fetch")
+        XCTAssertEqual(received?.query, "https://news/x")
+    }
+
+    func testFunctionCallWithQueryArgumentStillSurfaces() async {
+        let client = OpenAIRealtimeClient(instructions: nil)
+        let calls = await client.toolCalls
+        await client.handleEvent(data: Data(
+            #"{"type":"response.function_call_arguments.done","call_id":"c10","name":"recall_facts","arguments":"{\"query\":\"wes\"}"}"#
+                .utf8,
+        ))
+        let task = Task { () -> ToolCall? in
+            for await call in calls {
+                return call
+            }
+            return nil
+        }
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        task.cancel()
+        await client.close()
+        let received = await task.value
+        XCTAssertEqual(received?.query, "wes")
+    }
 }

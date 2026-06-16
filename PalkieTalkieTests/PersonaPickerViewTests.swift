@@ -4,6 +4,11 @@ import XCTest
 
 @MainActor
 final class PersonaPickerViewTests: XCTestCase {
+    func testSortOptionRawValuesStayUnique() {
+        let raws = PersonaPickerView.SortOption.allCases.map(\.rawValue)
+        XCTAssertEqual(Set(raws).count, raws.count, "a duplicate raw value would collapse two sort modes into one")
+    }
+
     /// SortOption labels are the user-visible strings in the picker. Locking them so a refactor that renames "Most liked" → "Liked" silently shifts the UI.
     func testSortOptionLabelsMatchSpec() {
         XCTAssertEqual(PersonaPickerView.SortOption.recommended.label, "Recommended")

@@ -41,6 +41,16 @@ final class PhrasesViewTests: XCTestCase {
         XCTAssertTrue(texts.contains("Try: sort of, a bit"), "actual: \(texts)")
     }
 
+    /// Single alternative renders "Try: x" with no trailing separator. The "Try:" line is now a LocalizedStringKey with interpolation (was string concatenation, which bypassed the catalog) — pin the one-element output so the interpolation can't regress to "Try: [x]" or a stray comma.
+    func testSingleAlternativeRendersWithoutSeparator() throws {
+        let cached = PhraseUsage(id: "p_3", phrase: "you know", count: 4, alternatives: ["right"])
+        JSONCache.save([cached], key: "cache.phrases")
+        defer { UserDefaults.standard.removeObject(forKey: "cache.phrases") }
+        let sut = PhrasesView()
+        let texts = try sut.inspect().findAll(ViewType.Text.self).compactMap { try? $0.string() }
+        XCTAssertTrue(texts.contains("Try: right"), "actual: \(texts)")
+    }
+
     /// When alternatives is empty, the "Try:" line MUST NOT render. Otherwise the user sees "Try: " with nothing after it — a UI bug we deliberately guard against with the `if !phrase.alternatives.isEmpty` branch.
     func testNoTryLineWhenAlternativesEmpty() throws {
         let cached = PhraseUsage(id: "p_2", phrase: "literally", count: 2, alternatives: [])

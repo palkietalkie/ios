@@ -1,6 +1,7 @@
 @testable import PalkieTalkie
 import SwiftUI
 import UIKit
+import ViewInspector
 import XCTest
 
 /// Hosts SubscriptionView with an injected FakeSubscriptionService so every body branch actually runs — products-loaded upgrade rows, current-plan-entitled section, error footer, purchase progress states. Without the seam, in-process XCTest can't drive these branches because Apple's `Product.products(for:)` returns empty under Xcode 26.2's CLI test runner.
@@ -57,6 +58,17 @@ final class SubscriptionViewTests: XCTestCase {
             NavigationStack { SubscriptionView(service: service) }.environment(\.backendAPI, api),
             settleMs: 600,
         )
+    }
+
+    /// The price-unavailable placeholder is a plain hyphen via `Text(verbatim: "-")`, not an em dash — and no rendered copy may contain an em/en dash per `/CLAUDE.md`. Guards the dash cleanup against a regression.
+    func testRenderedCopyHasNoEmOrEnDash() throws {
+        let service = FakeSubscriptionService()
+        let sut = SubscriptionView(service: service)
+        let texts = try sut.inspect().findAll(ViewType.Text.self).compactMap { try? $0.string() }
+        for text in texts {
+            XCTAssertFalse(text.contains("—"), "em dash leaked into copy: \(text)")
+            XCTAssertFalse(text.contains("–"), "en dash leaked into copy: \(text)")
+        }
     }
 
     private static var allFour: [SubscriptionID: SubscriptionProduct] {

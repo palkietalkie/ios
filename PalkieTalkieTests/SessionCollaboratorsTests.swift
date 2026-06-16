@@ -3,6 +3,21 @@ import XCTest
 
 /// Smoke tests for the injectable-seam protocols + default impls in `SessionCollaborators.swift`. Default-impl construction is covered in `DefaultCollaboratorsTests` from the protocol-consumer side; this file pairs the source file so the CI test-pair check accepts the extraction.
 final class SessionCollaboratorsTests: XCTestCase {
+    func testConversationBackendExposesEmotionAndWebFetchTools() async throws {
+        let fake = FakeConversationBackend(
+            startResponse: StartResponse(
+                sessionId: "s", textPrompt: "", voiceId: "", wsUrl: "wss://t",
+                provider: "openai", ephemeralToken: "ek",
+            ),
+            endResponse: EndResponse(sessionId: "s", durationSeconds: 0),
+        )
+        let backend: any ConversationBackend = fake
+        try await backend.recordAIEmotions(sessionId: "s", laugh: 2, cheer: 0, gasp: 0, sigh: 0, groan: 0)
+        let page = try await backend.webFetch(url: "https://x")
+        XCTAssertEqual(page, "PAGE TEXT")
+        XCTAssertEqual(fake.aiEmotionCalls.first?.laugh, 2)
+    }
+
     /// `BackendAPI` must conform to `ConversationBackend` so SessionController can take either the real backend or a test fake interchangeably.
     func testBackendAPIConformsToConversationBackend() throws {
         let baseURL = try XCTUnwrap(URL(string: "https://test.example.com"))
