@@ -44,7 +44,7 @@ struct CaptionsToggle: View {
         Button {
             enabled.toggle()
         } label: {
-            Text("CC")
+            Text(verbatim: "CC")
                 .font(.system(size: 15, weight: .heavy, design: .rounded))
                 .tracking(0.5)
                 .padding(.horizontal, 6)

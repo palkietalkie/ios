@@ -311,10 +311,10 @@ actor OpenAIRealtimeClient: RealtimeClient {
         let argsString = parsed["arguments"] as? String ?? "{}"
         var query = ""
         if let argsData = argsString.data(using: .utf8),
-           let obj = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any],
-           let q = obj["query"] as? String
+           let obj = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any]
         {
-            query = q
+            // web_fetch passes "url"; recall tools pass "query". Either is the tool's single argument.
+            query = (obj["query"] as? String) ?? (obj["url"] as? String) ?? ""
         }
         toolCallContinuation?.yield(ToolCall(callId: callId, name: name, query: query))
     }

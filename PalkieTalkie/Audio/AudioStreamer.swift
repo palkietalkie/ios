@@ -65,6 +65,8 @@ actor AudioStreamer {
     private var pcm16InputStreamCache: AsyncStream<Data>?
     private var pendingMicSamples: [Float] = []
     nonisolated let pitchTracker = PitchTracker()
+    /// Live emotion counter on the AI's OUTPUT audio. Per-session (created in start(), released in stop()) because the classifier carries a running frame cursor that must reset each conversation.
+    private var emotionDetector: EmotionDetector?
 
     private(set) var isRunning = false
 
@@ -108,6 +110,7 @@ actor AudioStreamer {
         }
         oggWriter = OggOpusWriter(sampleRate: UInt32(Self.sampleRate), channels: 1)
         oggReader = OggOpusReader()
+        emotionDetector = EmotionDetector(format: opusFormat)
 
         engine.attach(playerNode)
         engine.connect(playerNode, to: engine.mainMixerNode, format: opusFormat)
@@ -177,9 +180,15 @@ actor AudioStreamer {
         pendingMicSamples.removeAll()
         oggWriter = nil
         oggReader = nil
+        emotionDetector = nil
         sessionAudioRecorder.close()
         modelAudioRecorder.close()
         isRunning = false
+    }
+
+    /// Per-category tutor reaction counts ("laugh"/"cheer"/"gasp") for the session in progress. Read by SessionController.end() before teardown, mirroring the pitch-range read. Empty when no detector ran.
+    func emotionCounts() -> [String: Int] {
+        emotionDetector?.counts() ?? [:]
     }
 
     /// PCM16 playback path for OpenAI Realtime. Server sends raw 24kHz mono little-endian Int16; we convert to Float32, wrap in AVAudioPCMBuffer, schedule on the player node.
@@ -200,6 +209,8 @@ actor AudioStreamer {
             )
             return
         }
+        // Tutor's clean output audio: run live emotion detection on it (the gamified "make your tutor come alive" stat).
+        emotionDetector?.analyze(samples: samples)
         guard let buffer = AVAudioPCMBuffer(
             pcmFormat: format, frameCapacity: AVAudioFrameCount(samples.count),
         ) else { return }
@@ -240,6 +251,11 @@ actor AudioStreamer {
                 if AudioMath.isSaturatedBurst(pcm) {
                     logger.error("playOutput DROPPED corrupt full-scale burst — protecting hearing")
                     continue
+                }
+                if let ch = pcm.floatChannelData, pcm.frameLength > 0 {
+                    emotionDetector?.analyze(
+                        samples: Array(UnsafeBufferPointer(start: ch[0], count: Int(pcm.frameLength))),
+                    )
                 }
                 playOutputCount += 1
                 if playOutputCount <= 3 || playOutputCount % 100 == 0 {

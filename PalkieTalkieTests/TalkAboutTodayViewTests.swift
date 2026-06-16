@@ -18,12 +18,31 @@ final class TalkAboutTodayViewTests: XCTestCase {
             sections: [
                 .init(
                     topic: "politics",
-                    items: [.init(title: "P1", summary: "s", source: "AP", imageUrl: "https://img.test/1.jpg")],
+                    items: [.init(
+                        title: "P1",
+                        summary: "s",
+                        source: "AP",
+                        imageUrl: "https://img.test/1.jpg",
+                        url: nil,
+                        details: nil,
+                    )],
                 ),
-                .init(topic: "business", items: [.init(title: "B1", summary: "s", source: "FT", imageUrl: "")]),
-                .init(topic: "sports", items: [.init(title: "S1", summary: "s", source: "ESPN", imageUrl: "")]),
-                .init(topic: "quizzes", items: [.init(title: "Q1", summary: "s", source: "", imageUrl: "")]),
-                .init(topic: "other_unknown", items: [.init(title: "O1", summary: "s", source: "X", imageUrl: "")]),
+                .init(
+                    topic: "business",
+                    items: [.init(title: "B1", summary: "s", source: "FT", imageUrl: "", url: nil, details: nil)],
+                ),
+                .init(
+                    topic: "sports",
+                    items: [.init(title: "S1", summary: "s", source: "ESPN", imageUrl: "", url: nil, details: nil)],
+                ),
+                .init(
+                    topic: "quizzes",
+                    items: [.init(title: "Q1", summary: "s", source: "", imageUrl: "", url: nil, details: nil)],
+                ),
+                .init(
+                    topic: "other_unknown",
+                    items: [.init(title: "O1", summary: "s", source: "X", imageUrl: "", url: nil, details: nil)],
+                ),
             ],
         )
         transport.responseData = try BackendAPI.encoder.encode(dto)
@@ -71,7 +90,15 @@ final class TalkAboutTodayViewTests: XCTestCase {
         let payload = [
             TalkSection(
                 topic: "politics",
-                items: [TalkItem(id: "i_1", title: "Headline", summary: "s", source: "AP", imageUrl: "")],
+                items: [TalkItem(
+                    id: "i_1",
+                    title: "Headline",
+                    summary: "s",
+                    source: "AP",
+                    imageUrl: "",
+                    url: nil,
+                    details: nil,
+                )],
             ),
         ]
         JSONCache.save(payload, key: key)

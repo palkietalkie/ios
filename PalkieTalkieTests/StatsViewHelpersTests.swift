@@ -58,7 +58,9 @@ final class StatsViewHelpersTests: XCTestCase {
             uniquePhrases: 30,
             userTalkPct: 0.55,
             speakingRateWpm: 142,
-            pitchRangeHz: 80,
+            pitchMinHz: 90,
+            pitchMaxHz: 230,
+            affinity: 5,
             cefrCoverage: [
                 CEFRCoverage(level: "A1", totalWords: 500, usedWords: 400, coveragePct: 0.8),
                 CEFRCoverage(level: "B1", totalWords: 1000, usedWords: 300, coveragePct: 0.3),
@@ -79,7 +81,8 @@ final class StatsViewHelpersTests: XCTestCase {
         let stats = Stats(
             dayStreak: 1, sessionTotalSeconds: 60, sessionsCount: 1,
             uniqueWords: 10, uniquePhrases: 1,
-            userTalkPct: nil, speakingRateWpm: nil, pitchRangeHz: nil,
+            userTalkPct: nil, speakingRateWpm: nil, pitchMinHz: nil, pitchMaxHz: nil,
+            affinity: nil,
             cefrCoverage: [],
         )
         transport.responseData = try BackendAPI.encoder.encode(stats)

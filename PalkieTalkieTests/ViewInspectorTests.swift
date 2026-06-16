@@ -192,11 +192,11 @@ final class ViewInspectorTests: XCTestCase {
 
     // MARK: - OnboardingView
 
-    func testOnboardingViewHasTargetLanguagePicker() throws {
+    func testOnboardingViewHasPrimaryButton() throws {
         let sut = OnboardingView(onContinue: {})
-        let pickers = try sut.inspect().findAll(ViewType.Picker.self)
-        // OnboardingView's body has one inline Picker ("Target language"); the other two selectors are NavigationLinks to MultiLanguagePicker / MultiAccentPicker, which ViewInspector doesn't materialize until the link is followed. Asserting ≥1 keeps the test useful without depending on inspector traversal depth.
-        XCTAssertGreaterThanOrEqual(pickers.count, 1)
+        let buttons = try sut.inspect().findAll(ViewType.Button.self)
+        // The wizard replaced the inline Picker with tap-to-select ChoiceLists; the static chrome still carries the back chevron + the primary Continue/Get started button, so ≥1 button is always present regardless of async-loaded language data.
+        XCTAssertGreaterThanOrEqual(buttons.count, 1)
     }
 
     // MARK: - PersonaPickerView

@@ -48,7 +48,9 @@ extension BackendAPI {
     }
 
     func getPersonas(search: String? = nil, sort: String = "recommended") async throws -> [PersonaDTO] {
-        var query = "sort=\(sort)"
+        // Preset name/description are localized server-side (backend owns that content), so tell the backend which UI language we're rendering in.
+        let lang = Bundle.main.preferredLocalizations.first ?? "en"
+        var query = "sort=\(sort)&lang=\(lang)"
         if let search, !search.isEmpty {
             let encoded = search.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? search
             query += "&q=\(encoded)"
@@ -127,6 +129,8 @@ extension BackendAPI {
                     summary: item.summary,
                     source: item.source,
                     imageUrl: item.imageUrl,
+                    url: item.url,
+                    details: item.details,
                 )
             }
             return TalkSection(topic: raw.topic, items: items)
@@ -163,6 +167,11 @@ extension BackendAPI {
         let dto: RecallTranscriptsDTO = try await get("/recall/transcripts?q=\(encodeQuery(query))")
         guard !dto.turns.isEmpty else { return "No matching past words found." }
         return dto.turns.map { "\($0.speaker): \($0.text)" }.joined(separator: "\n")
+    }
+
+    func webFetch(url: String) async throws -> String {
+        let dto: WebFetchDTO = try await get("/recall/web_fetch?url=\(encodeQuery(url))")
+        return dto.content.isEmpty ? "Couldn't read that page." : dto.content
     }
 
     func getProfile() async throws -> ProfileDTO {
@@ -221,6 +230,33 @@ extension BackendAPI {
             body: Body(
                 eventType: "pitch_range",
                 props: Props(sessionId: sessionId, minHz: minHz, maxHz: maxHz),
+            ),
+        )
+    }
+
+    /// Per-category counts of the tutor's reactions this session (detected live on-device): positives (laugh/cheer/gasp) and negatives (sigh/groan). Stored as one event row, the saved per-user record we also mine internally for struggling users. `/stats` weights and combines them (negatives subtract) into the Affinity metric. Weights live server-side so the formula stays tunable without an app update.
+    func recordAIEmotions(
+        sessionId: String, laugh: Int, cheer: Int, gasp: Int, sigh: Int, groan: Int,
+    ) async throws {
+        struct Props: Codable {
+            let sessionId: String
+            let laugh: Int
+            let cheer: Int
+            let gasp: Int
+            let sigh: Int
+            let groan: Int
+        }
+        struct Body: Codable {
+            let eventType: String
+            let props: Props
+        }
+        let _: EmptyResponse = try await post(
+            "/events",
+            body: Body(
+                eventType: "ai_emotion",
+                props: Props(
+                    sessionId: sessionId, laugh: laugh, cheer: cheer, gasp: gasp, sigh: sigh, groan: groan,
+                ),
             ),
         )
     }

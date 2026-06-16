@@ -66,7 +66,7 @@ struct SubscriptionView: View {
                 HStack {
                     Image(systemName: "checkmark.seal.fill").foregroundStyle(.green)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("\(entitled.tier.rawValue.capitalized) · \(entitled.cycle.rawValue.capitalized)")
+                        Text(verbatim: "\(entitled.tier.rawValue.capitalized) · \(entitled.cycle.rawValue.capitalized)")
                             .font(.headline)
                         Text("Unlimited voice practice").font(.caption).foregroundStyle(.secondary)
                     }
@@ -166,7 +166,7 @@ struct SubscriptionView: View {
                 } else if let price = product?.displayPrice {
                     Text(price).font(.body)
                 } else {
-                    Text("—").font(.body).foregroundStyle(.secondary)
+                    Text(verbatim: "-").font(.body).foregroundStyle(.secondary)
                 }
             }
         }

@@ -34,7 +34,7 @@ struct TalkAboutTodayView: View {
                 }
                 .padding(.vertical)
             }
-            .navigationTitle("Today")
+            .navigationTitle("What should we talk about today?")
             .refreshable { await load() }
             .overlay {
                 if isLoading, sections.isEmpty { ProgressView() }
@@ -56,7 +56,10 @@ struct TalkAboutTodayView: View {
 
     private func buildCard(_ item: TalkItem) -> some View {
         Button {
-            session.startContextOverride = item.title + " — " + item.summary
+            // Provide the real story up front. `details` is the full article body fetched server-side; fall back to the one-line summary only when it's absent (e.g. quizzes). web_fetch stays a general tool the model uses for other URLs, not a crutch for news depth.
+            let details = item.details ?? ""
+            let body = details.isEmpty ? item.summary : details
+            session.startContextOverride = item.title + ": " + body
             onTopicSelected()
             Task { await session.start() }
         } label: {

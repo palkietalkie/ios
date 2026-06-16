@@ -49,12 +49,12 @@ struct StatsView: View {
         let streak = stats?.dayStreak
         return VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(streak.map(String.init) ?? "—")
+                Text(verbatim: streak.map(String.init) ?? "-")
                     .font(.system(size: 64, weight: .bold, design: .rounded))
                     .contentTransition(.numericText())
                 Image(systemName: "flame.fill").foregroundStyle(.orange).font(.title)
             }
-            Text("day\((streak ?? 0) == 1 ? "" : "s") in a row")
+            Text((streak ?? 0) == 1 ? "day in a row" : "days in a row")
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -66,17 +66,18 @@ struct StatsView: View {
 
     private func metricGrid(_ stats: Stats?) -> some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            metricCard(.minutes, value: stats.map { "\($0.sessionTotalSeconds / 60)" } ?? "—", unit: "minutes")
+            metricCard(.minutes, value: stats.map { "\($0.sessionTotalSeconds / 60)" } ?? "-", unit: "minutes")
             metricCard(
                 .sessions,
-                value: stats.map { "\($0.sessionsCount)" } ?? "—",
+                value: stats.map { "\($0.sessionsCount)" } ?? "-",
                 unit: (stats?.sessionsCount ?? 0) == 1 ? "session" : "sessions",
             )
-            metricCard(.uniqueWords, value: stats.map { "\($0.uniqueWords)" } ?? "—", unit: "words")
-            metricCard(.uniquePhrases, value: stats.map { "\($0.uniquePhrases)" } ?? "—", unit: "phrases")
-            metricCard(.talkShare, value: formatPct(stats?.userTalkPct), unit: "your share")
+            metricCard(.uniqueWords, value: stats.map { "\($0.uniqueWords)" } ?? "-", unit: "words")
+            metricCard(.uniquePhrases, value: stats.map { "\($0.uniquePhrases)" } ?? "-", unit: "phrases")
+            metricCard(.talkShare, value: formatPct(stats?.userTalkPct), unit: "vs AI")
             metricCard(.speakingRate, value: formatWpm(stats?.speakingRateWpm), unit: "wpm")
-            metricCard(.pitchRange, value: formatHz(stats?.pitchRangeHz), unit: "Hz range")
+            metricCard(.pitchRange, value: formatPitchRange(stats?.pitchMinHz, stats?.pitchMaxHz), unit: "Hz")
+            metricCard(.affinity, value: stats.map { "\($0.affinity ?? 0)" } ?? "-", unit: "moments")
             Color.clear.frame(height: 0)
         }
     }
@@ -85,7 +86,7 @@ struct StatsView: View {
         Button { explainerMetric = metric } label: {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 4) {
-                    Text(metric.title).font(.caption).foregroundStyle(.secondary)
+                    Text(LocalizedStringKey(metric.title)).font(.caption).foregroundStyle(.secondary)
                     Image(systemName: "info.circle").font(.caption2).foregroundStyle(.tertiary)
                 }
                 Text(value)
@@ -93,7 +94,7 @@ struct StatsView: View {
                     .contentTransition(.numericText())
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
-                Text(unit).font(.caption2).foregroundStyle(.secondary)
+                Text(LocalizedStringKey(unit)).font(.caption2).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
@@ -123,7 +124,7 @@ struct StatsView: View {
                 AxisMarks(values: [0, 25, 50, 75, 100]) { value in
                     AxisGridLine()
                     AxisValueLabel {
-                        if let v = value.as(Int.self) { Text("\(v)%") }
+                        if let v = value.as(Int.self) { Text(verbatim: "\(v)%") }
                     }
                 }
             }
@@ -153,7 +154,7 @@ struct StatsView: View {
     private func buildDetailLinkRow(_ title: String, systemImage: String) -> some View {
         HStack {
             Image(systemName: systemImage).foregroundStyle(.secondary).frame(width: 24)
-            Text(title)
+            Text(LocalizedStringKey(title))
             Spacer()
             Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
         }
@@ -165,15 +166,16 @@ struct StatsView: View {
     // MARK: - Formatting
 
     private func formatPct(_ v: Double?) -> String {
-        v.map { String(format: "%.0f%%", $0 * 100) } ?? "—"
+        v.map { String(format: "%.0f%%", $0 * 100) } ?? "-"
     }
 
     private func formatWpm(_ v: Double?) -> String {
-        v.map { String(format: "%.0f", $0) } ?? "—"
+        v.map { String(format: "%.0f", $0) } ?? "-"
     }
 
-    private func formatHz(_ v: Double?) -> String {
-        v.map { String(format: "%.0f", $0) } ?? "—"
+    private func formatPitchRange(_ lo: Double?, _ hi: Double?) -> String {
+        guard let lo, let hi else { return "-" }
+        return "\(Int(lo.rounded()))-\(Int(hi.rounded()))"
     }
 
     // MARK: - Load
@@ -200,31 +202,31 @@ struct MetricInfo: Identifiable {
 
     static let minutes = MetricInfo(
         id: "minutes",
-        title: "Total minutes",
+        title: "Total time",
         explanation: "Total time you've spent in conversation across all sessions.",
         computation: "Sum of every session's duration (when the session was ended cleanly).",
     )
     static let sessions = MetricInfo(
         id: "sessions",
-        title: "Total sessions",
+        title: "Conversations",
         explanation: "How many separate conversations you've had.",
         computation: "Count of conversation_sessions rows for your account.",
     )
     static let uniqueWords = MetricInfo(
         id: "uniqueWords",
-        title: "Unique words",
+        title: "Vocabulary",
         explanation: "How many different words you've actually said. Repeating \"hello\" 50 times still counts as 1.",
         computation: "Counted from your spoken transcripts, lemmatized (\"running\" and \"run\" collapse to one word).",
     )
     static let uniquePhrases = MetricInfo(
         id: "uniquePhrases",
-        title: "Unique phrases",
+        title: "Expressions",
         explanation: "Multi-word native expressions you've used (e.g., \"give it a shot\", \"figure out\").",
         computation: "Extracted from transcripts after each session by an NLP pipeline.",
     )
     static let talkShare = MetricInfo(
         id: "talkShare",
-        title: "Your share of talk",
+        title: "Talk share",
         explanation: "Of the words said in your conversations, how many were yours vs the AI's. ~50% means a balanced two-way conversation; under 30% means you're letting the AI dominate.",
         computation: "Character ratio between your transcripts and the AI's. Real audio-time ratio is coming once on-device speech timing ships.",
     )
@@ -240,6 +242,12 @@ struct MetricInfo: Identifiable {
         explanation: "How much your voice goes up and down. Wider range = more expressive, animated speech. Flat pitch is a hallmark of robotic / hesitant speech.",
         computation: "On-device YIN pitch detection on mic buffers. Tracks min and max F0 (70-500 Hz) per session and aggregates across all sessions.",
     )
+    static let affinity = MetricInfo(
+        id: "affinity",
+        title: "Affinity",
+        explanation: "How much you win your tutor over: the laughs and warmth you pull out of them. It rises when YOU make the conversation come alive. Charming a native speaker into a lively exchange is real skill.",
+        computation: "We listen for the real reactions in your tutor's voice as you talk, the genuine laughs and warmth, and turn them into this score. The more you pull out, the higher it climbs.",
+    )
     static let cefr = MetricInfo(
         id: "cefr",
         title: "CEFR vocab coverage",
@@ -253,12 +261,12 @@ struct MetricExplainerSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(info.title).font(.title2.bold())
-            Text(info.explanation).font(.body)
+            Text(LocalizedStringKey(info.title)).font(.title2.bold())
+            Text(LocalizedStringKey(info.explanation)).font(.body)
             if let computation = info.computation {
                 Divider()
                 Text("How it's measured").font(.subheadline).foregroundStyle(.secondary)
-                Text(computation).font(.callout).foregroundStyle(.secondary)
+                Text(LocalizedStringKey(computation)).font(.callout).foregroundStyle(.secondary)
             }
             Spacer()
         }

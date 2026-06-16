@@ -11,7 +11,7 @@ struct PracticeView: View {
             Section("Target") {
                 Picker("Language", selection: $model.targetLanguage) {
                     ForEach(model.languages) { lang in
-                        Text(lang.name).tag(lang.name)
+                        Text(localizedLanguageName(lang.name)).tag(lang.name)
                     }
                 }
                 .onChange(of: model.targetLanguage) { _, newValue in
@@ -27,7 +27,7 @@ struct PracticeView: View {
                         Text(
                             model.targetAccents.isEmpty
                                 ? String(localized: "Choose…")
-                                : model.targetAccents.sorted().joined(separator: ", "),
+                                : model.targetAccents.sorted().map(localizedAccentName).joined(separator: ", "),
                         )
                         .foregroundStyle(.secondary)
                         .lineLimit(2)

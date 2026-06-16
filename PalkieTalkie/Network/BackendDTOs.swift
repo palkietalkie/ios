@@ -108,7 +108,9 @@ struct Stats: Codable {
     let uniquePhrases: Int
     let userTalkPct: Double?
     let speakingRateWpm: Double?
-    let pitchRangeHz: Double?
+    let pitchMinHz: Double?
+    let pitchMaxHz: Double?
+    let affinity: Int?
     let cefrCoverage: [CEFRCoverage]
 }
 
@@ -150,6 +152,10 @@ struct TalkItem: Codable, Identifiable {
     let summary: String
     let source: String
     let imageUrl: String
+    /// Source article URL, for attribution / a future "read full story" link. NOT used to make the model fetch.
+    let url: String?
+    /// Full article body, fetched server-side so the topic prompt carries real depth instead of the one-line summary. Empty/nil for quizzes.
+    let details: String?
 }
 
 /// One labeled section on the Today screen. `topic` is the slug ("politics", "business", "sports", "quizzes"); the UI looks up the localized header from xcstrings via `topic.capitalized`.
@@ -169,6 +175,8 @@ struct DailyContentDTO: Codable {
         let source: String
         /// Backend sends snake_case `image_url`; the global JSONDecoder is configured with `convertFromSnakeCase`, which maps that to `imageUrl` automatically — no explicit CodingKeys needed (and adding them here would override the strategy).
         let imageUrl: String
+        let url: String?
+        let details: String?
     }
 
     struct RawSection: Codable {
@@ -232,6 +240,10 @@ struct RecallTurnDTO: Codable {
 
 struct RecallTranscriptsDTO: Codable {
     let turns: [RecallTurnDTO]
+}
+
+struct WebFetchDTO: Codable {
+    let content: String
 }
 
 struct ConversationContext: Codable {
