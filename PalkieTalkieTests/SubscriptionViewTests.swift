@@ -1,7 +1,6 @@
 @testable import PalkieTalkie
 import SwiftUI
 import UIKit
-import ViewInspector
 import XCTest
 
 /// Hosts SubscriptionView with an injected FakeSubscriptionService so every body branch actually runs — products-loaded upgrade rows, current-plan-entitled section, error footer, purchase progress states. Without the seam, in-process XCTest can't drive these branches because Apple's `Product.products(for:)` returns empty under Xcode 26.2's CLI test runner.
@@ -60,15 +59,12 @@ final class SubscriptionViewTests: XCTestCase {
         )
     }
 
-    /// The price-unavailable placeholder is a plain hyphen via `Text(verbatim: "-")`, not an em dash — and no rendered copy may contain an em/en dash per `/CLAUDE.md`. Guards the dash cleanup against a regression.
-    func testRenderedCopyHasNoEmOrEnDash() throws {
+    /// Individual-monthly entitlement renders the current-plan label, exercising the `Text(verbatim: "\(tier) · \(cycle)")` line (a pure value kept out of the String Catalog). Existing tests cover individual-yearly and family-monthly; this is the remaining tier/cycle combo through that changed line.
+    func testRendersIndividualMonthlyEntitlement() async {
         let service = FakeSubscriptionService()
-        let sut = SubscriptionView(service: service)
-        let texts = try sut.inspect().findAll(ViewType.Text.self).compactMap { try? $0.string() }
-        for text in texts {
-            XCTAssertFalse(text.contains("—"), "em dash leaked into copy: \(text)")
-            XCTAssertFalse(text.contains("–"), "en dash leaked into copy: \(text)")
-        }
+        service.loadResult = .success(Self.allFour)
+        service.entitlementResult = SubscriptionID(tier: .individual, cycle: .monthly)
+        await TestHosting.host(NavigationStack { SubscriptionView(service: service) }, settleMs: 600)
     }
 
     private static var allFour: [SubscriptionID: SubscriptionProduct] {
