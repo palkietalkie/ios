@@ -5,6 +5,11 @@ import XCTest
 /// Pure tests on MainTabView. The body embeds ConversationView / TalkAboutTodayView / StatsView / PersonaPickerView, all of which require a SessionController via @Environment — ViewInspector's `inspect()` doesn't run environment resolution, so rendering crashes. The structural tests we'd want (5 tabs in the documented order) belong in a host-integration test alongside ConversationViewBranchTests; this file covers the AppTab enum's contract instead.
 @MainActor
 final class MainTabViewTests: XCTestCase {
+    func testAppTabRawValuesAreUnique() {
+        let raws = [MainTabView.AppTab.talk, .today, .stats, .persona, .more].map(\.rawValue)
+        XCTAssertEqual(Set(raws).count, 5, "each tab needs a distinct AppStorage key")
+    }
+
     /// All five tab cases exist. The AppStorage selection is keyed by raw value, so a renamed/removed case silently invalidates anyone's persisted last-tab.
     func testAllFiveAppTabCases() {
         let expected: Set = ["talk", "today", "stats", "persona", "more"]

@@ -44,7 +44,7 @@ struct PersonaCustomizeView: View {
                 .buttonStyle(.borderless)
                 .accessibilityLabel(isPlaying ? "Stop preview" : "Play preview")
             } else {
-                Text("—")
+                Text(verbatim: "-")
                     .foregroundStyle(.secondary)
                     .accessibilityLabel("Preview unavailable")
             }
@@ -106,7 +106,7 @@ struct PersonaCustomizeView: View {
             } header: {
                 Text("Backstory")
             } footer: {
-                Text("Their life context — where they're from, what they've done. Shapes how they think.")
+                Text("Their life context: where they're from, what they've done. Shapes how they think.")
             }
             Section {
                 Picker("Style", selection: $model.vocabularyChoice) {

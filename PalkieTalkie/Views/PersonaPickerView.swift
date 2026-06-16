@@ -46,7 +46,7 @@ struct PersonaPickerView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Picker("Sort", selection: $sort) {
-                    ForEach(SortOption.allCases) { Text($0.label).tag($0) }
+                    ForEach(SortOption.allCases) { Text(LocalizedStringKey($0.label)).tag($0) }
                 }
                 .pickerStyle(.menu)
                 .onChange(of: sort) { _, _ in Task { await refresh() } }
@@ -94,9 +94,11 @@ struct PersonaPickerView: View {
             VStack(alignment: .leading, spacing: 4) {
                 personaTitleRow(persona)
                 if !persona.description.isEmpty {
-                    Text(persona.description).font(.caption).foregroundStyle(.secondary)
+                    // Server-localized for presets, user's own text for customs — render as-is either way.
+                    Text(verbatim: persona.description)
+                        .font(.caption).foregroundStyle(.secondary)
                 }
-                Text("voice: \(persona.voiceId)").font(.caption2).foregroundStyle(.tertiary)
+                Text("Voice: \(persona.voiceId.capitalized)").font(.caption2).foregroundStyle(.tertiary)
             }
         }
         .buttonStyle(.plain)
@@ -104,7 +106,8 @@ struct PersonaPickerView: View {
 
     private func personaTitleRow(_ persona: PersonaDTO) -> some View {
         HStack(spacing: 6) {
-            Text(persona.name).font(.headline).foregroundStyle(.primary)
+            Text(verbatim: persona.name)
+                .font(.headline).foregroundStyle(.primary)
             buildBadge(for: persona)
             if persona.id == session.selectedPersonaId {
                 Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
@@ -124,7 +127,7 @@ struct PersonaPickerView: View {
     }
 
     private func buildChip(text: String, color: Color) -> some View {
-        Text(text)
+        Text(LocalizedStringKey(text))
             .font(.caption2)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
@@ -141,7 +144,7 @@ struct PersonaPickerView: View {
                     .foregroundStyle(persona.likedByMe ? Color.red : Color.secondary)
             }
             .buttonStyle(.plain)
-            Text("\(persona.likeCount)").font(.caption2).foregroundStyle(.secondary)
+            Text(verbatim: "\(persona.likeCount)").font(.caption2).foregroundStyle(.secondary)
         }
     }
 

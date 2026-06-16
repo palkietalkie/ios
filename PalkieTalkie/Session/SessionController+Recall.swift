@@ -7,6 +7,11 @@ private let logger = Logger(subsystem: "com.palkietalkie", category: "conversati
 extension SessionController {
     /// Fulfill a realtime tool call against the backend recall endpoints and feed the result back to the model. Errors degrade to a short note rather than throwing, so a failed lookup never derails the conversation.
     func handleToolCall(_ call: ToolCall, client: RealtimeClient) async {
+        // The user signalled they're done. Don't send a tool result (we're tearing down); just flag it so the tab navigator leaves the conversation screen.
+        if call.name == "end_conversation" {
+            endRequestedByTool = true
+            return
+        }
         let output: String
         do {
             switch call.name {
@@ -16,6 +21,8 @@ extension SessionController {
                 output = try await backend.recallConversations(query: call.query)
             case "search_transcripts":
                 output = try await backend.searchTranscripts(query: call.query)
+            case "web_fetch":
+                output = try await backend.webFetch(url: call.query)
             default:
                 output = "Unknown tool."
             }

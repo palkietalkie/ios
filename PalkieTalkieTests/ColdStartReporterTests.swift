@@ -36,6 +36,10 @@ private actor RecordingColdStartBackend: ConversationBackend {
 
     func recordPitchRange(sessionId _: String, minHz _: Float, maxHz _: Float) async throws {}
 
+    func recordAIEmotions(
+        sessionId _: String, laugh _: Int, cheer _: Int, gasp _: Int, sigh _: Int, groan _: Int,
+    ) async throws {}
+
     func uploadMicAudio(sessionId _: String, deflatedWav _: Data) async throws {}
 
     func uploadModelAudio(sessionId _: String, deflatedWav _: Data) async throws {}
@@ -64,6 +68,10 @@ private actor RecordingColdStartBackend: ConversationBackend {
     }
 
     func searchTranscripts(query _: String) async throws -> String {
+        ""
+    }
+
+    func webFetch(url _: String) async throws -> String {
         ""
     }
 }

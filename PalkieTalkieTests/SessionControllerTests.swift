@@ -105,6 +105,14 @@ actor FakeConversationBackend: ConversationBackend {
     ) async throws {}
 
     nonisolated(unsafe) var pitchRangeCalls: [(String, Float, Float)] = []
+    nonisolated(unsafe) var aiEmotionCalls: [(
+        session: String,
+        laugh: Int,
+        cheer: Int,
+        gasp: Int,
+        sigh: Int,
+        groan: Int,
+    )] = []
     nonisolated(unsafe) var micUploads: [(String, Int)] = []
     nonisolated(unsafe) var modelUploads: [(String, Int)] = []
     nonisolated(unsafe) var pitchRangeError: Error?
@@ -114,6 +122,12 @@ actor FakeConversationBackend: ConversationBackend {
     func recordPitchRange(sessionId: String, minHz: Float, maxHz: Float) async throws {
         pitchRangeCalls.append((sessionId, minHz, maxHz))
         if let err = pitchRangeError { throw err }
+    }
+
+    func recordAIEmotions(
+        sessionId: String, laugh: Int, cheer: Int, gasp: Int, sigh: Int, groan: Int,
+    ) async throws {
+        aiEmotionCalls.append((sessionId, laugh, cheer, gasp, sigh, groan))
     }
 
     func uploadMicAudio(sessionId: String, deflatedWav: Data) async throws {
@@ -149,6 +163,11 @@ actor FakeConversationBackend: ConversationBackend {
     func searchTranscripts(query: String) async throws -> String {
         recallCalls.append(("search_transcripts", query))
         return "TRANSCRIPTS"
+    }
+
+    func webFetch(url: String) async throws -> String {
+        recallCalls.append(("web_fetch", url))
+        return "PAGE TEXT"
     }
 }
 
@@ -190,6 +209,7 @@ final class FakeAudioStreamer: AudioStreamerType, PCM16AudioStreamerType, @unche
     private let (stream, continuation) = AsyncStream.makeStream(of: Data.self)
     private let (pcm16Stream, pcm16Continuation) = AsyncStream.makeStream(of: Data.self)
     nonisolated let pitchTracker = PitchTracker()
+    nonisolated(unsafe) var emotionCountsValue: [String: Int] = [:]
     /// URLs the test can set so end()'s upload paths run with a known wav on disk.
     nonisolated(unsafe) var sessionAudioURL: URL?
     nonisolated(unsafe) var modelAudioURL: URL?
@@ -209,6 +229,10 @@ final class FakeAudioStreamer: AudioStreamerType, PCM16AudioStreamerType, @unche
 
     var recordedModelAudioURL: URL? {
         get async { modelAudioURL }
+    }
+
+    func emotionCounts() async -> [String: Int] {
+        emotionCountsValue
     }
 
     func playOutput(_ opusPacket: Data) async {
@@ -527,5 +551,50 @@ final class SessionControllerTests: XCTestCase {
         XCTAssertEqual(endCount, 1)
         let closeCount = await rig.session.closeCount
         XCTAssertEqual(closeCount, 1)
+    }
+
+    func testEndReportsTutorEmotionCounts() async {
+        let backend = FakeConversationBackend(
+            startResponse: StartResponse(
+                sessionId: "srv-emo",
+                textPrompt: "",
+                voiceId: "",
+                wsUrl: "wss://test",
+                provider: "personaplex",
+                ephemeralToken: nil,
+            ),
+            endResponse: EndResponse(sessionId: "srv-emo", durationSeconds: 0),
+        )
+        let streamer = FakeAudioStreamer()
+        streamer.emotionCountsValue = ["laugh": 2, "cheer": 1, "gasp": 0, "sigh": 1, "groan": 0]
+        let rig = makeController(backend: backend, streamer: streamer)
+        await rig.controller.start()
+        await rig.controller.end()
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertEqual(backend.aiEmotionCalls.count, 1)
+        let call = backend.aiEmotionCalls[0]
+        XCTAssertEqual(call.laugh, 2)
+        XCTAssertEqual(call.cheer, 1)
+        XCTAssertEqual(call.sigh, 1)
+    }
+
+    func testEndDoesNotReportWhenNoTutorEmotions() async {
+        let backend = FakeConversationBackend(
+            startResponse: StartResponse(
+                sessionId: "srv-noemo",
+                textPrompt: "",
+                voiceId: "",
+                wsUrl: "wss://test",
+                provider: "personaplex",
+                ephemeralToken: nil,
+            ),
+            endResponse: EndResponse(sessionId: "srv-noemo", durationSeconds: 0),
+        )
+        let streamer = FakeAudioStreamer() // emotionCountsValue defaults to empty
+        let rig = makeController(backend: backend, streamer: streamer)
+        await rig.controller.start()
+        await rig.controller.end()
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertTrue(backend.aiEmotionCalls.isEmpty, "no reaction means no event posted")
     }
 }

@@ -23,6 +23,8 @@ final class SessionController {
     }
 
     var phase: Phase = .idle
+    /// Flipped true when the model calls the `end_conversation` tool (the user said goodbye). `MainTabView` watches this to leave the Talk tab; switching tabs makes `ConversationView` disappear, which tears the session down. Reset by the navigator after it acts.
+    var endRequestedByTool = false
     var transcript: [TranscriptChunk] = []
     /// True while the tutor is actively speaking. Drives the mic's swell/glow animation in ConversationView. Set when an AI (`.persona`) transcript chunk arrives, cleared after a short gap with no new AI chunk. This is the conversation-level "is it the AI's turn" signal — distinct from `phase == .live`, which stays true for the whole session.
     var isAISpeaking: Bool = false
@@ -243,10 +245,23 @@ final class SessionController {
         let id = serverSessionId
         let streamer = audioStreamer
         if let id {
-            if let streamer, let range = await streamer.pitchTracker.range() {
-                _ = try? await backend.recordPitchRange(
-                    sessionId: id, minHz: range.min, maxHz: range.max,
-                )
+            if let streamer {
+                if let range = await streamer.pitchTracker.range() {
+                    _ = try? await backend.recordPitchRange(
+                        sessionId: id, minHz: range.min, maxHz: range.max,
+                    )
+                }
+                let counts = await streamer.emotionCounts()
+                let laugh = counts["laugh"] ?? 0
+                let cheer = counts["cheer"] ?? 0
+                let gasp = counts["gasp"] ?? 0
+                let sigh = counts["sigh"] ?? 0
+                let groan = counts["groan"] ?? 0
+                if laugh + cheer + gasp + sigh + groan > 0 {
+                    _ = try? await backend.recordAIEmotions(
+                        sessionId: id, laugh: laugh, cheer: cheer, gasp: gasp, sigh: sigh, groan: groan,
+                    )
+                }
             }
             _ = try? await backend.endConversation(sessionId: id)
         }

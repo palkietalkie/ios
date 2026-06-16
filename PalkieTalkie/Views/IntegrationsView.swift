@@ -41,7 +41,7 @@ struct IntegrationsView: View {
                 }
                 Section("Reminders") {
                     NavigationLink {
-                        Text("Schedule recurring practice sessions — coming soon")
+                        Text("Schedule recurring practice sessions, coming soon")
                     } label: {
                         Label("Practice schedule", systemImage: "alarm")
                     }

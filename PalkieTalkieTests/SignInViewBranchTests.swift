@@ -33,4 +33,11 @@ final class SignInViewBranchTests: XCTestCase {
         try? await Task.sleep(nanoseconds: 200_000_000)
         XCTAssertEqual(svc.googleCalls, 1)
     }
+
+    /// The brand wordmark is a pure value rendered via `Text(verbatim:)` so it never leaks into the String Catalog for translation. Asserts it still shows verbatim, exactly "Palkie Talkie".
+    func testBrandWordmarkRendersVerbatim() throws {
+        let sut = SignInView(service: FakeSignInService(), announcer: FakeAuthAnnouncer())
+        let texts = try sut.inspect().findAll(ViewType.Text.self).compactMap { try? $0.string() }
+        XCTAssertTrue(texts.contains("Palkie Talkie"), "expected brand wordmark; saw \(texts)")
+    }
 }

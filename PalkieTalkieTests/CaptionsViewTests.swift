@@ -5,6 +5,14 @@ import XCTest
 /// Captions UI is the on-screen live transcript. The pure function `mergedCaptions` collapses sub-word stream tokens from the realtime model into one line per speaker turn — without that, the user sees one row per "uh"/"he"/"y" fragment.
 @MainActor
 final class CaptionsViewTests: XCTestCase {
+    func testDifferentSpeakersStartSeparateLines() {
+        let lines = mergedCaptions([
+            .init(speaker: .persona, text: "Hi there"),
+            .init(speaker: .user, text: "Hello back"),
+        ])
+        XCTAssertEqual(lines.count, 2)
+    }
+
     func testEmptyTranscriptYieldsNoLines() {
         XCTAssertEqual(mergedCaptions([]).count, 0)
     }

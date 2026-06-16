@@ -18,7 +18,7 @@ struct HistoryView: View {
                         Text(session.startedAt, style: .time)
                         Spacer()
                         if let seconds = session.durationSeconds {
-                            Text("\(seconds / 60)m \(seconds % 60)s")
+                            Text(verbatim: "\(seconds / 60)m \(seconds % 60)s")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }

@@ -59,6 +59,14 @@ final class SubscriptionViewTests: XCTestCase {
         )
     }
 
+    /// Individual-monthly entitlement renders the current-plan label, exercising the `Text(verbatim: "\(tier) · \(cycle)")` line (a pure value kept out of the String Catalog). Existing tests cover individual-yearly and family-monthly; this is the remaining tier/cycle combo through that changed line.
+    func testRendersIndividualMonthlyEntitlement() async {
+        let service = FakeSubscriptionService()
+        service.loadResult = .success(Self.allFour)
+        service.entitlementResult = SubscriptionID(tier: .individual, cycle: .monthly)
+        await TestHosting.host(NavigationStack { SubscriptionView(service: service) }, settleMs: 600)
+    }
+
     private static var allFour: [SubscriptionID: SubscriptionProduct] {
         var dict: [SubscriptionID: SubscriptionProduct] = [:]
         for id in SubscriptionID.all {

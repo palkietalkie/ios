@@ -240,4 +240,21 @@ final class AudioStreamerFakeEngineTests: XCTestCase {
 
         await streamer.stop()
     }
+
+    /// The tutor's output audio is fed to the live emotion detector during playback. A clean, non-laughing chunk drives the playback → detector path end-to-end and must register no reaction, so Affinity isn't inflated by ordinary speech. Covers the playPCM16 → emotionDetector.analyze wiring and the emotionCounts() accessor SessionController reads at end().
+    func testTutorPlaybackFeedsEmotionDetectorAndStaysZeroForPlainAudio() async throws {
+        let fakeEngine = FakeAudioEngine()
+        let streamer = AudioStreamer(engine: fakeEngine, playerNode: FakePlayerNode())
+        try await streamer.start()
+        let chunk = Data((0 ..< 2400).flatMap { i in
+            withUnsafeBytes(of: Int16(truncatingIfNeeded: Int(2000.0 * sin(Double(i) * 0.05))).littleEndian) {
+                Array($0)
+            }
+        })
+        await streamer.playPCM16(chunk)
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        let counts = await streamer.emotionCounts()
+        XCTAssertEqual(counts.values.reduce(0, +), 0, "a plain tone is not an emotional reaction")
+        await streamer.stop()
+    }
 }

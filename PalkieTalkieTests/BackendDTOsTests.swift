@@ -3,6 +3,29 @@ import XCTest
 
 /// Snake-case wire-shape round-trip tests for the DTOs `BackendDTOs.swift` defines. The full per-endpoint coverage lives in `BackendEndpointsTests`; this file pairs the DTO source file so the CI test-pair check accepts the extraction.
 final class BackendDTOsTests: XCTestCase {
+    func testStatsAndTalkItemNewFieldsRoundTripSnakeCase() throws {
+        let stats = Stats(
+            dayStreak: 3, sessionTotalSeconds: 600, sessionsCount: 4,
+            uniqueWords: 50, uniquePhrases: 7, userTalkPct: 0.5, speakingRateWpm: 120,
+            pitchMinHz: 90, pitchMaxHz: 230, affinity: 38, cefrCoverage: [],
+        )
+        let statsData = try BackendAPI.encoder.encode(stats)
+        let statsJSON = try XCTUnwrap(JSONSerialization.jsonObject(with: statsData) as? [String: Any])
+        XCTAssertEqual(statsJSON["pitch_min_hz"] as? Double, 90)
+        XCTAssertEqual(statsJSON["pitch_max_hz"] as? Double, 230)
+        XCTAssertEqual(statsJSON["affinity"] as? Int, 38)
+        let decodedStats = try BackendAPI.decoder.decode(Stats.self, from: statsData)
+        XCTAssertEqual(decodedStats.affinity, 38)
+        XCTAssertEqual(decodedStats.pitchMinHz, 90)
+
+        let item = TalkItem(
+            id: "i", title: "T", summary: "s", source: "AP", imageUrl: "", url: "https://x", details: "BODY",
+        )
+        let decodedItem = try BackendAPI.decoder.decode(TalkItem.self, from: BackendAPI.encoder.encode(item))
+        XCTAssertEqual(decodedItem.details, "BODY")
+        XCTAssertEqual(decodedItem.url, "https://x")
+    }
+
     func testStartResponseRoundTripsThroughSnakeCaseJSON() throws {
         let original = StartResponse(
             sessionId: "srv-1",

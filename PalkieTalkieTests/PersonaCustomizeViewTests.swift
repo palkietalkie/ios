@@ -33,4 +33,14 @@ final class PersonaCustomizeViewTests: XCTestCase {
         let sut = PersonaCustomizeView(persona: existing)
         XCTAssertNoThrow(try sut.inspect())
     }
+
+    /// No em or en dash leaks into the rendered copy — the background helper text now uses a colon ("life context: where…") per `/CLAUDE.md`'s no-dashes rule. A copy edit that reintroduces "—" would fail here.
+    func testRenderedCopyHasNoEmOrEnDash() throws {
+        let sut = PersonaCustomizeView(persona: nil)
+        let texts = try sut.inspect().findAll(ViewType.Text.self).compactMap { try? $0.string() }
+        for text in texts {
+            XCTAssertFalse(text.contains("—"), "em dash leaked into copy: \(text)")
+            XCTAssertFalse(text.contains("–"), "en dash leaked into copy: \(text)")
+        }
+    }
 }

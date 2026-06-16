@@ -4,6 +4,8 @@ import Foundation
 protocol AudioStreamerType: AnyObject, Sendable {
     var inputChunks: AsyncStream<Data> { get async }
     nonisolated var pitchTracker: PitchTracker { get }
+    /// Per-category tutor reaction counts for the just-finished session, read in end() alongside the pitch range.
+    func emotionCounts() async -> [String: Int]
     func playOutput(_ opusPacket: Data) async
     /// URL of the mic-side wav file from the just-finished session, if any. Read after stop() in end() so SessionController can gzip + upload + delete. Nil when no session ran (e.g. very early error).
     var recordedSessionAudioURL: URL? { get async }

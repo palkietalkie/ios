@@ -10,7 +10,7 @@ struct MultiLanguagePicker: View {
     var body: some View {
         List(languages) { lang in
             HStack {
-                Text(lang.name)
+                Text(localizedLanguageName(lang.name))
                 Spacer()
                 if selection.contains(lang.name) {
                     Image(systemName: "checkmark")
@@ -39,7 +39,7 @@ struct MultiAccentPicker: View {
     var body: some View {
         List(accents, id: \.self) { accent in
             HStack {
-                Text(accent)
+                Text(localizedAccentName(accent))
                 Spacer()
                 if selection.contains(accent) {
                     Image(systemName: "checkmark")

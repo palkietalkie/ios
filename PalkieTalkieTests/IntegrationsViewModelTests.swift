@@ -180,6 +180,18 @@ final class IntegrationsViewModelTests: XCTestCase {
         XCTAssertFalse(vm.appleCalendarGranted)
     }
 
+    /// User-facing status copy must contain no em or en dash per `/CLAUDE.md` (same cleanup that turned the Reminders "coming soon" stub from "—" to a comma). Exercises the 501 "coming soon" branch and asserts the surfaced message is dash-free.
+    func testComingSoonStatusMessageHasNoEmOrEnDash() async {
+        let transport = FakeTransport()
+        transport.enqueue(path: "/integrations/outlook/connect", data: Data("not implemented".utf8), status: 501)
+        let api = makeAPI(transport)
+        let vm = IntegrationsViewModel(oauth: FakeOAuth(error: nil))
+        await vm.connectOutlook(api: api)
+        let message = vm.statusMessage ?? ""
+        XCTAssertFalse(message.contains("—"), "em dash in status copy: \(message)")
+        XCTAssertFalse(message.contains("–"), "en dash in status copy: \(message)")
+    }
+
     func testRefreshIntegrationsSetsBothConnectedFlagsFromList() async throws {
         let transport = FakeTransport()
         let providers = [

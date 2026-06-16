@@ -16,7 +16,7 @@ struct SignInView: View {
     var body: some View {
         @Bindable var model = model
         VStack(spacing: 24) {
-            Text("Palkie Talkie").font(.largeTitle.bold())
+            Text(verbatim: "Palkie Talkie").font(.largeTitle.bold())
             Text("Voice fluency. Real personalities. No drills.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)

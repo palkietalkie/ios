@@ -17,7 +17,7 @@ struct PhrasesView: View {
                     Text(phrase.phrase).font(.headline)
                     Text("Used \(phrase.count)×").font(.caption).foregroundStyle(.secondary)
                     if !phrase.alternatives.isEmpty {
-                        Text("Try: " + phrase.alternatives.joined(separator: ", "))
+                        Text("Try: \(phrase.alternatives.joined(separator: ", "))")
                             .font(.footnote)
                             .foregroundStyle(.blue)
                     }

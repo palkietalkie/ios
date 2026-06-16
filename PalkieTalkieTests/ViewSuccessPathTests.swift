@@ -80,7 +80,9 @@ final class ViewSuccessPathTests: XCTestCase {
             uniquePhrases: 45,
             userTalkPct: 0.42,
             speakingRateWpm: 110,
-            pitchRangeHz: 180,
+            pitchMinHz: 95,
+            pitchMaxHz: 275,
+            affinity: 8,
             cefrCoverage: [
                 CEFRCoverage(level: "A1", totalWords: 100, usedWords: 92, coveragePct: 92),
                 CEFRCoverage(level: "A2", totalWords: 100, usedWords: 88, coveragePct: 88),

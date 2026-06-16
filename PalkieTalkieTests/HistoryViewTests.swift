@@ -92,4 +92,21 @@ final class HistoryViewTests: XCTestCase {
         let texts = try sut.inspect().findAll(ViewType.Text.self).compactMap { try? $0.string() }
         XCTAssertTrue(texts.contains("Unknown persona"))
     }
+
+    /// Sub-minute duration formats as "0m Ns" via `Text(verbatim:)` (a pure computed value, kept out of the String Catalog). Pins the minutes-zero case so the verbatim format string can't regress to a bare second count.
+    func testSubMinuteDurationFormatsWithZeroMinutes() throws {
+        let cached = SessionSummary(
+            sessionId: UUID().uuidString,
+            personaId: "Coach B",
+            startedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            endedAt: nil,
+            durationSeconds: 42,
+        )
+        JSONCache.save([cached], key: "cache.sessions")
+        defer { UserDefaults.standard.removeObject(forKey: "cache.sessions") }
+
+        let sut = HistoryView()
+        let texts = try sut.inspect().findAll(ViewType.Text.self).compactMap { try? $0.string() }
+        XCTAssertTrue(texts.contains("0m 42s"), "expected '0m 42s'; saw \(texts)")
+    }
 }

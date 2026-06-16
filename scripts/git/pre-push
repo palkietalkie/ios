@@ -9,3 +9,24 @@ echo "[pre-push] paired-test guard (same check CI runs)..."
 bash "$REPO/scripts/ci/check_test_pair.sh" origin/main
 echo "[pre-push] swift file-name PascalCase guard..."
 bash "$REPO/scripts/ci/check_swift_pascal_case.sh"
+
+# Branch-level test run + 90 percent line-coverage gate (CI parity). The simulator boot + xctest run is too slow for per-commit.
+cd "$REPO"
+echo "[pre-push] xcodebuild test + 90 percent line-coverage gate..."
+rm -rf /tmp/PalkieTalkiePrePush.xcresult
+xcodebuild \
+	-project PalkieTalkie.xcodeproj \
+	-scheme PalkieTalkie \
+	-destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=latest' \
+	-resultBundlePath /tmp/PalkieTalkiePrePush.xcresult \
+	-enableCodeCoverage YES \
+	CODE_SIGNING_ALLOWED=NO \
+	test -quiet
+pct=$(xcrun xccov view --report --json /tmp/PalkieTalkiePrePush.xcresult \
+	| python3 -c "import json,sys; d=json.loads(sys.stdin.read()); t=next((x for x in d['targets'] if x['name'].startswith('PalkieTalkie.app') or x['name']=='PalkieTalkie'), None); print(round(t['lineCoverage']*100, 2)) if t else (print('NO_TARGET') or exit(1))")
+echo "[pre-push] line coverage: ${pct}%"
+rm -rf /tmp/PalkieTalkiePrePush.xcresult
+awk "BEGIN {exit !(${pct} >= 90)}" || {
+	echo "[pre-push] line coverage ${pct}% is below the 90% gate" >&2
+	exit 1
+}

@@ -23,6 +23,7 @@ protocol ConversationBackend: Sendable {
         sessionId: String,
     ) async throws
     func recordPitchRange(sessionId: String, minHz: Float, maxHz: Float) async throws
+    func recordAIEmotions(sessionId: String, laugh: Int, cheer: Int, gasp: Int, sigh: Int, groan: Int) async throws
     func uploadMicAudio(sessionId: String, deflatedWav: Data) async throws
     func uploadModelAudio(sessionId: String, deflatedWav: Data) async throws
     func getPersonas(search: String?, sort: String) async throws -> [PersonaDTO]
@@ -31,6 +32,8 @@ protocol ConversationBackend: Sendable {
     func recallFacts(query: String) async throws -> String
     func recallConversations(query: String) async throws -> String
     func searchTranscripts(query: String) async throws -> String
+    /// Fetch a public URL's readable text so the model grounds itself in real facts instead of inventing them.
+    func webFetch(url: String) async throws -> String
 }
 
 extension BackendAPI: ConversationBackend {}

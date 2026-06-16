@@ -34,7 +34,9 @@ while IFS= read -r f; do
 	esac
 
 	base=$(basename "$f" .swift)
-	if ! printf '%s\n' "$CHANGED" | grep -qE "^PalkieTalkieTests/.*${base}.*\.swift$"; then
+	# Escape ERE metacharacters in the basename so grep matches it literally. Without this, a '+' in a source name (e.g. SessionController+Recall.swift) is read as a quantifier and the real paired test never matches — the find() glob below does, producing a false "exists but unchanged".
+	base_re=$(printf '%s' "$base" | sed -E 's/[][(){}.*+?|^$\\]/\\&/g')
+	if ! printf '%s\n' "$CHANGED" | grep -qE "^PalkieTalkieTests/.*${base_re}.*\.swift$"; then
 		if find PalkieTalkieTests -name "*${base}*.swift" -print -quit 2>/dev/null | grep -q .; then
 			MISSING_PAIRS+=("  ${f}  (modified)  →  PalkieTalkieTests/*${base}*.swift  (exists but unchanged in PR)")
 		else

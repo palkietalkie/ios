@@ -21,4 +21,27 @@ final class PracticeViewTests: XCTestCase {
         // No throw from rendering means defaults built successfully; the values themselves are private @State and not directly inspectable but their consequences (Picker selections) can be queried in richer tests.
         XCTAssertNoThrow(try sut.inspect())
     }
+
+    /// Selected accents render through localizedAccentName, not the raw backend slug — locks the display path so a refactor dropping the wrapper (a bare slug under a non-English UI locale) is caught. Seeds the cache so the accent shows on first synchronous paint.
+    func testSelectedAccentsRenderLocalizedDisplay() throws {
+        let cached = ProfileDTO(
+            email: "wes@example.com", preferredName: "Wes",
+            namePronunciation: nil, namePronunciationSuggestion: nil,
+            nativeLanguages: ["Japanese"],
+            targetLanguage: "English",
+            targetAccents: ["US General"],
+            proficiency: "advanced",
+            tutorSpeakingSpeed: "fast",
+            goals: nil, locationCity: nil, timezone: nil,
+        )
+        JSONCache.save(cached, key: PracticeViewModel.profileKey)
+        defer { UserDefaults.standard.removeObject(forKey: PracticeViewModel.profileKey) }
+
+        let sut = PracticeView()
+        let texts = try sut.inspect().findAll(ViewType.Text.self).compactMap { try? $0.string() }
+        XCTAssertTrue(
+            texts.contains { $0.contains(localizedAccentName("US General")) },
+            "accents must render via localizedAccentName; saw \(texts)",
+        )
+    }
 }

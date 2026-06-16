@@ -48,7 +48,7 @@ struct ProfileView: View {
                         LabeledContent("Native languages") {
                             Text(model.nativeLanguages.isEmpty
                                 ? String(localized: "Choose…")
-                                : model.nativeLanguages.sorted().joined(separator: ", "))
+                                : model.nativeLanguages.sorted().map(localizedLanguageName).joined(separator: ", "))
                                 .foregroundStyle(.secondary)
                                 .lineLimit(2)
                                 .multilineTextAlignment(.trailing)
@@ -74,7 +74,7 @@ struct ProfileView: View {
                                 Text(entity.name).font(.headline)
                                 Text(entity.type.capitalized).font(.caption).foregroundStyle(.secondary)
                                 ForEach(entity.attrs.sorted(by: { $0.key < $1.key }), id: \.key) { pair in
-                                    Text("\(pair.key): \(pair.value)").font(.caption2)
+                                    Text(verbatim: "\(pair.key): \(pair.value)").font(.caption2)
                                 }
                             }
                         }
