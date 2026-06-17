@@ -204,43 +204,43 @@ struct MetricInfo: Identifiable {
         id: "minutes",
         title: "Total time",
         explanation: "Total time you've spent in conversation across all sessions.",
-        computation: "Sum of every session's duration (when the session was ended cleanly).",
+        computation: "We add up the length of every conversation you finished.",
     )
     static let sessions = MetricInfo(
         id: "sessions",
         title: "Conversations",
         explanation: "How many separate conversations you've had.",
-        computation: "Count of conversation_sessions rows for your account.",
+        computation: "Counted from every conversation saved to your account.",
     )
     static let uniqueWords = MetricInfo(
         id: "uniqueWords",
         title: "Vocabulary",
         explanation: "How many different words you've actually said. Repeating \"hello\" 50 times still counts as 1.",
-        computation: "Counted from your spoken transcripts, lemmatized (\"running\" and \"run\" collapse to one word).",
+        computation: "Counted from what you've said. Different forms of the same word (\"running\", \"run\") count once.",
     )
     static let uniquePhrases = MetricInfo(
         id: "uniquePhrases",
         title: "Expressions",
         explanation: "Multi-word native expressions you've used (e.g., \"give it a shot\", \"figure out\").",
-        computation: "Extracted from transcripts after each session by an NLP pipeline.",
+        computation: "We pick these out from your conversations after each one ends.",
     )
     static let talkShare = MetricInfo(
         id: "talkShare",
         title: "Talk share",
         explanation: "Of the words said in your conversations, how many were yours vs the AI's. ~50% means a balanced two-way conversation; under 30% means you're letting the AI dominate.",
-        computation: "Character ratio between your transcripts and the AI's. Real audio-time ratio is coming once on-device speech timing ships.",
+        computation: "Based on how much you said compared with the AI.",
     )
     static let speakingRate = MetricInfo(
         id: "speakingRate",
         title: "Speaking rate",
         explanation: "Words per minute when you're talking. Native English averages 120-150 wpm; comfortable conversational fluency is 100+. Below ~70 wpm typically means hesitation.",
-        computation: "Your word count divided by inferred time you spent speaking (session duration × your talk-share).",
+        computation: "Your total words divided by the time you spent speaking.",
     )
     static let pitchRange = MetricInfo(
         id: "pitchRange",
         title: "Pitch range",
         explanation: "How much your voice goes up and down. Wider range = more expressive, animated speech. Flat pitch is a hallmark of robotic / hesitant speech.",
-        computation: "On-device YIN pitch detection on mic buffers. Tracks min and max F0 (70-500 Hz) per session and aggregates across all sessions.",
+        computation: "Measured from your voice on your device. We track your lowest and highest pitch in each conversation.",
     )
     static let affinity = MetricInfo(
         id: "affinity",
@@ -252,7 +252,7 @@ struct MetricInfo: Identifiable {
         id: "cefr",
         title: "CEFR vocab coverage",
         explanation: "What percent of the standard CEFR vocabulary (A1 → C2) you've actually used in conversation. A1 = absolute beginner, C2 = native-level mastery. Aim to push each level past 80%.",
-        computation: "Cross-references your spoken words against the CEFR-J Wordlist v1.6 reference.",
+        computation: "We match the words you've spoken against a standard vocabulary list for each level.",
     )
 }
 

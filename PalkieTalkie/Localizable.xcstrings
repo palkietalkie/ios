@@ -707,7 +707,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "選択…"
+            "value": "選んでください"
           }
         },
         "zh-Hans": {
@@ -1967,7 +1967,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ナレッジグラフ(読み取り専用)"
+            "value": "ナレッジグラフ（読み取り専用）"
           }
         },
         "zh-Hans": {
@@ -2107,7 +2107,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ミス"
+            "value": "間違い"
           }
         },
         "zh-Hans": {
@@ -2387,7 +2387,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "まだエンティティはありません。会話するうちに、AIが人物・場所・プロジェクトを認識し始めます。"
+            "value": "まだ何も登録されていません。会話するうちに、AIが人物・場所・プロジェクトを覚えていきます。"
           }
         },
         "zh-Hans": {
@@ -4837,7 +4837,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "話せる流暢さを。本物のキャラクター。ドリルなし。"
+            "value": "流暢に話せる自分へ。本物のキャラクター。ドリルなし。"
           }
         },
         "zh-Hans": {
@@ -5607,7 +5607,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "話す速さやターンの取り方 — ペースを選ぶか、自由に書くか、両方。"
+            "value": "話す速さやターンの取り方。ペースを選ぶか、自由に書くか、両方。"
           }
         },
         "zh-Hans": {
@@ -5887,7 +5887,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "例:仕事、旅行、義両親と話す、発音、語彙"
+            "value": "例：仕事、旅行、義両親と話す、発音、語彙"
           }
         },
         "zh-Hans": {
@@ -9107,7 +9107,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "提案:"
+            "value": "提案："
           }
         },
         "zh-Hans": {
@@ -9247,7 +9247,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "行をタップして選択。▶をタップで試聴。"
+            "value": "行をタップして選択。▶をタップして試聴。"
           }
         },
         "zh-Hans": {
@@ -10367,7 +10367,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "チューターに接続できませんでした。タップして再試行してください。"
+            "value": "チューターに接続できませんでした。タップしてもう一度お試しください。"
           }
         },
         "zh-Hans": {
@@ -10437,7 +10437,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "言語を読み込めませんでした: %@"
+            "value": "言語を読み込めませんでした：%@"
           }
         },
         "zh-Hans": {
@@ -10507,7 +10507,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "単語を読み込めませんでした: %@"
+            "value": "単語を読み込めませんでした：%@"
           }
         },
         "zh-Hans": {
@@ -10577,7 +10577,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ナレッジグラフを読み込めませんでした: %@"
+            "value": "ナレッジグラフを読み込めませんでした：%@"
           }
         },
         "zh-Hans": {
@@ -10647,7 +10647,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "フレーズを更新できませんでした: %@"
+            "value": "フレーズを更新できませんでした：%@"
           }
         },
         "zh-Hans": {
@@ -10927,7 +10927,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "言い換え: %@"
+            "value": "言い換え：%@"
           }
         },
         "zh-Hans": {
@@ -23942,72 +23942,72 @@
         }
       }
     },
-    "Character ratio between your transcripts and the AI's. Real audio-time ratio is coming once on-device speech timing ships.": {
+    "Based on how much you said compared with the AI.": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "あなたの発話と AI の発話の文字数比率。実際の発話時間比率は、端末側の音声タイミング計測が実装され次第お届けします。"
+            "value": "あなたとAIがそれぞれ話した量をもとにしています。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你与 AI 对话文字的字数比率。设备端语音计时上线后，将提供真实的音频时长比率。"
+            "value": "根据你和 AI 各自说了多少来计算。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "你與 AI 對話文字的字數比率。裝置端語音計時上線後，將提供真實的音訊時長比率。"
+            "value": "根據你和 AI 各自說了多少來計算。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "당신과 AI의 대화 글자 수 비율입니다. 기기 내 음성 타이밍 측정이 적용되면 실제 음성 시간 비율을 제공합니다."
+            "value": "당신과 AI가 각각 얼마나 말했는지를 기준으로 합니다."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Proporción de caracteres entre tus transcripciones y las de la IA. La proporción real de tiempo de audio llegará cuando se implemente la medición de voz en el dispositivo."
+            "value": "Se basa en cuánto hablaste tú frente a la IA."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Proporção de caracteres entre suas transcrições e as da IA. A proporção real de tempo de áudio chegará quando a medição de voz no dispositivo for lançada."
+            "value": "Baseado em quanto você falou em relação à IA."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rapport de caractères entre vos transcriptions et celles de l'IA. Le rapport réel de temps audio arrivera dès que la mesure vocale sur l'appareil sera disponible."
+            "value": "Basé sur ce que vous avez dit par rapport à l’IA."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Zeichenverhältnis zwischen deinen Transkripten und denen der KI. Das echte Audiozeit-Verhältnis kommt, sobald die Sprachzeitmessung auf dem Gerät verfügbar ist."
+            "value": "Basiert darauf, wie viel du im Vergleich zur KI gesagt hast."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tỉ lệ ký tự giữa lời thoại của bạn và của AI. Tỉ lệ thời gian âm thanh thực sẽ có khi tính năng đo thời gian giọng nói trên thiết bị ra mắt."
+            "value": "Dựa trên việc bạn nói nhiều bao nhiêu so với AI."
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rasio karakter antara transkrip kamu dan AI. Rasio waktu audio yang sebenarnya akan hadir setelah penghitungan waktu suara di perangkat dirilis."
+            "value": "Berdasarkan seberapa banyak kamu bicara dibanding AI."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "आपके और AI के ट्रांसक्रिप्ट के बीच अक्षरों का अनुपात। डिवाइस पर वॉइस टाइमिंग आने के बाद वास्तविक ऑडियो-समय अनुपात उपलब्ध होगा।"
+            "value": "आपने AI की तुलना में कितना कहा, उसके आधार पर।"
           }
         }
       }
@@ -24082,282 +24082,282 @@
         }
       }
     },
-    "Count of conversation_sessions rows for your account.": {
+    "Counted from every conversation saved to your account.": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "あなたのアカウントのconversation_sessions行数。"
+            "value": "セッションを1つずつカウントしています。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你账户的 conversation_sessions 行数。"
+            "value": "根据保存到你账户的每次对话来计算。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "你帳戶的 conversation_sessions 列數。"
+            "value": "根據儲存到你帳戶的每次對話來計算。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "내 계정의 conversation_sessions 행 수입니다."
+            "value": "계정에 저장된 모든 대화를 기준으로 셉니다."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Número de filas de conversation_sessions de tu cuenta."
+            "value": "Se cuenta a partir de cada conversación guardada en tu cuenta."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Número de linhas de conversation_sessions da sua conta."
+            "value": "Contado a partir de cada conversa salva na sua conta."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nombre de lignes conversation_sessions de votre compte."
+            "value": "Calculé à partir de chaque conversation enregistrée sur votre compte."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Anzahl der conversation_sessions-Zeilen deines Kontos."
+            "value": "Gezählt aus jedem in deinem Konto gespeicherten Gespräch."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Số hàng conversation_sessions của tài khoản của bạn."
+            "value": "Được tính từ mỗi cuộc trò chuyện đã lưu vào tài khoản của bạn."
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jumlah baris conversation_sessions untuk akun Anda."
+            "value": "Dihitung dari setiap percakapan yang tersimpan di akunmu."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "आपके खाते की conversation_sessions पंक्तियों की संख्या।"
+            "value": "आपके खाते में सहेजी गई हर बातचीत से गिना जाता है।"
           }
         }
       }
     },
-    "Counted from your spoken transcripts, lemmatized (\"running\" and \"run\" collapse to one word).": {
+    "Counted from what you've said. Different forms of the same word (\"running\", \"run\") count once.": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "話した文字起こしから集計し、見出し語化しています（「running」と「run」は1語にまとめられます）。"
+            "value": "あなたが話した単語をカウントします。同じ単語の変化形（「running」と「run」など）は1語にまとめます。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "根据你说话的转录文本统计，已做词形还原（\"running\" 和 \"run\" 合并为一个词）。"
+            "value": "根据你说过的话计算。同一个词的不同形式（如“running”和“run”）算作一个。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "根據你說話的轉錄文字統計，已做詞形還原（\"running\" 與 \"run\" 合併為一個詞）。"
+            "value": "根據你說過的話計算。同一個詞的不同形式（如「running」和「run」）算作一個。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "말한 내용의 전사본을 기준으로 집계하며 표제어로 처리됩니다(\"running\"과 \"run\"은 한 단어로 합쳐집니다)."
+            "value": "당신이 말한 내용을 기준으로 셉니다. 같은 단어의 다른 형태(\"running\", \"run\")는 하나로 셉니다."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Contado a partir de tus transcripciones habladas, lematizado (\"running\" y \"run\" se unen en una sola palabra)."
+            "value": "Se cuenta a partir de lo que dijiste. Las distintas formas de una misma palabra (\"running\", \"run\") cuentan como una."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Contado a partir das suas transcrições faladas, lematizado (\"running\" e \"run\" se unem em uma só palavra)."
+            "value": "Contado a partir do que você disse. Formas diferentes da mesma palavra (\"running\", \"run\") contam como uma."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Compté à partir de vos transcriptions parlées, lemmatisé (\"running\" et \"run\" se regroupent en un seul mot)."
+            "value": "Calculé à partir de ce que vous avez dit. Les différentes formes d’un même mot (« running », « run ») comptent pour une."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aus deinen gesprochenen Transkripten gezählt, lemmatisiert (\"running\" und \"run\" werden zu einem Wort zusammengefasst)."
+            "value": "Gezählt aus dem, was du gesagt hast. Verschiedene Formen desselben Wortes („running“, „run“) zählen als eine."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Được tính từ bản chép lời nói của bạn, đã đưa về từ gốc (\"running\" và \"run\" gộp thành một từ)."
+            "value": "Được tính từ những gì bạn nói. Các dạng khác nhau của cùng một từ (\"running\", \"run\") chỉ tính là một."
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dihitung dari transkrip ucapan Anda, dilematisasi (\"running\" dan \"run\" digabung menjadi satu kata)."
+            "value": "Dihitung dari yang kamu ucapkan. Bentuk berbeda dari kata yang sama (\"running\", \"run\") dihitung satu."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "आपके बोले गए ट्रांसक्रिप्ट से गिना गया, लेमेटाइज़ किया गया (\"running\" और \"run\" एक ही शब्द में मिल जाते हैं)।"
+            "value": "आपने जो कहा उससे गिना जाता है। एक ही शब्द के अलग-अलग रूप (\"running\", \"run\") एक बार गिने जाते हैं।"
           }
         }
       }
     },
-    "Cross-references your spoken words against the CEFR-J Wordlist v1.6 reference.": {
+    "We match the words you've spoken against a standard vocabulary list for each level.": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "話した単語を CEFR-J Wordlist v1.6 のリファレンスと照合します。"
+            "value": "あなたが話した単語を、各レベルの標準的な単語リストと照らし合わせます。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "将你说出的单词与 CEFR-J Wordlist v1.6 参考表进行比对。"
+            "value": "我们把你说过的词与每个等级的标准词汇表进行对照。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "將你說出的單字與 CEFR-J Wordlist v1.6 參考表進行比對。"
+            "value": "我們把你說過的詞與每個等級的標準詞彙表進行對照。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "말한 단어를 CEFR-J Wordlist v1.6 참고 자료와 대조합니다."
+            "value": "당신이 말한 단어를 각 레벨의 표준 단어 목록과 대조합니다."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Compara tus palabras habladas con la referencia CEFR-J Wordlist v1.6."
+            "value": "Comparamos las palabras que has dicho con una lista de vocabulario estándar para cada nivel."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Compara suas palavras faladas com a referência CEFR-J Wordlist v1.6."
+            "value": "Comparamos as palavras que você disse com uma lista de vocabulário padrão para cada nível."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Compare vos mots prononcés avec la référence CEFR-J Wordlist v1.6."
+            "value": "Nous comparons les mots que vous avez prononcés à une liste de vocabulaire standard pour chaque niveau."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gleicht deine gesprochenen Wörter mit der Referenz CEFR-J Wordlist v1.6 ab."
+            "value": "Wir gleichen die von dir gesprochenen Wörter mit einer Standard-Wortliste für jede Stufe ab."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đối chiếu các từ bạn nói với tài liệu tham chiếu CEFR-J Wordlist v1.6."
+            "value": "Chúng tôi đối chiếu những từ bạn đã nói với danh sách từ vựng chuẩn cho mỗi cấp độ."
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Membandingkan kata yang Anda ucapkan dengan referensi CEFR-J Wordlist v1.6."
+            "value": "Kami mencocokkan kata-kata yang kamu ucapkan dengan daftar kosakata standar untuk tiap level."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "आपके बोले गए शब्दों को CEFR-J Wordlist v1.6 संदर्भ से मिलाता है।"
+            "value": "आपने जो शब्द बोले हैं उन्हें हर स्तर की मानक शब्द-सूची से मिलाते हैं।"
           }
         }
       }
     },
-    "Extracted from transcripts after each session by an NLP pipeline.": {
+    "We pick these out from your conversations after each one ends.": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "各セッションの後、NLP パイプラインが文字起こしから抽出します。"
+            "value": "セッションが終わるたびに、あなたが話した内容から拾い出しています。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "每次会话后由 NLP 流程从转录文本中提取。"
+            "value": "每次对话结束后，我们从你说的内容中挑出这些。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "每次對話後由 NLP 流程從轉錄文字中擷取。"
+            "value": "每次對話結束後，我們從你說的內容中挑出這些。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "각 세션 후 NLP 파이프라인이 전사본에서 추출합니다."
+            "value": "대화가 끝날 때마다 당신이 말한 내용에서 골라냅니다."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Extraído de las transcripciones tras cada sesión por una canalización de NLP."
+            "value": "Los detectamos en tus conversaciones cuando cada una termina."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Extraído das transcrições após cada sessão por um pipeline de NLP."
+            "value": "Nós os identificamos nas suas conversas quando cada uma termina."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Extrait des transcriptions après chaque session par un pipeline NLP."
+            "value": "Nous les repérons dans vos conversations à la fin de chacune."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wird nach jeder Sitzung von einer NLP-Pipeline aus den Transkripten extrahiert."
+            "value": "Wir finden sie nach jedem Gespräch in dem heraus, was du gesagt hast."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Được một pipeline NLP trích xuất từ bản chép lời sau mỗi phiên."
+            "value": "Chúng tôi tìm ra chúng từ các cuộc trò chuyện của bạn sau khi mỗi cuộc kết thúc."
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diekstrak dari transkrip setelah setiap sesi oleh pipeline NLP."
+            "value": "Kami menemukannya dari percakapanmu setiap kali selesai."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "हर सत्र के बाद NLP पाइपलाइन ट्रांसक्रिप्ट से इसे निकालती है।"
+            "value": "हर बातचीत खत्म होने पर हम इन्हें आपकी बातचीत से चुनते हैं।"
           }
         }
       }
@@ -25132,72 +25132,72 @@
         }
       }
     },
-    "On-device YIN pitch detection on mic buffers. Tracks min and max F0 (70-500 Hz) per session and aggregates across all sessions.": {
+    "Measured from your voice on your device. We track your lowest and highest pitch in each conversation.": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "マイクバッファ上でのオンデバイスYIN音程検出。セッションごとに最小と最大のF0(70～500 Hz)を記録し、全セッションで集計します。"
+            "value": "この端末で、あなたの声から測定します。セッションごとに、いちばん低い声と高い声を記録します。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在麦克风缓冲区上进行设备端YIN音高检测。按每次会话记录最低和最高F0(70-500 Hz)，并在所有会话中汇总。"
+            "value": "在你的设备上根据你的声音测量。我们记录你每次对话中最低和最高的音高。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "在麥克風緩衝區上進行裝置端YIN音高偵測。依每次工作階段記錄最低和最高F0(70-500 Hz)，並在所有工作階段中彙總。"
+            "value": "在你的裝置上根據你的聲音測量。我們記錄你每次對話中最低和最高的音高。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "마이크 버퍼에 대한 온디바이스 YIN 음높이 감지. 세션별로 최소 및 최대 F0(70~500 Hz)를 기록하고 모든 세션에 걸쳐 집계합니다."
+            "value": "기기에서 당신의 목소리로 측정합니다. 대화마다 가장 낮은 음과 높은 음을 기록합니다."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Detección de tono YIN en el dispositivo sobre los búferes del micrófono. Registra el F0 mínimo y máximo (70-500 Hz) por sesión y los agrega entre todas las sesiones."
+            "value": "Se mide desde tu voz en tu dispositivo. Registramos tu tono más bajo y más alto en cada conversación."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Detecção de tom YIN no dispositivo sobre os buffers do microfone. Registra o F0 mínimo e máximo (70-500 Hz) por sessão e agrega entre todas as sessões."
+            "value": "Medido pela sua voz no seu dispositivo. Registramos seu tom mais grave e mais agudo em cada conversa."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Détection de hauteur YIN sur l'appareil à partir des tampons du micro. Suit le F0 minimal et maximal (70-500 Hz) par session et agrège sur toutes les sessions."
+            "value": "Mesuré à partir de votre voix sur votre appareil. Nous suivons votre note la plus basse et la plus haute à chaque conversation."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "YIN-Tonhöhenerkennung auf dem Gerät über die Mikrofonpuffer. Erfasst den minimalen und maximalen F0 (70-500 Hz) pro Sitzung und aggregiert über alle Sitzungen."
+            "value": "Wird aus deiner Stimme auf deinem Gerät gemessen. Wir erfassen deine tiefste und höchste Tonlage in jedem Gespräch."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Phát hiện cao độ YIN trên thiết bị từ bộ đệm micro. Theo dõi F0 tối thiểu và tối đa (70-500 Hz) cho mỗi phiên và tổng hợp trên tất cả các phiên."
+            "value": "Được đo từ giọng nói của bạn trên thiết bị. Chúng tôi ghi lại cao độ thấp nhất và cao nhất trong mỗi cuộc trò chuyện."
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deteksi nada YIN di perangkat pada buffer mikrofon. Mencatat F0 minimum dan maksimum (70-500 Hz) per sesi dan menggabungkannya di semua sesi."
+            "value": "Diukur dari suaramu di perangkatmu. Kami mencatat nada terendah dan tertinggimu di setiap percakapan."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "माइक बफ़र पर डिवाइस पर ही YIN पिच डिटेक्शन। हर सत्र के लिए न्यूनतम और अधिकतम F0 (70-500 Hz) ट्रैक करता है और सभी सत्रों में संकलित करता है।"
+            "value": "आपके डिवाइस पर आपकी आवाज़ से मापा जाता है। हर बातचीत में आपकी सबसे नीची और सबसे ऊंची पिच दर्ज करते हैं।"
           }
         }
       }
@@ -25552,72 +25552,72 @@
         }
       }
     },
-    "Sum of every session's duration (when the session was ended cleanly).": {
+    "We add up the length of every conversation you finished.": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "各セッションの時間の合計（セッションが正常に終了した場合）。"
+            "value": "すべてのセッションの時間を合計しています。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "每次会话时长的总和（会话正常结束时）。"
+            "value": "我们把你完成的每次对话时长加在一起。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "每次工作階段時長的總和（工作階段正常結束時）。"
+            "value": "我們把你完成的每次對話時長加在一起。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "각 세션 시간의 합계입니다（세션이 정상적으로 종료된 경우）。"
+            "value": "끝낸 모든 대화의 길이를 더해서 계산합니다."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Suma de la duración de cada sesión (cuando la sesión terminó correctamente)."
+            "value": "Sumamos la duración de cada conversación que terminaste."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Soma da duração de cada sessão (quando a sessão foi encerrada corretamente)."
+            "value": "Somamos a duração de cada conversa que você terminou."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Somme de la durée de chaque session (lorsque la session s'est terminée correctement)."
+            "value": "Nous additionnons la durée de chaque conversation terminée."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Summe der Dauer jeder Sitzung (wenn die Sitzung sauber beendet wurde)."
+            "value": "Wir zählen die Länge jedes abgeschlossenen Gesprächs zusammen."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tổng thời lượng của mỗi phiên (khi phiên kết thúc bình thường)."
+            "value": "Chúng tôi cộng tổng thời lượng của mọi cuộc trò chuyện bạn đã hoàn thành."
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jumlah durasi setiap sesi (saat sesi berakhir dengan benar)."
+            "value": "Kami menjumlahkan durasi setiap percakapan yang kamu selesaikan."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "हर सत्र की अवधि का योग (जब सत्र सही ढंग से समाप्त हुआ हो)।"
+            "value": "हम आपकी पूरी हुई हर बातचीत की अवधि जोड़ देते हैं।"
           }
         }
       }
@@ -25972,72 +25972,72 @@
         }
       }
     },
-    "Your word count divided by inferred time you spent speaking (session duration × your talk-share).": {
+    "Your total words divided by the time you spent speaking.": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "あなたの単語数を、推定発話時間(セッション時間 × あなたの発話割合)で割った値。"
+            "value": "話した単語量を、あなたが話していた時間で割って求めます。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你的单词数除以推算的发言时间(会话时长 × 你的发言占比)。"
+            "value": "用你说的总词数除以你说话的时间。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "你的單字數除以推算的發言時間(會話時長 × 你的發言占比)。"
+            "value": "用你說的總詞數除以你說話的時間。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "내 단어 수를 추정 발화 시간(세션 시간 × 내 발화 비율)으로 나눈 값."
+            "value": "당신이 말한 전체 단어 수를 말한 시간으로 나눕니다."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tu número de palabras dividido entre el tiempo estimado que hablaste (duración de la sesión × tu proporción de habla)."
+            "value": "Tus palabras totales divididas entre el tiempo que pasaste hablando."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Seu número de palavras dividido pelo tempo estimado que você falou (duração da sessão × sua proporção de fala)."
+            "value": "O total das suas palavras dividido pelo tempo que você passou falando."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Votre nombre de mots divisé par le temps estimé de parole (durée de la session × votre part de parole)."
+            "value": "Votre nombre total de mots divisé par le temps passé à parler."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deine Wortzahl geteilt durch die geschätzte Sprechzeit (Sitzungsdauer × dein Redeanteil)."
+            "value": "Deine Gesamtzahl an Wörtern geteilt durch die Zeit, die du gesprochen hast."
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Số từ của bạn chia cho thời gian nói ước tính (thời lượng phiên × tỷ lệ nói của bạn)."
+            "value": "Tổng số từ của bạn chia cho thời gian bạn đã nói."
           }
         },
         "id": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jumlah katamu dibagi perkiraan waktu kamu berbicara (durasi sesi × porsi bicaramu)."
+            "value": "Total katamu dibagi dengan waktu yang kamu habiskan untuk berbicara."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "आपके शब्दों की संख्या को आपके अनुमानित बोलने के समय (सत्र अवधि × आपका बोलने का हिस्सा) से भाग देना।"
+            "value": "आपके कुल शब्दों को आपके बोलने में बिताए समय से भाग देकर।"
           }
         }
       }

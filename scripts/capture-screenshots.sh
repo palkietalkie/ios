@@ -30,6 +30,11 @@ xcrun simctl boot "$SIM" 2>/dev/null || true
 xcrun simctl bootstatus "$SIM" -b >/dev/null
 # Capture in dark mode — the App Store screenshots are dark-themed.
 xcrun simctl ui "$SIM" appearance dark
+# The sim's default status bar is noisy (drained battery, no signal); force full battery + bars. `clear` first because overrides persist across runs — without it a stale time/value from a prior run would stick. Time is not overridden, so it shows the real clock.
+xcrun simctl status_bar "$SIM" clear
+xcrun simctl status_bar "$SIM" override \
+	--batteryState charged --batteryLevel 100 \
+	--cellularMode active --cellularBars 4 --wifiMode active --wifiBars 3
 
 echo "[shots] build-for-testing (signed) ..."
 xcodebuild build-for-testing \
