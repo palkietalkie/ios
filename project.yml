@@ -145,6 +145,23 @@ targets:
       - package: ViewInspector
         product: ViewInspector
 
+  # UI-test target that drives the real app to produce App Store screenshots. Separate from the unit-test bundle: UI tests are a distinct process, run signed (Clerk sign-in needs a keychain), and are slow — so they live behind their own scheme and never run in the unit-test CI path.
+  PalkieTalkieScreenshots:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - PalkieTalkieScreenshots
+    settings:
+      base:
+        SWIFT_VERSION: "6.2"
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+        SUPPORTS_MACCATALYST: false
+        GENERATE_INFOPLIST_FILE: YES
+        DEVELOPMENT_TEAM: 7P7YY88H3V
+    dependencies:
+      - target: PalkieTalkie
+
 # Scheme definition — tells Xcode how to build/run the app
 schemes:
   PalkieTalkie:
@@ -160,3 +177,13 @@ schemes:
       # storeKitConfiguration intentionally NOT set here. The xcodebuild CLI ignores StoreKitConfigurationFileReference under TestAction (verified Xcode 26.2). Configuration.storekit is still attached to the run/launch scheme above so developers running the app from Xcode get the dev fixture; the unit-test path uses ProductProvider dependency injection (see SubscriptionStore).
       targets:
         - PalkieTalkieTests
+
+  Screenshots:
+    build:
+      targets:
+        PalkieTalkie: all
+        PalkieTalkieScreenshots: [test]
+    test:
+      config: Debug
+      targets:
+        - PalkieTalkieScreenshots
