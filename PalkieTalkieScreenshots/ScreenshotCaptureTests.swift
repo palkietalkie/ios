@@ -1,8 +1,8 @@
 import XCTest
 
-/// Drives the real app to produce App Store screenshots at the connected simulator's native resolution (run on iPhone 17 Pro Max for Apple's required 6.9" / 1320x2868). Signs in with a Clerk dev test email (`+clerk_test`, fixed code `424242`, no real inbox — same path as `ClerkEmailAuthE2ETests`), walks the one-time consent + onboarding gates, then captures each featured tab as a `.keepAlways` attachment. `scripts/capture-screenshots.sh` extracts the PNGs from the resulting `.xcresult`.
+/// Drives the real app to produce App Store screenshots at the connected simulator's native resolution (run on iPhone 17 Pro Max for Apple's required 6.9" / 1320x2868). Signs in with a Clerk dev test email (`+clerk_test`, fixed code `424242`, no real inbox, same path as `ClerkEmailAuthE2ETests`), walks the one-time consent + onboarding gates, then tours the tabs plus the Stats and More sub-screens, capturing each as a `.keepAlways` attachment. `scripts/capture-screenshots.sh` extracts the PNGs from the resulting `.xcresult`.
 ///
-/// Must run SIGNED (Clerk needs a keychain) and against the dev backend (Debug config). Microphone/location are pre-granted by the capture script via `simctl privacy`, with an interruption monitor as a fallback.
+/// Must run SIGNED (Clerk needs a keychain) and against the dev backend (Debug config). Microphone/location are pre-granted by the capture script via `simctl privacy`, with an interruption monitor as a fallback. The signed-in account is seeded with real data so Stats/Mistakes/Phrases/CEFR render populated.
 final class ScreenshotCaptureTests: XCTestCase {
     override func setUp() {
         continueAfterFailure = false
@@ -11,7 +11,6 @@ final class ScreenshotCaptureTests: XCTestCase {
     @MainActor
     func testCaptureAppStoreScreenshots() {
         let app = XCUIApplication()
-        // Tip-of-the-hat fallback if a permission dialog still appears despite the pre-grant.
         addUIInterruptionMonitor(withDescription: "system-permission") { alert in
             for label in ["Allow", "Allow While Using App", "OK"] {
                 let button = alert.buttons[label]
@@ -28,46 +27,34 @@ final class ScreenshotCaptureTests: XCTestCase {
         passConsentIfPresent(app)
         passOnboardingIfPresent(app)
 
-        // Persona picker — rich (presets always populated), so it's a reliable hero among the three.
+        // Filename prefix (NN-) is the App Store display order; capture order below is just what's convenient.
         tapTab(app, "Persona")
         capture(app, name: "02-persona")
 
+        tapTab(app, "Topics")
+        capture(app, name: "04-topics")
+
         tapTab(app, "Stats")
         capture(app, name: "03-stats")
+        captureSubScreen(app, row: "Frequent mistakes", name: "05-mistakes")
+        captureSubScreen(app, row: "Frequent phrases", name: "06-phrases")
+        captureSubScreen(app, row: "CEFR detail", name: "07-cefr")
+
+        // Dropped for now: Profile (KG store not seeded + shows the test email), Subscription (IAPs still in review), Past conversations (titles are raw session ids until per-session summaries ship).
 
         captureTalkLive(app)
-    }
-
-    @MainActor
-    private func captureTalkLive(_ app: XCUIApplication) {
-        // Talk last: returning to it starts a fresh session (leaving the tab ends the prior one).
-        tapTab(app, "Talk")
-        // Captions are off by default (voice-first); turn them on so the AI's opening turn is visible text in the shot.
-        let cc = app.buttons["CC"]
-        if cc.waitForExistence(timeout: 5) { cc.tap() }
-        // Wait out cold start: the AI opens the conversation on its own, so once "Loading your tutor..." clears, a transcript follows shortly.
-        let loading = app.staticTexts["Loading your tutor..."]
-        let deadline = Date().addingTimeInterval(60)
-        while loading.exists, Date() < deadline {
-            _ = loading.waitForNonExistence(timeout: 5)
-        }
-        // Give the AI a beat to speak its opening sentence so captions have content. The app runs in its own process, so blocking the test process here doesn't freeze the UI being captured.
-        Thread.sleep(forTimeInterval: 7)
-        capture(app, name: "01-talk")
     }
 
     // MARK: - Steps
 
     @MainActor
     private func signIn(_ app: XCUIApplication) {
-        // A persisted Clerk session means the app can launch past sign-in straight to consent/onboarding/main; only drive sign-in when its screen actually shows.
         let email = app.textFields["Email"]
         guard email.waitForExistence(timeout: 20) else { return }
         email.tap()
-        // Fixed Clerk dev test email → a STABLE backend user across runs, so its data (mirrored from the founder's dev account) survives the app uninstall the capture script does for a clean local state.
+        // Fixed Clerk dev test email -> a STABLE backend user across runs, so its seeded data survives the app uninstall the capture script does for a clean local state.
         email.typeText("pt_shots+clerk_test@gitauto.ai")
         app.buttons["Send email code"].tap()
-
         let code = app.textFields["Verification code"]
         XCTAssertTrue(code.waitForExistence(timeout: 30), "code field never appeared")
         code.tap()
@@ -77,7 +64,6 @@ final class ScreenshotCaptureTests: XCTestCase {
 
     @MainActor
     private func passConsentIfPresent(_ app: XCUIApplication) {
-        // Toggles default ON; just accept. Consent's Continue and onboarding's Continue share a label, so key off the consent-only toggle first.
         let consentToggle = app.switches["Personalize my experience"]
         if consentToggle.waitForExistence(timeout: 20) {
             app.buttons["Continue"].tap()
@@ -86,15 +72,12 @@ final class ScreenshotCaptureTests: XCTestCase {
 
     @MainActor
     private func passOnboardingIfPresent(_ app: XCUIApplication) {
-        // Wizard: native -> target -> accents. Each step needs >=1 selection to enable the primary button.
         guard app.staticTexts["What's your native language?"].waitForExistence(timeout: 20) else { return }
         selectFirstChoice(app)
         app.buttons["Continue"].tap()
-
         _ = app.staticTexts["What do you want to learn?"].waitForExistence(timeout: 10)
         selectFirstChoice(app)
         app.buttons["Continue"].tap()
-
         _ = app.staticTexts["Which accents?"].waitForExistence(timeout: 10)
         if app.buttons["Select all"].waitForExistence(timeout: 5) {
             app.buttons["Select all"].tap()
@@ -104,11 +87,26 @@ final class ScreenshotCaptureTests: XCTestCase {
         app.buttons["Get started"].tap()
     }
 
+    @MainActor
+    private func captureTalkLive(_ app: XCUIApplication) {
+        tapTab(app, "Talk")
+        let cc = app.buttons["CC"]
+        if cc.waitForExistence(timeout: 5) { cc.tap() }
+        let loading = app.staticTexts["Loading your tutor..."]
+        let deadline = Date().addingTimeInterval(60)
+        while loading.exists, Date() < deadline {
+            _ = loading.waitForNonExistence(timeout: 5)
+        }
+        // Let the AI speak its opening sentence so captions have content. The app runs in its own process, so blocking the test process doesn't freeze the captured UI.
+        Thread.sleep(forTimeInterval: 7)
+        capture(app, name: "01-talk")
+    }
+
     // MARK: - Helpers
 
     @MainActor
     private func selectFirstChoice(_ app: XCUIApplication) {
-        // ChoiceList rows are .onTapGesture HStacks (not buttons), so the addressable element is the row's text; the choices live inside the ScrollView while the step title/why sit outside it.
+        // ChoiceList rows are .onTapGesture HStacks (not buttons); the addressable element is the row's text inside the ScrollView.
         let firstChoice = app.scrollViews.staticTexts.element(boundBy: 0)
         if firstChoice.waitForExistence(timeout: 8) {
             firstChoice.tap()
@@ -120,8 +118,21 @@ final class ScreenshotCaptureTests: XCTestCase {
         let tab = app.tabBars.buttons[label]
         XCTAssertTrue(tab.waitForExistence(timeout: 30), "tab \(label) never appeared")
         tab.tap()
-        // Let the tab's content settle before the shot.
-        _ = app.wait(for: .runningForeground, timeout: 2)
+        Thread.sleep(forTimeInterval: 1.5)
+    }
+
+    @MainActor
+    private func captureSubScreen(_ app: XCUIApplication, row: String, name: String) {
+        // Push a NavigationLink row by its label, capture, then pop via the nav bar back button.
+        let link = app.buttons[row]
+        guard link.waitForExistence(timeout: 10) else { return }
+        link.tap()
+        // Detail screens fetch over the network; wait long enough that data lands before the shot (1.5s caught the empty state).
+        Thread.sleep(forTimeInterval: 4.5)
+        capture(app, name: name)
+        let back = app.navigationBars.buttons.element(boundBy: 0)
+        if back.exists { back.tap() }
+        Thread.sleep(forTimeInterval: 0.8)
     }
 
     @MainActor

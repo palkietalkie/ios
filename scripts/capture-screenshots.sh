@@ -48,13 +48,22 @@ xcrun simctl uninstall "$SIM" "$BUNDLE_ID" 2>/dev/null || true
 xcrun simctl install "$SIM" "$APP"
 xcrun simctl privacy "$SIM" grant all "$BUNDLE_ID" 2>/dev/null || true
 
-echo "[shots] run UI test ..."
+echo "[shots] run UI test (recording video) ..."
 rm -rf "$RESULT"
+# Record the sim screen during the test; the App Preview is trimmed from this raw capture afterward.
+VIDEO="$DERIVED/preview-raw.mov"
+rm -f "$VIDEO"
+xcrun simctl io "$SIM" recordVideo --codec h264 --force "$VIDEO" &
+REC_PID=$!
 xcodebuild test-without-building \
 	-project PalkieTalkie.xcodeproj -scheme Screenshots \
 	-configuration Debug -destination "$DEST" \
 	-derivedDataPath "$DERIVED" -resultBundlePath "$RESULT" \
 	-allowProvisioningUpdates -quiet
+# SIGINT lets simctl finalize the .mov; without it the file is truncated/unplayable.
+kill -INT "$REC_PID" 2>/dev/null || true
+wait "$REC_PID" 2>/dev/null || true
+echo "[shots] raw video at $VIDEO"
 
 echo "[shots] extract PNGs ..."
 rm -rf "$SHOTS"
