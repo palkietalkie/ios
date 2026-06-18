@@ -16,6 +16,8 @@ API_OPENAPI_URL="https://palkietalkie-api-dev.fly.dev/openapi.json"
 API_TYPES="$REPO/PalkieTalkie/Generated/APITypes.swift"
 API_TMP="$(mktemp -t APITypes).swift"
 if uv run "$REPO/scripts/generate_api_types.py" --url "$API_OPENAPI_URL" --out "$API_TMP" >/dev/null 2>&1; then
+	# The committed file is the generator output AFTER swiftformat (the pre-commit hook formats it). Format the freshly-generated temp the same way before diffing, or formatting-only differences would false-fail this gate forever.
+	command -v swiftformat >/dev/null 2>&1 && swiftformat --quiet "$API_TMP" >/dev/null 2>&1 || true
 	if ! diff -q "$API_TMP" "$API_TYPES" >/dev/null 2>&1; then
 		echo "[pre-push] Generated/APITypes.swift is stale vs the backend OpenAPI." >&2
 		echo "[pre-push] Regenerate: uv run scripts/generate_api_types.py --url $API_OPENAPI_URL" >&2
