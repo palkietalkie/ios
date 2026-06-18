@@ -12,11 +12,10 @@ final class PrivacyDataViewTests: XCTestCase {
         XCTAssertEqual(toggles.count, 2)
     }
 
-    /// Three NavigationLinks for the destructive/export actions exist. They're placeholders ("Coming soon") today, but the entries must be there so users see Privacy & Data is the destination for delete/export.
-    func testThreeNavigationLinksForDataActionsExist() throws {
+    /// A functional "Delete my account" button exists (App Store Guideline 5.1.1(v) requires in-app account deletion). The earlier non-functional "Coming soon" history/export rows were removed — shipping placeholder screens risks review rejection.
+    func testDeleteAccountButtonExists() throws {
         let sut = PrivacyDataView()
-        let labels = try sut.inspect().findAll(ViewType.NavigationLink.self)
-        XCTAssertGreaterThanOrEqual(labels.count, 3)
+        XCTAssertNoThrow(try sut.inspect().find(button: "Delete my account"))
     }
 
     /// Both toggles start at false because the .task hasn't fired yet in the inspected tree. The actual default is "load from server on first appear". Locking the pre-load state so a refactor that pre-pops them with `true` doesn't silently fake server state.

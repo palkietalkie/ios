@@ -89,6 +89,15 @@ final class BackendEndpointsTests: XCTestCase {
         XCTAssertEqual(transport.lastRequest?.url?.path, "/personas/p1")
     }
 
+    func testDeleteAccountDELETE() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data("{}".utf8)
+        let api = makeAPI(transport: transport)
+        try await api.deleteAccount()
+        XCTAssertEqual(transport.lastRequest?.httpMethod, "DELETE")
+        XCTAssertEqual(transport.lastRequest?.url?.path, "/account")
+    }
+
     func testLikeAndUnlikePersona() async throws {
         let transport = FakeTransport()
         transport.responseData = Data("{}".utf8)
@@ -170,7 +179,7 @@ final class BackendEndpointsTests: XCTestCase {
     func testGetStats() async throws {
         let transport = FakeTransport()
         let raw = """
-        {"day_streak":3,"session_total_seconds":120,"sessions_count":1,"unique_words":50,"unique_phrases":4,"user_talk_pct":null,"speaking_rate_wpm":null,"pitch_range_hz":null,"cefr_coverage":[]}
+        {"day_streak":3,"session_total_seconds":120,"sessions_count":1,"unique_words":50,"unique_phrases":4,"user_talk_pct":null,"speaking_rate_wpm":null,"pitch_min_hz":null,"pitch_max_hz":null,"affinity":42,"cefr_coverage":[]}
         """
         transport.responseData = Data(raw.utf8)
         let api = makeAPI(transport: transport)
@@ -178,6 +187,7 @@ final class BackendEndpointsTests: XCTestCase {
         XCTAssertEqual(stats.dayStreak, 3)
         XCTAssertEqual(stats.sessionsCount, 1)
         XCTAssertNil(stats.userTalkPct)
+        XCTAssertEqual(stats.affinity, 42)
     }
 
     func testGetMistakesPhrasesCEFR() async throws {

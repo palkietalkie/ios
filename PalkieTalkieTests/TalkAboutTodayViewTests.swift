@@ -13,7 +13,7 @@ final class TalkAboutTodayViewTests: XCTestCase {
     /// Hosts TalkAboutTodayView with canned content so every topic header branch + the load-success path runs, then asserts the load-success path persisted exactly the sections the cards rendered from (in order). The `buildCard` / `resolveHeaderKey` / `buildImageBackground` builders all consume this same loaded `sections` array, so a regression that drops or reorders sections on load surfaces here.
     func testHostsWithLoadedContent() async throws {
         let transport = FakeTransport()
-        let dto = DailyContentDTO(
+        let dto = DailyContentResponse(
             day: "2026-06-08",
             sections: [
                 .init(

@@ -77,7 +77,7 @@ struct StatsView: View {
             metricCard(.talkShare, value: formatPct(stats?.userTalkPct), unit: "vs AI")
             metricCard(.speakingRate, value: formatWpm(stats?.speakingRateWpm), unit: "wpm")
             metricCard(.pitchRange, value: formatPitchRange(stats?.pitchMinHz, stats?.pitchMaxHz), unit: "Hz")
-            metricCard(.affinity, value: stats.map { "\($0.affinity ?? 0)" } ?? "-", unit: "moments")
+            metricCard(.affinity, value: stats.map { "\($0.affinity)" } ?? "-", unit: "/ 100")
             Color.clear.frame(height: 0)
         }
     }

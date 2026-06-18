@@ -30,6 +30,11 @@ extension BackendAPI {
         try await get("/conversation/sessions?limit=\(limit)")
     }
 
+    /// Soft-delete the signed-in account. Backend stamps deleted_at and rejects all further requests for this user; the caller signs out afterward. Counts are preserved server-side (the row is retained).
+    func deleteAccount() async throws {
+        let _: EmptyResponse = try await delete("/account")
+    }
+
     func endConversation(sessionId: String) async throws -> EndResponse {
         struct Empty: Codable {}
         return try await post("/conversation/\(sessionId)/end", body: Empty())
@@ -120,7 +125,7 @@ extension BackendAPI {
     }
 
     func getTalkAboutToday() async throws -> [TalkSection] {
-        let payload: DailyContentDTO = try await get("/content/today")
+        let payload: DailyContentResponse = try await get("/content/today")
         return payload.sections.map { raw in
             let items = raw.items.enumerated().map { idx, item in
                 TalkItem(

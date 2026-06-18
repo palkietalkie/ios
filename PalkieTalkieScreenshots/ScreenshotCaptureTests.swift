@@ -21,6 +21,8 @@ final class ScreenshotCaptureTests: XCTestCase {
             }
             return false
         }
+        // Pin the persona via NSUserDefaults' argument domain (a `-key value` launch arg overrides the persisted key). Talk is the default tab, so the app auto-starts a session on launch using `lastSelectedPersonaId`; without this it picks the first preset ("A man"), which then tops the History list and headlines the Talk-live shot. Pinning the badminton coach makes the auto-started session, the History top row, and the Talk-live capture all show a real persona.
+        app.launchArguments += ["-lastSelectedPersonaId", "5d237e71-c5f3-53fb-80f9-e234a819b7d7"]
         app.launch()
 
         signIn(app)
@@ -40,7 +42,10 @@ final class ScreenshotCaptureTests: XCTestCase {
         captureSubScreen(app, row: "Frequent phrases", name: "06-phrases")
         captureSubScreen(app, row: "CEFR detail", name: "07-cefr")
 
-        // Dropped for now: Profile (KG store not seeded + shows the test email), Subscription (IAPs still in review), Past conversations (titles are raw session ids until per-session summaries ship).
+        tapTab(app, "More")
+        captureSubScreen(app, row: "Profile", name: "08-profile")
+        // Subscription screen deliberately skipped: shows "Upgrades not available yet" until the IAPs clear review.
+        captureSubScreen(app, row: "Past conversations", name: "09-history")
 
         captureTalkLive(app)
     }

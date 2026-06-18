@@ -12,7 +12,7 @@ struct HistoryView: View {
         NavigationStack {
             List(sessions) { session in
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(session.personaId ?? "Unknown persona").font(.headline)
+                    Text(session.personaName ?? "Conversation").font(.headline)
                     HStack {
                         Text(session.startedAt, style: .date)
                         Text(session.startedAt, style: .time)

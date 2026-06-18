@@ -29,6 +29,7 @@ final class PersonaCustomizeViewTests: XCTestCase {
             isOwner: true,
             likeCount: 0,
             likedByMe: false,
+            sortWeight: nil,
         )
         let sut = PersonaCustomizeView(persona: existing)
         XCTAssertNoThrow(try sut.inspect())

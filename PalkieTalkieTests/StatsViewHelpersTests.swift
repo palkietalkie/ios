@@ -100,7 +100,7 @@ final class StatsViewHelpersTests: XCTestCase {
             dayStreak: 1, sessionTotalSeconds: 60, sessionsCount: 1,
             uniqueWords: 10, uniquePhrases: 1,
             userTalkPct: nil, speakingRateWpm: nil, pitchMinHz: nil, pitchMaxHz: nil,
-            affinity: nil,
+            affinity: 0,
             cefrCoverage: [],
         )
         transport.responseData = try BackendAPI.encoder.encode(stats)
