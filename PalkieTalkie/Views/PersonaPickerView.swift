@@ -12,6 +12,7 @@ struct PersonaPickerView: View {
     @State private var searchText: String = ""
     @State private var sort: SortOption = .recommended
     @State private var showCreate: Bool = false
+    @State private var reportConfirmId: String?
 
     enum SortOption: String, CaseIterable, Identifiable {
         case recommended
@@ -75,6 +76,18 @@ struct PersonaPickerView: View {
         } message: {
             Text(loadError ?? "")
         }
+        .confirmationDialog(
+            "Report this persona?",
+            isPresented: Binding(get: { reportConfirmId != nil }, set: { if !$0 { reportConfirmId = nil } }),
+            titleVisibility: .visible,
+        ) {
+            Button("Report", role: .destructive) {
+                if let id = reportConfirmId { Task { await report(id) } }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("It disappears from your list. If enough people report it, it's hidden for everyone.")
+        }
     }
 
     private func row(_ persona: PersonaDTO) -> some View {
@@ -84,6 +97,23 @@ struct PersonaPickerView: View {
             likeColumn(persona)
         }
         .padding(.vertical, 4)
+        .contextMenu { reportMenu(persona) }
+    }
+
+    /// Only community content is reportable — presets are first-party, your own you can just delete.
+    static func isReportable(_ persona: PersonaDTO) -> Bool {
+        !persona.isPreset && !persona.isOwner && persona.isPublic
+    }
+
+    @ViewBuilder
+    private func reportMenu(_ persona: PersonaDTO) -> some View {
+        if Self.isReportable(persona) {
+            Button(role: .destructive) {
+                reportConfirmId = persona.id
+            } label: {
+                Label("Report", systemImage: "flag")
+            }
+        }
     }
 
     private func personaSummary(_ persona: PersonaDTO) -> some View {
@@ -170,6 +200,16 @@ struct PersonaPickerView: View {
             } else {
                 try await api.likePersona(id: persona.id)
             }
+            await refresh()
+        } catch {
+            loadError = error.localizedDescription
+        }
+    }
+
+    private func report(_ id: String) async {
+        do {
+            try await api.reportPersona(id: id)
+            // Backend now excludes personas this user reported, so a refresh drops it from the list.
             await refresh()
         } catch {
             loadError = error.localizedDescription

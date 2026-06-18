@@ -84,6 +84,11 @@ extension BackendAPI {
         let _: EmptyResponse = try await delete("/personas/\(id)/like")
     }
 
+    func reportPersona(id: String) async throws {
+        struct Empty: Codable {}
+        let _: EmptyResponse = try await post("/personas/\(id)/report", body: Empty())
+    }
+
     func getVoices() async throws -> [VoiceDTO] {
         try await get("/voices")
     }

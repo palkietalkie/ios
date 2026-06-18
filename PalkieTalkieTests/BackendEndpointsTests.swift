@@ -112,6 +112,16 @@ final class BackendEndpointsTests: XCTestCase {
         XCTAssertEqual(transport.lastRequest?.url?.path, "/personas/p1/like")
     }
 
+    func testReportPersonaPOST() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data("{}".utf8)
+        let api = makeAPI(transport: transport)
+
+        try await api.reportPersona(id: "p1")
+        XCTAssertEqual(transport.lastRequest?.httpMethod, "POST")
+        XCTAssertEqual(transport.lastRequest?.url?.path, "/personas/p1/report")
+    }
+
     // MARK: - Voices / languages / options
 
     func testGetVoices() async throws {
