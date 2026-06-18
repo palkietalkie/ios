@@ -101,7 +101,8 @@ final class ViewSuccessPathTests: XCTestCase {
         let sessions = [
             SessionSummary(
                 sessionId: "s1",
-                personaId: "Lila",
+                personaId: nil,
+                personaName: "Lila",
                 startedAt: Date(),
                 endedAt: Date().addingTimeInterval(180),
                 durationSeconds: 180,
@@ -109,6 +110,7 @@ final class ViewSuccessPathTests: XCTestCase {
             SessionSummary(
                 sessionId: "s2",
                 personaId: nil,
+                personaName: nil,
                 startedAt: Date(),
                 endedAt: nil,
                 durationSeconds: nil,
@@ -304,7 +306,7 @@ final class ViewSuccessPathTests: XCTestCase {
 
     func testTalkAboutTodayViewLoadedSuccessPath() async {
         let transport = FakeTransport()
-        // The endpoint returns a DailyContentDTO; getTalkAboutToday transforms it into [TalkSection].
+        // The endpoint returns a DailyContentResponse; getTalkAboutToday transforms it into [TalkSection].
         let raw = """
         {
             "day": "2026-06-05",

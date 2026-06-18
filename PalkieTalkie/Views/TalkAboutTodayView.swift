@@ -15,6 +15,11 @@ struct TalkAboutTodayView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    // In-content header (not navigationTitle) so the long title wraps to multiple lines instead of truncating; nav-bar titles are always single-line.
+                    Text("What should we talk about today?")
+                        .font(.largeTitle.bold())
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal)
                     ForEach(sections) { section in
                         VStack(alignment: .leading, spacing: 8) {
                             Text(resolveHeaderKey(for: section.topic))
@@ -34,7 +39,7 @@ struct TalkAboutTodayView: View {
                 }
                 .padding(.vertical)
             }
-            .navigationTitle("What should we talk about today?")
+            .navigationBarTitleDisplayMode(.inline)
             .refreshable { await load() }
             .overlay {
                 if isLoading, sections.isEmpty { ProgressView() }

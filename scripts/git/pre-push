@@ -10,6 +10,26 @@ bash "$REPO/scripts/ci/check_test_pair.sh" origin/main
 echo "[pre-push] swift file-name PascalCase guard..."
 bash "$REPO/scripts/ci/check_swift_pascal_case.sh"
 
+# API-types drift gate: the committed Generated/APITypes.swift must match what the backend's live OpenAPI produces, so a backend field change that iOS didn't regenerate for can't ship a silently-broken decode. Generate from the dev backend (always up) into a temp file and diff. Network-unreachable is a warn-skip, not a block — a flaky network shouldn't wedge a push.
+echo "[pre-push] API-types codegen drift gate..."
+API_OPENAPI_URL="https://palkietalkie-api-dev.fly.dev/openapi.json"
+API_TYPES="$REPO/PalkieTalkie/Generated/APITypes.swift"
+API_TMP="$(mktemp -t APITypes).swift"
+if uv run "$REPO/scripts/generate_api_types.py" --url "$API_OPENAPI_URL" --out "$API_TMP" >/dev/null 2>&1; then
+	# The committed file is the generator output AFTER swiftformat (the pre-commit hook formats it). Format the freshly-generated temp the same way before diffing, or formatting-only differences would false-fail this gate forever.
+	command -v swiftformat >/dev/null 2>&1 && swiftformat --quiet "$API_TMP" >/dev/null 2>&1 || true
+	if ! diff -q "$API_TMP" "$API_TYPES" >/dev/null 2>&1; then
+		echo "[pre-push] Generated/APITypes.swift is stale vs the backend OpenAPI." >&2
+		echo "[pre-push] Regenerate: uv run scripts/generate_api_types.py --url $API_OPENAPI_URL" >&2
+		rm -f "$API_TMP"
+		exit 1
+	fi
+	rm -f "$API_TMP"
+else
+	echo "[pre-push] WARN: couldn't reach $API_OPENAPI_URL — skipping API-types drift gate" >&2
+	rm -f "$API_TMP"
+fi
+
 # Branch-level test run + 90 percent line-coverage gate (CI parity). The simulator boot + xctest run is too slow for per-commit.
 cd "$REPO"
 echo "[pre-push] xcodebuild test + 90 percent line-coverage gate..."

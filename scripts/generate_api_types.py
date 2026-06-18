@@ -8,7 +8,7 @@
 Output: ``PalkieTalkie/Generated/APITypes.swift`` — one struct per Pydantic component schema.
 Naming: keeps the backend's PascalCase ComponentName; ``snake_case`` fields become camelCase with explicit CodingKeys.
 
-Run after changing a backend router; the pre-commit hook re-runs this and fails on drift.
+Run after changing a backend router; the pre-push hook re-runs this against the dev backend and fails on drift.
 Override the source with ``--url`` (default ``http://localhost:8000/openapi.json``).
 """
 
@@ -42,12 +42,15 @@ def sanitize_struct_name(name: str) -> str:
 def python_to_swift(prop: dict[str, Any], required: bool) -> str:
     """Map an OpenAPI property dict to a Swift type expression."""
     if "anyOf" in prop:
+        # A field is Optional if it's not required OR its union includes null (required-but-nullable, e.g. `x: T | None` with no default — the key is present but the value can be null, so Swift must allow nil).
+        has_null = any(t.get("type") == "null" for t in prop["anyOf"])
+        optional = has_null or not required
         types = [t for t in prop["anyOf"] if t.get("type") != "null"]
         if len(types) == 1:
             inner = python_to_swift(types[0], True)
-            return inner if required else inner + "?"
+            return inner + "?" if optional else inner
         # Fallback for multi-variant unions — surface as String for now and refine when needed.
-        return "String?" if not required else "String"
+        return "String?" if optional else "String"
     if "$ref" in prop:
         ref_name = prop["$ref"].rsplit("/", 1)[-1]
         return sanitize_struct_name(ref_name) + ("" if required else "?")
@@ -57,8 +60,7 @@ def python_to_swift(prop: dict[str, Any], required: bool) -> str:
         base = "String"
         if fmt == "date-time":
             base = "Date"
-        elif fmt == "uuid":
-            base = "UUID"
+        # uuid stays String, not Swift's UUID: the app models every id as an opaque String (URL path segments, UserDefaults, persona-id comparisons), and JSON encodes a uuid as a string either way, so mapping to UUID would only force .uuidString conversions at every call site for no decode benefit.
     elif schema_type == "integer":
         base = "Int"
     elif schema_type == "number":
@@ -79,20 +81,12 @@ def python_to_swift(prop: dict[str, Any], required: bool) -> str:
 def emit_struct(name: str, schema: dict[str, Any]) -> list[str]:
     props: dict[str, Any] = schema.get("properties", {})
     required: set[str] = set(schema.get("required", []))
-    lines = [f"public struct {name}: Codable, Sendable {{"]
-    coding_keys: list[tuple[str, str]] = []
+    lines = [f"struct {name}: Codable, Sendable {{"]
+    # No CodingKeys: the app's JSONCoder uses the global convertFromSnakeCase / convertToSnakeCase strategy, which maps snake_case JSON keys to these camelCase fields. Emitting explicit snake_case CodingKeys would double-convert (the strategy transforms the JSON key first, then fails to match the snake_case raw value), silently dropping every multi-word field. `snake_to_camel` here applies the same rule the strategy does, so the field names line up by construction.
     for raw_name, prop in props.items():
         swift_name = snake_to_camel(raw_name)
         swift_type = python_to_swift(prop, raw_name in required)
-        lines.append(f"    public let {swift_name}: {swift_type}")
-        if swift_name != raw_name:
-            coding_keys.append((swift_name, raw_name))
-    if coding_keys:
-        lines.append("")
-        lines.append("    enum CodingKeys: String, CodingKey {")
-        for swift_name, raw_name in coding_keys:
-            lines.append(f'        case {swift_name} = "{raw_name}"')
-        lines.append("    }")
+        lines.append(f"    let {swift_name}: {swift_type}")
     lines.append("}")
     return lines
 

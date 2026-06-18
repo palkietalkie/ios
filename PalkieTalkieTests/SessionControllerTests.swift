@@ -52,6 +52,7 @@ actor FakeConversationBackend: ConversationBackend {
                 isOwner: false,
                 likeCount: 0,
                 likedByMe: false,
+                sortWeight: nil,
             ),
         ],
     ) {

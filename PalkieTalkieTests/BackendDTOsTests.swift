@@ -50,6 +50,7 @@ final class BackendDTOsTests: XCTestCase {
         let summary = SessionSummary(
             sessionId: "abc",
             personaId: nil,
+            personaName: nil,
             startedAt: Date(),
             endedAt: nil,
             durationSeconds: nil,

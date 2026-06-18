@@ -27,7 +27,8 @@ final class HistoryViewTests: XCTestCase {
     func testSeededCacheRendersPersonaAndDurationFormat() throws {
         let cached = SessionSummary(
             sessionId: UUID().uuidString,
-            personaId: "Sharp prosecutor",
+            personaId: nil,
+            personaName: "Sharp prosecutor",
             startedAt: Date(timeIntervalSince1970: 1_700_000_000),
             endedAt: nil,
             durationSeconds: 75,
@@ -47,12 +48,16 @@ final class HistoryViewTests: XCTestCase {
         let sessions = [
             SessionSummary(
                 sessionId: "s1",
-                personaId: "Coach A",
+                personaId: nil,
+                personaName: "Coach A",
                 startedAt: Date(),
                 endedAt: nil,
                 durationSeconds: 125,
             ),
-            SessionSummary(sessionId: "s2", personaId: nil, startedAt: Date(), endedAt: nil, durationSeconds: nil),
+            SessionSummary(
+                sessionId: "s2", personaId: nil, personaName: nil,
+                startedAt: Date(), endedAt: nil, durationSeconds: nil,
+            ),
         ]
         transport.responseData = try BackendAPI.encoder.encode(sessions)
         let api = try BackendAPI(
@@ -76,11 +81,12 @@ final class HistoryViewTests: XCTestCase {
         await TestHosting.host(HistoryView().environment(\.backendAPI, api), settleMs: 500)
     }
 
-    /// Missing personaId falls back to "Unknown persona" — never empty. Empty heading would create a row with only the date underneath, which looks broken.
-    func testNilPersonaIdFallsBackToUnknownPersona() throws {
+    /// Missing personaName falls back to "Conversation" — never empty. An empty heading would create a row with only the date underneath, which looks broken.
+    func testNilPersonaNameFallsBackToConversation() throws {
         let cached = SessionSummary(
             sessionId: UUID().uuidString,
             personaId: nil,
+            personaName: nil,
             startedAt: Date(timeIntervalSince1970: 1_700_000_000),
             endedAt: nil,
             durationSeconds: 30,
@@ -90,14 +96,15 @@ final class HistoryViewTests: XCTestCase {
 
         let sut = HistoryView()
         let texts = try sut.inspect().findAll(ViewType.Text.self).compactMap { try? $0.string() }
-        XCTAssertTrue(texts.contains("Unknown persona"))
+        XCTAssertTrue(texts.contains("Conversation"))
     }
 
     /// Sub-minute duration formats as "0m Ns" via `Text(verbatim:)` (a pure computed value, kept out of the String Catalog). Pins the minutes-zero case so the verbatim format string can't regress to a bare second count.
     func testSubMinuteDurationFormatsWithZeroMinutes() throws {
         let cached = SessionSummary(
             sessionId: UUID().uuidString,
-            personaId: "Coach B",
+            personaId: nil,
+            personaName: "Coach B",
             startedAt: Date(timeIntervalSince1970: 1_700_000_000),
             endedAt: nil,
             durationSeconds: 42,

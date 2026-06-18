@@ -31,6 +31,24 @@ final class StatsViewHelpersTests: XCTestCase {
         XCTAssertEqual(MetricInfo.cefr.id, "cefr")
     }
 
+    func testMetricComputationsReadInPlainLanguage() {
+        let metrics: [MetricInfo] = [
+            .minutes, .sessions, .uniqueWords, .uniquePhrases,
+            .talkShare, .speakingRate, .pitchRange, .cefr,
+        ]
+        // `computation` is shown to the user, so it must never leak implementation terms (DB tables, "NLP pipeline", lemmatization) — the phrasing the plain-language pass replaced.
+        let internalTerms = ["conversation_sessions", "transcript", "NLP", "lemmati", "pipeline"]
+        for m in metrics {
+            guard let computation = m.computation else { continue }
+            for term in internalTerms {
+                XCTAssertFalse(
+                    computation.localizedCaseInsensitiveContains(term),
+                    "\(m.id) computation leaks internal term '\(term)': \(computation)",
+                )
+            }
+        }
+    }
+
     func testMetricExplainerSheetBodyForEveryMetric() {
         for info in [
             MetricInfo.minutes,
@@ -82,7 +100,7 @@ final class StatsViewHelpersTests: XCTestCase {
             dayStreak: 1, sessionTotalSeconds: 60, sessionsCount: 1,
             uniqueWords: 10, uniquePhrases: 1,
             userTalkPct: nil, speakingRateWpm: nil, pitchMinHz: nil, pitchMaxHz: nil,
-            affinity: nil,
+            affinity: 0,
             cefrCoverage: [],
         )
         transport.responseData = try BackendAPI.encoder.encode(stats)

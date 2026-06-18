@@ -3,11 +3,14 @@ import SwiftUI
 @MainActor
 struct PrivacyDataView: View {
     @Environment(\.backendAPI) private var api
+    @Environment(\.authing) private var auth
     @State private var personalization: Bool = false
     @State private var productImprovement: Bool = false
     @State private var loaded: Bool = false
     @State private var saving: Bool = false
     @State private var error: String?
+    @State private var confirmingDelete = false
+    @State private var deleting = false
 
     var body: some View {
         Form {
@@ -28,15 +31,12 @@ struct PrivacyDataView: View {
                 )
             }
             Section {
-                NavigationLink("Delete my conversation history") {
-                    Text("Coming soon.").padding()
+                Button("Delete my account", role: .destructive) {
+                    confirmingDelete = true
                 }
-                NavigationLink("Export my data") {
-                    Text("Coming soon.").padding()
-                }
-                NavigationLink("Delete my account") {
-                    Text("Coming soon.").padding()
-                }
+                .disabled(deleting)
+            } footer: {
+                Text("Removes your account and signs you out. This can't be undone.")
             }
         }
         .navigationTitle("Privacy & Data")
@@ -47,6 +47,24 @@ struct PrivacyDataView: View {
             Button("OK") { error = nil }
         } message: {
             Text(error ?? "")
+        }
+        .alert("Delete account?", isPresented: $confirmingDelete) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) { Task { await deleteAccount() } }
+        } message: {
+            Text("This removes your account and signs you out. This can't be undone.")
+        }
+    }
+
+    private func deleteAccount() async {
+        guard !deleting else { return }
+        deleting = true
+        defer { deleting = false }
+        do {
+            try await api.deleteAccount()
+            await auth.signOut()
+        } catch let err {
+            error = err.localizedDescription
         }
     }
 
