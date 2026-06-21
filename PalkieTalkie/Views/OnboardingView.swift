@@ -5,6 +5,7 @@ import SwiftUI
 struct OnboardingView: View {
     let onContinue: () -> Void
     @Environment(\.backendAPI) private var api
+    @Environment(\.authing) private var auth
     @Environment(\.onboardingAnnouncer) private var onboardingAnnouncer
     // Display language is a local UI setting (not a profile field); the step writes here and the root app reads it via `.environment(\.locale, …)`.
     @AppStorage("AppLocale") private var appLocale: String = ""
@@ -22,13 +23,16 @@ struct OnboardingView: View {
             topBar
             stepBody
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                // contentShape on the filled frame so the entire area between top bar and footer is swipeable, even when the step's content is short.
+                .contentShape(Rectangle())
+                .simultaneousGesture(stepSwipe)
             footer
         }
         .background(Color(.systemBackground))
         .task {
             guard !model.didInitialLoad else { return }
             model.didInitialLoad = true
-            await model.load(api: api)
+            await model.load(api: api, auth: auth)
             // onChange doesn't fire for the initial step, so report the first view here.
             await recordStep(model.step, phase: "viewed")
         }
@@ -82,6 +86,20 @@ struct OnboardingView: View {
             ))
     }
 
+    /// Swipe to move between steps (left = next, right = back), mirroring the footer button + back chevron. Applied in `body` to the FULL-height filled area, not here on currentStep — a short step like "You're all set" sizes to its content, so attaching the gesture to currentStep left most of the screen non-swipeable. simultaneousGesture so a step's vertical ChoiceList still scrolls; we only act on a predominantly-horizontal drag, and left-swipe respects stepValid like the Continue button.
+    private var stepSwipe: some Gesture {
+        DragGesture(minimumDistance: 30).onEnded { value in
+            guard abs(value.translation.width) > abs(value.translation.height),
+                  abs(value.translation.width) > 60
+            else { return }
+            if value.translation.width < 0 {
+                if model.stepValid { advance() }
+            } else {
+                goBack()
+            }
+        }
+    }
+
     @ViewBuilder private var currentStep: some View {
         switch model.step {
         case .intro:
@@ -116,6 +134,17 @@ struct OnboardingView: View {
                 ) {
                     appLocale = $0
                 }
+            }
+        case .name:
+            StepScaffold(
+                title: "What should your tutor call you?",
+                why: "Your tutor uses your name in conversation, the way a friend would.",
+            ) {
+                TextField("Your name", text: $model.preferredName)
+                    .textFieldStyle(.roundedBorder)
+                    .textContentType(.givenName)
+                    .submitLabel(.done)
+                    .font(.title3)
             }
         case .native:
             StepScaffold(

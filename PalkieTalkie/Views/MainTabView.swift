@@ -38,5 +38,24 @@ struct MainTabView: View {
             // Leaving Talk makes ConversationView disappear, which ends the session.
             selectedTab = tabBeforeTalk
         }
+        // Swipe left/right to move between tabs (a plain TabView gives the bottom bar but no swipe). simultaneousGesture so a tab's own vertical scroll, a NavigationStack edge-back, and the Topics carousel still work — we only act on a clearly-horizontal drag past a wide threshold.
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 30).onEnded { value in
+                guard abs(value.translation.width) > abs(value.translation.height),
+                      abs(value.translation.width) > 80
+                else { return }
+                switchTab(by: value.translation.width < 0 ? 1 : -1)
+            },
+        )
+    }
+
+    /// Visual left-to-right order of the tabs (matches the tabItem order above, which differs from the AppTab enum's declaration order). Swiping steps through this, clamped at the ends.
+    private static let tabOrder: [AppTab] = [.today, .persona, .talk, .stats, .more]
+
+    private func switchTab(by delta: Int) {
+        guard let i = Self.tabOrder.firstIndex(of: selectedTab) else { return }
+        let next = i + delta
+        guard Self.tabOrder.indices.contains(next) else { return }
+        selectedTab = Self.tabOrder[next]
     }
 }

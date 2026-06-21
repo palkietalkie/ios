@@ -5,6 +5,8 @@ import Observation
 @MainActor
 @Observable
 final class OnboardingViewModel {
+    // Pre-filled from Clerk's name on load (firstName + lastName), editable, required. Without this the conversation prompt has no name to use and the tutor invents one. Defaulting from Clerk honors "never show an empty name field on first open".
+    var preferredName: String = ""
     var languages: [LanguageDTO] = []
     var nativeLanguages: Set<String> = []
     var targetLanguage: String = "English"
@@ -26,13 +28,15 @@ final class OnboardingViewModel {
 
     /// Which wizard step is on screen. Lives here (not as view @State) so the navigation logic is unit-testable without rendering. Order is load-bearing: `displayLanguage` is first so the rest of onboarding renders in the user's chosen UI language; `proficiency`/`speed`/`goals` are mandatory refinements; `getStarted` is a no-input primer shown after the profile saves, warning the user the tutor opens the conversation first so the AI talking unprompted doesn't startle them (a real first-tester reaction).
     enum Step: Int, CaseIterable {
-        case intro, displayLanguage, native, target, accents, proficiency, speed, goals, getStarted
+        case intro, displayLanguage, name, native, target, accents, proficiency, speed, goals,
+             getStarted
 
         /// Stable wire name for the onboarding drop-off feed (sent to /onboarding/announce). Decoupled from the Int rawValue so reordering steps doesn't relabel the funnel.
         var slug: String {
             switch self {
             case .intro: "intro"
             case .displayLanguage: "displayLanguage"
+            case .name: "name"
             case .native: "native"
             case .target: "target"
             case .accents: "accents"
@@ -60,6 +64,7 @@ final class OnboardingViewModel {
         switch step {
         case .intro: true
         case .displayLanguage: true
+        case .name: !trimmedPreferredName.isEmpty
         case .native: !nativeLanguages.isEmpty
         case .target: !targetLanguage.isEmpty
         case .accents: !targetAccents.isEmpty
@@ -129,6 +134,10 @@ final class OnboardingViewModel {
         }
     }
 
+    var trimmedPreferredName: String {
+        preferredName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     var trimmedOtherGoal: String {
         otherGoal.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -166,9 +175,13 @@ final class OnboardingViewModel {
         }
     }
 
-    func load(api: BackendAPI) async {
+    func load(api: BackendAPI, auth: any Authing) async {
         loading = true
         defer { loading = false }
+        // Pre-fill the name from Clerk so the name step opens with the user's real name, not blank. Only when still empty so re-entering onboarding doesn't clobber a manual edit.
+        if trimmedPreferredName.isEmpty, let clerkName = await auth.preferredName {
+            preferredName = clerkName
+        }
         // Surface the failure instead of `try?`-swallowing it into an empty picker the user can't get past.
         do {
             languages = try await api.getLanguages()
@@ -184,7 +197,7 @@ final class OnboardingViewModel {
         saving = true
         defer { saving = false }
         let update = ProfileUpdate(
-            preferredName: nil,
+            preferredName: trimmedPreferredName.isEmpty ? nil : trimmedPreferredName,
             namePronunciation: nil,
             nativeLanguages: Array(nativeLanguages),
             targetLanguage: targetLanguage,

@@ -9,9 +9,15 @@ struct ChoiceList: View {
     var display: (String) -> String = { $0 }
     let onTap: (String) -> Void
 
+    /// Long option lists (goals, languages) make a single column scroll off-screen; switch to two columns past this count so they fit without endless vertical scrolling. Short lists (proficiency, speed) stay one column — two would look sparse and the rows would be needlessly narrow.
+    private var columns: [GridItem] {
+        let count = options.count > 6 ? 2 : 1
+        return Array(repeating: GridItem(.flexible(), spacing: 10), count: count)
+    }
+
     var body: some View {
         ScrollView {
-            VStack(spacing: 10) {
+            LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(options, id: \.self) { option in
                     let selected = isSelected(option)
                     HStack {
@@ -23,6 +29,8 @@ struct ChoiceList: View {
                     }
                     .padding(.vertical, 14)
                     .padding(.horizontal, 16)
+                    // Fill the row's full height before the background so a cell whose label wraps to two lines (e.g. "Norwegian Bokmål") and its single-line neighbor (e.g. "Swedish") render at the same height. In a LazyVGrid the row is as tall as its tallest cell; maxHeight: .infinity makes the shorter cell stretch to match instead of leaving a gap under its background.
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
                             .fill(selected ? Color.accentColor.opacity(0.12) : Color(.secondarySystemBackground)),

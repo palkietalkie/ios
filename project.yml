@@ -74,7 +74,7 @@ targets:
           BACKEND_URL: "https://palkietalkie-api-dev.fly.dev"
           PERSONAPLEX_HOST: "wss://palkietalkie-dev--api.modal.run"
           CLERK_PUBLISHABLE_KEY: "pk_test_Y3V0ZS10aWNrLTQxLmNsZXJrLmFjY291bnRzLmRldiQ"
-          # Distinct home-screen label so a dev install is never mistaken for the prod build (bundle id stays the same — a dev bundle id would break dev's native Apple Sign In, which is registered to com.palkietalkie.app).
+          # Dev shares the Release bundle id for now, so it installs over (not beside) the Release build — only the "PT Dev" label distinguishes them. A separate dev bundle id (com.palkietalkie.app.dev) is the goal, but registering that new App ID needs account credentials that aren't usable mid account-conversion (verified: build fails with "No Account for Team ..." + missing applesignin entitlement on the auto profile). Revisit once the Individual→Org conversion completes.
           APP_DISPLAY_NAME: "PT Dev"
         Release:
           BACKEND_URL: "https://api.palkietalkie.com"

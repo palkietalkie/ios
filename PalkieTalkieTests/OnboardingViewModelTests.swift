@@ -56,9 +56,106 @@ final class OnboardingViewModelTests: XCTestCase {
         ])
         let api = makeAPI(transport)
         let vm = OnboardingViewModel()
-        await vm.load(api: api)
+        await vm.load(api: api, auth: StubAuthing())
         XCTAssertEqual(vm.languages.count, 2)
         XCTAssertFalse(vm.loading)
+    }
+
+    func testLoadPrefillsNameFromClerk() async throws {
+        // The fix for the "Ken" hallucination: onboarding never captured a name, so the prompt had none and the tutor invented one. Load pre-fills from Clerk so the name step opens with the real name.
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode([LanguageDTO(name: "English", accents: ["US"])])
+        let api = makeAPI(transport)
+        let vm = OnboardingViewModel()
+        await vm.load(api: api, auth: StubAuthing(preferredName: "Wes Nishio"))
+        XCTAssertEqual(vm.preferredName, "Wes Nishio")
+    }
+
+    func testLoadDoesNotClobberEditedName() async throws {
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode([LanguageDTO(name: "English", accents: ["US"])])
+        let api = makeAPI(transport)
+        let vm = OnboardingViewModel()
+        vm.preferredName = "Manually Typed"
+        await vm.load(api: api, auth: StubAuthing(preferredName: "Wes Nishio"))
+        XCTAssertEqual(vm.preferredName, "Manually Typed", "an existing edit must survive a reload")
+    }
+
+    func testNameStepRequiresNonBlankName() {
+        let vm = OnboardingViewModel()
+        vm.step = .name
+        XCTAssertFalse(vm.stepValid, "blank name can't advance")
+        vm.preferredName = "   "
+        XCTAssertFalse(vm.stepValid, "whitespace-only name is not a name")
+        vm.preferredName = "Wes"
+        XCTAssertTrue(vm.stepValid)
+    }
+
+    func testSaveSendsPreferredName() async throws {
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode(
+            ProfileDTO(
+                email: nil, preferredName: "Wes", namePronunciation: nil,
+                namePronunciationSuggestion: nil, nativeLanguages: ["Japanese"],
+                targetLanguage: "English", targetAccents: ["US"], proficiency: "intermediate",
+                tutorSpeakingSpeed: "normal", goals: nil, locationCity: nil, timezone: nil,
+            ),
+        )
+        let api = makeAPI(transport)
+        let vm = OnboardingViewModel()
+        vm.preferredName = "  Wes  "
+        await vm.save(api: api)
+        let sent = try decodeProfileUpdate(transport.lastRequest?.httpBody)
+        XCTAssertEqual(sent.preferredName, "Wes", "trimmed name is sent, not nil")
+    }
+
+    func testNameStepSitsBetweenDisplayLanguageAndNative() {
+        // The name step must be wired into the flow in the right place, otherwise the prompt-name gap it fixes reappears.
+        let vm = OnboardingViewModel()
+        vm.step = .displayLanguage
+        vm.advanceStep()
+        XCTAssertEqual(vm.step, .name, "name comes right after display language")
+        vm.preferredName = "Wes"
+        vm.advanceStep()
+        XCTAssertEqual(vm.step, .native, "a valid name advances to native language")
+        vm.goBack()
+        XCTAssertEqual(vm.step, .name, "back from native returns to the name step")
+    }
+
+    func testBlankNameCannotAdvancePastNameStep() {
+        let vm = OnboardingViewModel()
+        vm.step = .name
+        XCTAssertFalse(vm.advanceStep(), "blank name must not advance")
+        XCTAssertEqual(vm.step, .name)
+    }
+
+    func testFullSaveCarriesNameAlongsideEveryField() async throws {
+        // The name must not get dropped when the rest of the profile is present — the bug was preferredName hardcoded to nil in save().
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode(
+            ProfileDTO(
+                email: nil, preferredName: "Wes", namePronunciation: nil,
+                namePronunciationSuggestion: nil, nativeLanguages: ["Japanese"],
+                targetLanguage: "English", targetAccents: ["US"], proficiency: "advanced",
+                tutorSpeakingSpeed: "fast", goals: "travel", locationCity: nil, timezone: nil,
+            ),
+        )
+        let api = makeAPI(transport)
+        let vm = OnboardingViewModel()
+        vm.preferredName = "Wes"
+        vm.nativeLanguages = ["Japanese"]
+        vm.targetAccents = ["US"]
+        vm.proficiency = "advanced"
+        vm.tutorSpeakingSpeed = "fast"
+        vm.practiceOptions = PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: ["travel"])
+        vm.toggleGoal("travel")
+        await vm.save(api: api)
+        let sent = try decodeProfileUpdate(transport.lastRequest?.httpBody)
+        XCTAssertEqual(sent.preferredName, "Wes")
+        XCTAssertEqual(sent.nativeLanguages, ["Japanese"])
+        XCTAssertEqual(sent.proficiency, "advanced")
+        XCTAssertEqual(sent.goals, "travel")
+        XCTAssertTrue(vm.didSaveSuccessfully)
     }
 
     func testLoadFailureSurfacesErrorNotSilentEmpty() async {
@@ -66,7 +163,7 @@ final class OnboardingViewModelTests: XCTestCase {
         transport.responseStatus = 500
         let api = makeAPI(transport)
         let vm = OnboardingViewModel()
-        await vm.load(api: api)
+        await vm.load(api: api, auth: StubAuthing())
         XCTAssertEqual(vm.languages.count, 0)
         XCTAssertFalse(vm.loading)
         // Previously this path `try?`-swallowed the error, leaving the user stuck at an empty picker with no signal. The error must now surface.

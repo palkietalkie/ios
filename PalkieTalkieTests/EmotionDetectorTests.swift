@@ -81,49 +81,48 @@ final class AffinityCountersTests: XCTestCase {
 }
 
 final class EmotionPresentCategoriesTests: XCTestCase {
-    private let threshold = EmotionDetector.confidenceThreshold
+    private let reward = EmotionDetector.rewardConfidenceThreshold
+    private let penalty = EmotionDetector.penaltyConfidenceThreshold
+
+    private func present(_ p: [(String, Double)]) -> Set<AffinityEmotion> {
+        EmotionDetector.presentCategories(in: p, rewardThreshold: reward, penaltyThreshold: penalty)
+    }
 
     func testLabelAboveThresholdIsPresent() {
-        XCTAssertEqual(
-            EmotionDetector.presentCategories(in: [("laughter", 0.9)], threshold: threshold),
-            [.laugh],
-        )
+        XCTAssertEqual(present([("laughter", 0.9)]), [.laugh])
     }
 
     func testLabelBelowThresholdIsIgnored() {
-        XCTAssertTrue(
-            EmotionDetector.presentCategories(in: [("laughter", 0.2)], threshold: threshold).isEmpty,
-        )
+        XCTAssertTrue(present([("laughter", 0.2)]).isEmpty)
     }
 
     func testNonEmotionalTopLabelDoesNotMaskAnEmotionalOne() {
         // "speech" outranks the laugh but maps to no category; the laugh still registers.
-        XCTAssertEqual(
-            EmotionDetector.presentCategories(
-                in: [("speech", 0.95), ("laughter", 0.6)], threshold: threshold,
-            ),
-            [.laugh],
-        )
+        XCTAssertEqual(present([("speech", 0.95), ("laughter", 0.6)]), [.laugh])
     }
 
     func testEveryClearingCategoryIsPresentTogether() {
-        XCTAssertEqual(
-            EmotionDetector.presentCategories(
-                in: [("giggling", 0.7), ("sigh", 0.8), ("typing", 0.99)], threshold: threshold,
-            ),
-            [.laugh, .sigh],
-        )
+        // sigh at 0.85 clears the higher penalty bar; giggling at 0.7 clears the reward bar.
+        XCTAssertEqual(present([("giggling", 0.7), ("sigh", 0.85), ("typing", 0.99)]), [.laugh, .sigh])
     }
 
-    func testNegativeCategoryRegisters() {
-        XCTAssertEqual(
-            EmotionDetector.presentCategories(in: [("groaning", 0.6)], threshold: threshold),
-            [.groan],
-        )
+    func testLowConfidenceNegativeIsIgnored() {
+        // The fix: a 0.6 "groan"/"sigh" cleared the old single 0.45 bar and falsely penalized. Now penalties need the higher bar, so this is dropped.
+        XCTAssertTrue(present([("groaning", 0.6)]).isEmpty)
+        XCTAssertTrue(present([("sigh", 0.6)]).isEmpty)
+    }
+
+    func testHighConfidenceNegativeRegisters() {
+        XCTAssertEqual(present([("groaning", 0.85)]), [.groan])
+    }
+
+    func testRewardAndPenaltyAtSameConfidenceTreatedAsymmetrically() {
+        // At 0.6, the reward counts but the penalty does not — the whole point of the split bar.
+        XCTAssertEqual(present([("laughter", 0.6), ("sigh", 0.6)]), [.laugh])
     }
 
     func testEmptyInputIsEmpty() {
-        XCTAssertTrue(EmotionDetector.presentCategories(in: [], threshold: threshold).isEmpty)
+        XCTAssertTrue(present([]).isEmpty)
     }
 }
 
