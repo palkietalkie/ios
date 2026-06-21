@@ -44,11 +44,13 @@ xcodebuild \
 	-enableCodeCoverage YES \
 	CODE_SIGNING_ALLOWED=NO \
 	test -quiet
-pct=$(xcrun xccov view --report --json /tmp/PalkieTalkiePrePush.xcresult \
-	| python3 -c "import json,sys; d=json.loads(sys.stdin.read()); t=next((x for x in d['targets'] if x['name'].startswith('PalkieTalkie.app') or x['name']=='PalkieTalkie'), None); print(round(t['lineCoverage']*100, 2)) if t else (print('NO_TARGET') or exit(1))")
-echo "[pre-push] line coverage: ${pct}%"
+COV_JSON=$(xcrun xccov view --report --json /tmp/PalkieTalkiePrePush.xcresult)
 rm -rf /tmp/PalkieTalkiePrePush.xcresult
+# On failure, parse_coverage.py --top prints the most-uncovered files to stderr so the gate failure is actionable.
+pct=$(printf '%s' "$COV_JSON" | python3 "$REPO/scripts/ci/parse_coverage.py")
+echo "[pre-push] line coverage: ${pct}%"
 awk "BEGIN {exit !(${pct} >= 90)}" || {
-	echo "[pre-push] line coverage ${pct}% is below the 90% gate" >&2
+	echo "[pre-push] line coverage ${pct}% is below the 90% gate — test these first:" >&2
+	printf '%s' "$COV_JSON" | python3 "$REPO/scripts/ci/parse_coverage.py" --top 15 >/dev/null
 	exit 1
 }

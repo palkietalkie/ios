@@ -5,28 +5,6 @@ private let logger = Logger(subsystem: "com.palkietalkie", category: "conversati
 
 /// Stream-observer wiring (transcript / error / tool-call) for both providers, plus the backend failure report it triggers. Split out of SessionController to keep that type within SwiftLint's body-length budget.
 extension SessionController {
-    func startObservers(session: PersonaPlexSessionType) async {
-        let transcriptStream = await session.transcript
-        let errorStream = await session.errors
-        let transcriptTask = Task { [weak self] in
-            for await chunk in transcriptStream {
-                await MainActor.run {
-                    self?.appendTranscript(chunk)
-                }
-            }
-        }
-        let errorTask = Task { [weak self] in
-            for await message in errorStream {
-                logger.error("personaplex stream error: \(message, privacy: .public)")
-                await self?.reportSessionError(reason: message)
-                await MainActor.run {
-                    self?.phase = .error(message)
-                }
-            }
-        }
-        observerTasks = [transcriptTask, errorTask]
-    }
-
     func startObserversForRealtime(client: RealtimeClient) async {
         let transcriptStream = await client.transcript
         let errorStream = await client.errors
