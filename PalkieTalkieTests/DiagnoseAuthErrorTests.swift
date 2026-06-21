@@ -19,12 +19,12 @@ final class DiagnoseAuthErrorTests: XCTestCase {
             ],
         )
         let result = diagnoseAuthError(top)
-        // The opaque top stays for context, but the real cause must be present — that's what localizedDescription threw away.
+        // The whole point: the buried underlying-error code + cause must surface, not just the opaque top. domain#code is language-independent, so the failure reads the same regardless of the reporter's device language.
         XCTAssertTrue(result.contains("AuthorizationError#1000"))
         XCTAssertTrue(result.contains("AKAuthenticationError#-7026"))
         XCTAssertTrue(result.contains("iCloud account not available"))
-        // The top-level device-localized boilerplate must NOT leak into the founder's feed (this is what showed up as Chinese).
-        XCTAssertFalse(result.contains("The operation couldn’t be completed"))
+        // localizedDescription is kept at every level (it can still carry a real cause downstream); the top-level message rides along too. It may render in the reporter's device language, which is acceptable — domain#code above is the stable signal.
+        XCTAssertTrue(result.contains("The operation couldn’t be completed"))
     }
 
     func testPreservesClerkStructuredReason() throws {
