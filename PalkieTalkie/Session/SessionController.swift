@@ -57,8 +57,10 @@ final class SessionController {
     private var openAIClient: RealtimeClient?
     private var pump: AudioPump?
     private var sessionStartedAt: Date?
-    private var serverSessionId: String?
-    private var observerTasks: [Task<Void, Never>] = []
+    var serverSessionId: String?
+    /// Active provider for the current session ("openai" / "personaplex"), from /start. Both providers flow through startObserversForRealtime (PersonaPlex's session also conforms to RealtimeClient), so the provider can't be inferred from the observer path — it's recorded here for session-error reporting.
+    var serverProvider: String?
+    var observerTasks: [Task<Void, Never>] = []
     /// Tasks the controller scheduled to enforce the free-cap mid-session: one warns the AI to wrap up at ~30s remaining, the other hard-ends the session at 0s. Cancelled in teardown() so a manual end doesn't leave them pending.
     private var freeCapTasks: [Task<Void, Never>] = []
     /// Lives for the whole session (across reconnects), not per-WS — so it can still observe the path coming back after a drop. Started lazily by `start()`, cancelled only by `end()` (never by `teardown()`, which runs on every drop). Internal so the NetworkRecovery extension can manage it.
@@ -151,6 +153,7 @@ final class SessionController {
             signposter.endInterval("conversation.backendStart", startInterval)
             let tStartEnd = Date()
             serverSessionId = response.sessionId
+            serverProvider = response.provider
             // BUILD-2026-05-25-A diagnostic — confirm latest binary on device and trace which path /start returns.
             logger
                 .error(
@@ -273,55 +276,6 @@ final class SessionController {
         phase = .idle
     }
 
-    private func startObservers(session: PersonaPlexSessionType) async {
-        let transcriptStream = await session.transcript
-        let errorStream = await session.errors
-        let transcriptTask = Task { [weak self] in
-            for await chunk in transcriptStream {
-                await MainActor.run {
-                    self?.appendTranscript(chunk)
-                }
-            }
-        }
-        let errorTask = Task { [weak self] in
-            for await message in errorStream {
-                logger.error("personaplex stream error: \(message, privacy: .public)")
-                await MainActor.run {
-                    self?.phase = .error(message)
-                }
-            }
-        }
-        observerTasks = [transcriptTask, errorTask]
-    }
-
-    private func startObserversForRealtime(client: RealtimeClient) async {
-        let transcriptStream = await client.transcript
-        let errorStream = await client.errors
-        let transcriptTask = Task { [weak self] in
-            for await chunk in transcriptStream {
-                await MainActor.run {
-                    self?.appendTranscript(chunk)
-                }
-            }
-        }
-        let errorTask = Task { [weak self] in
-            for await message in errorStream {
-                logger.error("realtime stream error: \(message, privacy: .public)")
-                await MainActor.run {
-                    self?.phase = .error(message)
-                }
-            }
-        }
-        let toolStream = await client.toolCalls
-        let toolTask = Task { [weak self] in
-            for await call in toolStream {
-                // Runs in its own task, off the audio path — the model keeps talking while recall resolves (async, like a human remembering mid-sentence), then the result is fed back.
-                await self?.handleToolCall(call, client: client)
-            }
-        }
-        observerTasks = [transcriptTask, errorTask, toolTask]
-    }
-
     /// Fetch the entitlement, compute the smaller of the two remaining windows (day vs week), then schedule a wrap-up hint at `remaining - 30s` and a hard end at `remaining`. Premium users get no timers. Failures (network, decode) fail-open (no caps) — a single API blip should never end a paying user's conversation.
     private func scheduleFreeCapWrapUp(realtime: RealtimeClient) {
         Task { [weak self] in
@@ -363,7 +317,7 @@ final class SessionController {
         logger.error("free-cap \(stage, privacy: .public) — \(secondsRemaining, privacy: .public)s remaining")
     }
 
-    private func appendTranscript(_ chunk: TranscriptChunk) {
+    func appendTranscript(_ chunk: TranscriptChunk) {
         transcript.append(chunk)
         markAISpeaking(for: chunk)
         // Aggregate stream fragments into turn rows. Speaker switch (or session end) flushes the in-flight buffer as one POST → one DB row. Fragments from the same speaker join into one turn's text.
@@ -422,6 +376,7 @@ final class SessionController {
         }
         audioStreamer = nil
         serverSessionId = nil
+        serverProvider = nil
         sessionStartedAt = nil
         pendingTurn = nil
     }

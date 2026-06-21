@@ -9,6 +9,8 @@ echo "[pre-push] paired-test guard (same check CI runs)..."
 bash "$REPO/scripts/ci/check_test_pair.sh" origin/main
 echo "[pre-push] swift file-name PascalCase guard..."
 bash "$REPO/scripts/ci/check_swift_pascal_case.sh"
+echo "[pre-push] Views/ placement guard (views + view models only)..."
+bash "$REPO/scripts/ci/check_view_dir_placement.sh"
 
 # API-types drift gate: the committed Generated/APITypes.swift must match what the backend's live OpenAPI produces, so a backend field change that iOS didn't regenerate for can't ship a silently-broken decode. Generate from the dev backend (always up) into a temp file and diff. Network-unreachable is a warn-skip, not a block — a flaky network shouldn't wedge a push.
 echo "[pre-push] API-types codegen drift gate..."

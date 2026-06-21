@@ -64,6 +64,34 @@ final class TalkAboutTodayViewTests: XCTestCase {
         XCTAssertEqual(cached?.first?.items.first?.title, "P1")
     }
 
+    /// A section with no items must not show the "Surprise me" button (nothing to randomize); a non-empty one does. Hosts both so the `if !section.items.isEmpty` branch renders on each side.
+    func testSurpriseButtonOnlyForNonEmptySections() async throws {
+        let transport = FakeTransport()
+        let dto = DailyContentResponse(
+            day: "2026-06-19",
+            sections: [
+                .init(
+                    topic: "politics",
+                    items: [.init(title: "P1", summary: "s", source: "AP", imageUrl: "", url: nil, details: nil)],
+                ),
+                .init(topic: "business", items: []),
+            ],
+        )
+        transport.responseData = try BackendAPI.encoder.encode(dto)
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        let session = SessionController(backend: api)
+        await TestHosting.host(
+            TalkAboutTodayView()
+                .environment(\.backendAPI, api)
+                .environment(session),
+            settleMs: 500,
+        )
+    }
+
     /// Hosts with a backend error — covers the catch branch that sets loadError.
     func testHostsWithLoadErrorSurfacesMessage() async throws {
         let transport = FakeTransport()

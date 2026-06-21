@@ -5,7 +5,12 @@ import SwiftUI
 struct OnboardingView: View {
     let onContinue: () -> Void
     @Environment(\.backendAPI) private var api
+    @Environment(\.onboardingAnnouncer) private var onboardingAnnouncer
+    // Display language is a local UI setting (not a profile field); the step writes here and the root app reads it via `.environment(\.locale, …)`.
+    @AppStorage("AppLocale") private var appLocale: String = ""
     @State private var model: OnboardingViewModel
+    /// Slack thread for this user's onboarding; the first reported step opens it, the rest thread under it.
+    @State private var onboardingThreadTs: String?
 
     init(onContinue: @escaping () -> Void, model: OnboardingViewModel = OnboardingViewModel()) {
         self.onContinue = onContinue
@@ -24,11 +29,13 @@ struct OnboardingView: View {
             guard !model.didInitialLoad else { return }
             model.didInitialLoad = true
             await model.load(api: api)
+            // onChange doesn't fire for the initial step, so report the first view here.
+            await recordStep(model.step, phase: "viewed")
+        }
+        .onChange(of: model.step) { _, new in
+            Task { await recordStep(new, phase: "viewed") }
         }
         .overlay { if model.loading { ProgressView() } }
-        .onChange(of: model.didSaveSuccessfully) { _, done in
-            if done { onContinue() }
-        }
         .interactiveDismissDisabled()
     }
 
@@ -45,8 +52,8 @@ struct OnboardingView: View {
                     .contentShape(Rectangle())
             }
             .accessibilityLabel("Back")
-            .opacity(model.step == .native ? 0 : 1)
-            .disabled(model.step == .native)
+            .opacity(model.step == .intro ? 0 : 1)
+            .disabled(model.step == .intro)
 
             HStack(spacing: 6) {
                 ForEach(OnboardingViewModel.Step.allCases, id: \.rawValue) { s in
@@ -77,6 +84,39 @@ struct OnboardingView: View {
 
     @ViewBuilder private var currentStep: some View {
         switch model.step {
+        case .intro:
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Welcome to").font(.largeTitle.bold())
+                Text(verbatim: "Palkie Talkie").font(.largeTitle.bold()).foregroundStyle(.tint)
+                Text(
+                    "It's a voice app for getting fluent by actually talking. Your tutor is a real character who speaks naturally, remembers you, and keeps the conversation going, no lessons, no scripts.",
+                )
+                .font(.title3).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Talk out loud anytime, your walk, your commute, your kitchen.", systemImage: "figure.walk")
+                    Label("Pick a tutor with real personality, or make your own.", systemImage: "person.wave.2.fill")
+                    Label("It remembers your life and picks up where you left off.", systemImage: "brain.head.profile")
+                }
+                .font(.callout)
+                .padding(.top, 4)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal)
+            .padding(.top, 16)
+        case .displayLanguage:
+            StepScaffold(
+                title: "Choose your app language",
+                why: "The language Palkie Talkie's screens appear in.",
+            ) {
+                ChoiceList(
+                    options: supportedAppLocales.map(\.code),
+                    isSelected: { appLocale == $0 },
+                    display: { code in supportedAppLocales.first { $0.code == code }?.label ?? code },
+                ) {
+                    appLocale = $0
+                }
+            }
         case .native:
             StepScaffold(
                 title: "What's your native language?",
@@ -125,6 +165,68 @@ struct OnboardingView: View {
                     }
                 }
             }
+        case .proficiency:
+            StepScaffold(
+                title: "What's your level?",
+                why: "So your tutor pitches the conversation to the right level.",
+            ) {
+                ChoiceList(
+                    options: model.practiceOptions?.proficiency ?? [],
+                    isSelected: { model.proficiency == $0 },
+                    display: formatSlugLabel,
+                ) {
+                    model.pickProficiency($0)
+                }
+            }
+        case .speed:
+            StepScaffold(
+                title: "How fast should your tutor speak?",
+                why: "Slower is easier to follow; faster pushes you.",
+            ) {
+                ChoiceList(
+                    options: model.practiceOptions?.tutorSpeakingSpeed ?? [],
+                    isSelected: { model.tutorSpeakingSpeed == $0 },
+                    display: formatSlugLabel,
+                ) {
+                    model.pickSpeed($0)
+                }
+            }
+        case .goals:
+            StepScaffold(
+                title: "What are you practicing for?",
+                why: "Pick any that fit, or add your own. Your tutor steers toward what matters to you.",
+            ) {
+                VStack(alignment: .leading, spacing: 8) {
+                    ChoiceList(
+                        options: model.goalPresets,
+                        isSelected: { model.selectedGoals.contains($0) },
+                        display: localizedGoalLabel,
+                    ) {
+                        model.toggleGoal($0)
+                    }
+                    TextField("Something else?", text: $model.otherGoal, axis: .vertical)
+                        .textFieldStyle(.roundedBorder)
+                }
+            }
+        case .getStarted:
+            StepScaffold(
+                title: "You're all set",
+                why: "Here's how your first conversation works.",
+            ) {
+                VStack(alignment: .leading, spacing: 16) {
+                    Label(
+                        "Your tutor speaks first, you don't need to say anything to begin.",
+                        systemImage: "speaker.wave.2.fill",
+                    )
+                    Label("Listen, then reply out loud whenever you're ready.", systemImage: "mic.fill")
+                    Label(
+                        "No buttons to press, just talk, like a real conversation.",
+                        systemImage: "bubble.left.and.bubble.right.fill",
+                    )
+                }
+                .font(.body)
+                .padding(.top, 8)
+            }
         }
     }
 
@@ -137,10 +239,17 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
             }
+            // Reassure on every setup step so a quick pick doesn't feel permanent; the intro and primer aren't settings, so they're exempt.
+            if model.step != .intro, model.step != .getStarted {
+                Text("You can change this anytime later.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+            }
             Button {
                 advance()
             } label: {
-                Text(model.isLastStep ? "Get started" : "Continue")
+                Text(model.step == .getStarted ? "Start talking" : "Continue")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -152,73 +261,31 @@ struct OnboardingView: View {
 
     // MARK: - Navigation (animation only; the logic lives in the model)
 
+    /// Report a step view/completion to the drop-off feed. Best-effort; the first reported step opens the thread and we keep that ts for the rest.
+    private func recordStep(_ step: OnboardingViewModel.Step, phase: String) async {
+        let ts = await onboardingAnnouncer.announce(step: step.slug, phase: phase, threadTs: onboardingThreadTs)
+        if onboardingThreadTs == nil { onboardingThreadTs = ts }
+    }
+
     private func advance() {
-        if model.isLastStep {
-            Task { await model.save(api: api) }
+        // Fire-and-forget: the step the user is leaving is now completed. Must not block the transition.
+        Task { await recordStep(model.step, phase: "completed") }
+        if model.step == .getStarted {
+            onContinue()
+        } else if model.isLastInputStep {
+            // Last data step: persist the profile, then slide into the primer only if the save took.
+            Task {
+                await model.save(api: api)
+                if model.didSaveSuccessfully {
+                    withAnimation(.easeInOut(duration: 0.3)) { _ = model.advanceStep() }
+                }
+            }
         } else {
-            withAnimation(.easeInOut(duration: 0.3)) { model.advanceStep() }
+            withAnimation(.easeInOut(duration: 0.3)) { _ = model.advanceStep() }
         }
     }
 
     private func goBack() {
         withAnimation(.easeInOut(duration: 0.3)) { model.goBack() }
-    }
-}
-
-/// One wizard step: large title, a one-line reason it's asked, then the selectable content. The reason turns "fill this field" into "here's why" — onboarding research shows users abandon fields whose purpose is opaque.
-@MainActor
-private struct StepScaffold<Content: View>: View {
-    let title: LocalizedStringKey
-    let why: LocalizedStringKey
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.largeTitle.bold())
-            Text(why).font(.callout).foregroundStyle(.secondary)
-            content.padding(.top, 8)
-        }
-        .padding(.horizontal)
-        .padding(.top, 16)
-    }
-}
-
-/// Spacious tap-to-select list used by every wizard step (replaces the pushed `MultiLanguagePicker`, so there's no sub-screen to "save and back" out of). Single- vs multi-select is the caller's concern via `isSelected`/`onTap`.
-@MainActor
-private struct ChoiceList: View {
-    let options: [String]
-    let isSelected: (String) -> Bool
-    /// Maps the wire value (English language/accent name) to its localized display. The raw `option` stays the selection key; only the label is localized.
-    var display: (String) -> String = { $0 }
-    let onTap: (String) -> Void
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 10) {
-                ForEach(options, id: \.self) { option in
-                    let selected = isSelected(option)
-                    HStack {
-                        Text(display(option)).foregroundStyle(.primary)
-                        Spacer()
-                        if selected {
-                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.tint)
-                        }
-                    }
-                    .padding(.vertical, 14)
-                    .padding(.horizontal, 16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(selected ? Color.accentColor.opacity(0.12) : Color(.secondarySystemBackground)),
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(selected ? Color.accentColor : .clear, lineWidth: 1.5),
-                    )
-                    .contentShape(Rectangle())
-                    .onTapGesture { onTap(option) }
-                }
-            }
-            .padding(.bottom, 8)
-        }
     }
 }

@@ -218,6 +218,7 @@ final class ViewSuccessPathTests: XCTestCase {
         let practiceOptions = PracticeOptionsDTO(
             proficiency: ["beginner", "intermediate", "advanced"],
             tutorSpeakingSpeed: ["slow", "normal", "fast"],
+            goals: ["travel", "job_interview"],
         )
         let kg = KGGraphDTO(
             nodes: [

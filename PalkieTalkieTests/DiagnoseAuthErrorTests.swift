@@ -23,6 +23,8 @@ final class DiagnoseAuthErrorTests: XCTestCase {
         XCTAssertTrue(result.contains("AuthorizationError#1000"))
         XCTAssertTrue(result.contains("AKAuthenticationError#-7026"))
         XCTAssertTrue(result.contains("iCloud account not available"))
+        // The top-level device-localized boilerplate must NOT leak into the founder's feed (this is what showed up as Chinese).
+        XCTAssertFalse(result.contains("The operation couldn’t be completed"))
     }
 
     func testPreservesClerkStructuredReason() throws {

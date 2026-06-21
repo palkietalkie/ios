@@ -9,8 +9,10 @@ final class ClerkAuthTests: XCTestCase {
         let adapter = ClerkAuthAdapter()
         let userId = await adapter.userId
         let email = await adapter.email
+        let preferredName = await adapter.preferredName
         XCTAssertNil(userId)
         XCTAssertNil(email)
+        XCTAssertNil(preferredName, "no Clerk user signed in → no name")
     }
 
     func testAdapterSessionTokenThrowsWhenSignedOut() async {
@@ -51,11 +53,13 @@ final class ClerkAuthTests: XCTestCase {
     }
 
     func testStubAuthingUserIdAndEmail() async {
-        let stub = StubAuthing(userId: "u_42", email: "wes@example.test")
+        let stub = StubAuthing(userId: "u_42", email: "wes@example.test", preferredName: "Wes Nishio")
         let userId = await stub.userId
         let email = await stub.email
+        let preferredName = await stub.preferredName
         XCTAssertEqual(userId, "u_42")
         XCTAssertEqual(email, "wes@example.test")
+        XCTAssertEqual(preferredName, "Wes Nishio")
     }
 
     func testStubAuthingRecordsSignOut() async {

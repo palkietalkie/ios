@@ -37,6 +37,7 @@ final class PracticeViewBranchTests: XCTestCase {
         try transport.enqueue(path: "/practice/options", data: Self.encode(PracticeOptionsDTO(
             proficiency: ["beginner", "lower_intermediate", "intermediate", "upper_intermediate", "advanced"],
             tutorSpeakingSpeed: ["very_slow", "slow", "normal", "fast", "very_fast"],
+            goals: ["everyday_conversation", "travel", "dating_relationships"],
         )))
         let api = makeAPI(transport)
         await TestHosting.host(NavigationStack { PracticeView() }.environment(\.backendAPI, api), settleMs: 800)
@@ -65,7 +66,11 @@ final class PracticeViewBranchTests: XCTestCase {
         ]))
         try transport.enqueue(
             path: "/practice/options",
-            data: Self.encode(PracticeOptionsDTO(proficiency: ["intermediate"], tutorSpeakingSpeed: ["normal"])),
+            data: Self.encode(PracticeOptionsDTO(
+                proficiency: ["intermediate"],
+                tutorSpeakingSpeed: ["normal"],
+                goals: [],
+            )),
         )
         let api = makeAPI(transport)
         await TestHosting.host(NavigationStack { PracticeView() }.environment(\.backendAPI, api), settleMs: 800)

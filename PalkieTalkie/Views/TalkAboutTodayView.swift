@@ -22,9 +22,21 @@ struct TalkAboutTodayView: View {
                         .padding(.horizontal)
                     ForEach(sections) { section in
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(resolveHeaderKey(for: section.topic))
-                                .font(.title3.bold())
-                                .padding(.horizontal)
+                            HStack {
+                                Text(resolveHeaderKey(for: section.topic))
+                                    .font(.title3.bold())
+                                Spacer()
+                                // Pick the category, not a single item: talk about a random one so the user doesn't have to choose.
+                                if !section.items.isEmpty {
+                                    Button {
+                                        startRandom(in: section)
+                                    } label: {
+                                        Label("Surprise me", systemImage: "shuffle")
+                                            .font(.subheadline)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
                             InfiniteHorizontalCarousel(items: section.items, cardHeight: 180) { item in
                                 buildCard(item)
                             }
@@ -59,14 +71,24 @@ struct TalkAboutTodayView: View {
         }
     }
 
+    /// Pick a random item from the section and start a conversation about it, so the user can just choose a category.
+    private func startRandom(in section: TalkSection) {
+        guard let item = section.items.randomElement() else { return }
+        startConversation(about: item)
+    }
+
+    private func startConversation(about item: TalkItem) {
+        // Provide the real story up front. `details` is the full article body fetched server-side; fall back to the one-line summary only when it's absent (e.g. quizzes). web_fetch stays a general tool the model uses for other URLs, not a crutch for news depth.
+        let details = item.details ?? ""
+        let body = details.isEmpty ? item.summary : details
+        session.startContextOverride = item.title + ": " + body
+        onTopicSelected()
+        Task { await session.start() }
+    }
+
     private func buildCard(_ item: TalkItem) -> some View {
         Button {
-            // Provide the real story up front. `details` is the full article body fetched server-side; fall back to the one-line summary only when it's absent (e.g. quizzes). web_fetch stays a general tool the model uses for other URLs, not a crutch for news depth.
-            let details = item.details ?? ""
-            let body = details.isEmpty ? item.summary : details
-            session.startContextOverride = item.title + ": " + body
-            onTopicSelected()
-            Task { await session.start() }
+            startConversation(about: item)
         } label: {
             ZStack(alignment: .bottomLeading) {
                 buildImageBackground(for: item)

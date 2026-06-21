@@ -39,6 +39,7 @@ final class ProfileViewBranchTests: XCTestCase {
         try transport.enqueue(path: "/practice/options", data: Self.encode(PracticeOptionsDTO(
             proficiency: ["beginner", "intermediate", "advanced"],
             tutorSpeakingSpeed: ["slow", "normal", "fast"],
+            goals: ["travel"],
         )))
         try transport.enqueue(path: "/kg", data: Self.encode(KGGraphDTO(
             nodes: [
@@ -61,7 +62,7 @@ final class ProfileViewBranchTests: XCTestCase {
         try transport.enqueue(path: "/languages", data: Self.encode([] as [LanguageDTO]))
         try transport.enqueue(
             path: "/practice/options",
-            data: Self.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [])),
+            data: Self.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: [])),
         )
         try transport.enqueue(path: "/kg", data: Self.encode(KGGraphDTO(nodes: [], edges: [])))
         let api = makeAPI(transport: transport)
@@ -101,7 +102,7 @@ final class ProfileViewBranchTests: XCTestCase {
         try transport.enqueue(path: "/languages", data: Self.encode([] as [LanguageDTO]))
         try transport.enqueue(
             path: "/practice/options",
-            data: Self.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [])),
+            data: Self.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: [])),
         )
         try transport.enqueue(path: "/kg", data: Self.encode(KGGraphDTO(nodes: [], edges: [])))
         let api = makeAPI(transport: transport)

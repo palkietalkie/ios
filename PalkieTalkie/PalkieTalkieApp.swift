@@ -32,6 +32,7 @@ struct PalkieTalkieApp: App {
                 .environment(sessionController)
                 .environment(\.backendAPI, backendAPI)
                 .environment(\.authing, authing)
+                .environment(\.onboardingAnnouncer, AppEnvironment.makeProductionOnboardingAnnouncer())
                 .environment(\.locale, appLocale.isEmpty ? .current : Locale(identifier: appLocale))
                 .task {
                     try? AudioSessionManager.configureForFullDuplexVoice()

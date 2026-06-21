@@ -48,14 +48,24 @@ struct PracticeView: View {
                 }
             }
             Section {
-                LabeledContent("Goals") {
-                    TextField(
-                        "e.g. work, travel, in-laws, pronunciation, vocabulary",
-                        text: $model.goals,
-                        axis: .vertical,
-                    )
-                    .multilineTextAlignment(.trailing)
+                ForEach(model.goalPresets, id: \.self) { slug in
+                    Button {
+                        model.toggleGoal(slug)
+                    } label: {
+                        HStack {
+                            Text(verbatim: localizedGoalLabel(slug)).foregroundStyle(.primary)
+                            Spacer()
+                            if model.selectedGoals.contains(slug) {
+                                Image(systemName: "checkmark").foregroundStyle(.tint)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
+                TextField("Something else?", text: $model.otherGoal, axis: .vertical)
+            } header: {
+                Text("Goals")
             } footer: {
                 Text("What you're working toward. The AI uses this to steer conversation topics.")
             }

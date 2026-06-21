@@ -88,6 +88,7 @@ final class ProfileViewModelTests: XCTestCase {
             data: BackendAPI.encoder.encode(PracticeOptionsDTO(
                 proficiency: ["beginner"],
                 tutorSpeakingSpeed: ["normal"],
+                goals: ["travel"],
             )),
         )
         try transport.enqueue(
@@ -114,7 +115,7 @@ final class ProfileViewModelTests: XCTestCase {
         try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode([] as [LanguageDTO]))
         try transport.enqueue(
             path: "/practice/options",
-            data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [])),
+            data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: [])),
         )
         transport.enqueue(path: "/kg", data: Data("[]".utf8))
         let api = makeAPI(transport)
@@ -140,7 +141,7 @@ final class ProfileViewModelTests: XCTestCase {
         try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode([] as [LanguageDTO]))
         try transport.enqueue(
             path: "/practice/options",
-            data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [])),
+            data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: [])),
         )
         try transport.enqueue(path: "/kg", data: BackendAPI.encoder.encode(KGGraphDTO(nodes: [], edges: [])))
         let api = makeAPI(transport)
@@ -168,7 +169,7 @@ final class ProfileViewModelTests: XCTestCase {
         try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode([] as [LanguageDTO]))
         try transport.enqueue(
             path: "/practice/options",
-            data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [])),
+            data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: [])),
         )
         try transport.enqueue(path: "/kg", data: BackendAPI.encoder.encode(KGGraphDTO(nodes: [], edges: [])))
         let api = makeAPI(transport)

@@ -90,12 +90,19 @@ final class StubAuthing: Authing, @unchecked Sendable {
     let token: String?
     let _userId: String?
     let _email: String?
+    let _preferredName: String?
     var signOutCount = 0
 
-    init(token: String? = "test-jwt", userId: String? = "u_test", email: String? = "test@example.com") {
+    init(
+        token: String? = "test-jwt",
+        userId: String? = "u_test",
+        email: String? = "test@example.com",
+        preferredName: String? = nil,
+    ) {
         self.token = token
         _userId = userId
         _email = email
+        _preferredName = preferredName
     }
 
     var userId: String? {
@@ -104,6 +111,10 @@ final class StubAuthing: Authing, @unchecked Sendable {
 
     var email: String? {
         get async { _email }
+    }
+
+    var preferredName: String? {
+        get async { _preferredName }
     }
 
     func sessionToken() async throws -> String {

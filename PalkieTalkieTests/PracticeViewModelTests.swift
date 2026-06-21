@@ -48,8 +48,25 @@ final class PracticeViewModelTests: XCTestCase {
         XCTAssertEqual(vm.targetAccents, ["US General"])
         XCTAssertEqual(vm.proficiency, "advanced")
         XCTAssertEqual(vm.tutorSpeakingSpeed, "fast")
-        XCTAssertEqual(vm.goals, "freeform")
+        // No cached practice options here, so "freeform" matches no preset and lands in Other.
+        XCTAssertTrue(vm.selectedGoals.isEmpty)
+        XCTAssertEqual(vm.otherGoal, "freeform")
         XCTAssertTrue(vm.loaded)
+    }
+
+    func testApplyGoalsSplitsPresetsFromOtherWhenOptionsKnown() {
+        let vm = PracticeViewModel()
+        vm.practiceOptions = PracticeOptionsDTO(
+            proficiency: [], tutorSpeakingSpeed: [], goals: ["travel", "job_interview"],
+        )
+        vm.applyGoals("travel, chatting with my barista")
+        XCTAssertEqual(vm.selectedGoals, ["travel"])
+        XCTAssertEqual(vm.otherGoal, "chatting with my barista")
+        vm.toggleGoal("job_interview")
+        XCTAssertEqual(
+            joinGoals(presets: vm.goalPresets, selected: vm.selectedGoals, other: vm.otherGoal),
+            "travel, job_interview, chatting with my barista",
+        )
     }
 
     func testAccentsForTargetLanguageReturnsMatch() {
@@ -90,6 +107,7 @@ final class PracticeViewModelTests: XCTestCase {
             data: BackendAPI.encoder.encode(PracticeOptionsDTO(
                 proficiency: ["beginner"],
                 tutorSpeakingSpeed: ["normal"],
+                goals: ["travel"],
             )),
         )
         let api = makeAPI(transport)
@@ -117,7 +135,7 @@ final class PracticeViewModelTests: XCTestCase {
         try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode([] as [LanguageDTO]))
         try transport.enqueue(
             path: "/practice/options",
-            data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [])),
+            data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: [])),
         )
         let api = makeAPI(transport)
         let vm = PracticeViewModel()

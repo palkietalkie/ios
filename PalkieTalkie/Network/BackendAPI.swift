@@ -6,6 +6,8 @@ import Foundation
 protocol Authing: AnyObject, Sendable {
     var userId: String? { get async }
     var email: String? { get async }
+    /// Human name for the sign-in/up Slack feed so it reads "Wes Nishio (…)" instead of an opaque `user_…` id. nil when Clerk has no name yet.
+    var preferredName: String? { get async }
     func sessionToken() async throws -> String
     func signOut() async
 }

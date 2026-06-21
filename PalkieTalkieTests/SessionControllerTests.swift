@@ -115,6 +115,7 @@ actor FakeConversationBackend: ConversationBackend {
         groan: Int,
     )] = []
     nonisolated(unsafe) var micUploads: [(String, Int)] = []
+    nonisolated(unsafe) var sessionErrorCalls: [(String?, String, String)] = []
     nonisolated(unsafe) var modelUploads: [(String, Int)] = []
     nonisolated(unsafe) var pitchRangeError: Error?
     nonisolated(unsafe) var micUploadError: Error?
@@ -129,6 +130,10 @@ actor FakeConversationBackend: ConversationBackend {
         sessionId: String, laugh: Int, cheer: Int, gasp: Int, sigh: Int, groan: Int,
     ) async throws {
         aiEmotionCalls.append((sessionId, laugh, cheer, gasp, sigh, groan))
+    }
+
+    func recordSessionError(sessionId: String?, provider: String, reason: String) async throws {
+        sessionErrorCalls.append((sessionId, provider, reason))
     }
 
     func uploadMicAudio(sessionId: String, deflatedWav: Data) async throws {

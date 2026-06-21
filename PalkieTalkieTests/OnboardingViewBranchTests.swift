@@ -82,6 +82,42 @@ final class OnboardingViewBranchTests: XCTestCase {
         await host(OnboardingView(onContinue: {}, model: model).environment(\.backendAPI, makeAPI(transport)))
     }
 
+    /// Render the proficiency + speed steps (injected model with practice options) so their ChoiceList branches, with one already chosen, render.
+    func testHostsAtProficiencyAndSpeedSteps() async throws {
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode([LanguageDTO(name: "English", accents: ["US"])])
+        let api = makeAPI(transport)
+        for step in [OnboardingViewModel.Step.proficiency, .speed] {
+            let model = OnboardingViewModel()
+            model.practiceOptions = PracticeOptionsDTO(
+                proficiency: ["beginner", "intermediate", "advanced"],
+                tutorSpeakingSpeed: ["slow", "normal", "fast"],
+                goals: ["travel"],
+            )
+            model.proficiency = "intermediate"
+            model.tutorSpeakingSpeed = "normal"
+            model.step = step
+            await host(OnboardingView(onContinue: {}, model: model).environment(\.backendAPI, api))
+        }
+    }
+
+    /// Render the goals step (free-text) and the getStarted primer (no "change later" note, "Start talking" button).
+    func testHostsAtGoalsAndGetStartedSteps() async throws {
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode([LanguageDTO(name: "English", accents: ["US"])])
+        let api = makeAPI(transport)
+        for step in [OnboardingViewModel.Step.goals, .getStarted] {
+            let model = OnboardingViewModel()
+            model.practiceOptions = PracticeOptionsDTO(
+                proficiency: [], tutorSpeakingSpeed: [], goals: ["job_interview", "travel"],
+            )
+            model.toggleGoal("travel")
+            model.otherGoal = "rapping"
+            model.step = step
+            await host(OnboardingView(onContinue: {}, model: model).environment(\.backendAPI, api))
+        }
+    }
+
     /// Onboarding body when user already has accents picked — renders the non-empty-accents text branch in the LabeledContent label.
     func testOnboardingRendersWithAccentsAlreadySelected() async throws {
         let transport = FakeTransport()

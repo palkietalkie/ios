@@ -19,6 +19,16 @@ final class ClerkAuthAdapter: Authing, @unchecked Sendable {
         }
     }
 
+    var preferredName: String? {
+        get async {
+            await MainActor.run {
+                let user = Clerk.shared.user
+                let parts = [user?.firstName, user?.lastName].compactMap(\.self).filter { !$0.isEmpty }
+                return parts.isEmpty ? nil : parts.joined(separator: " ")
+            }
+        }
+    }
+
     /// Backend uses Clerk JWT as bearer token. Returns cached if not near expiry (Clerk default).
     /// Throws so callers can distinguish "no session" (real signed-out state) from "session present but Clerk's token refresh just failed" (transient — used to look identical to the UI as "not signed in").
     func sessionToken() async throws -> String {
@@ -40,7 +50,8 @@ final class ClerkAuthAdapter: Authing, @unchecked Sendable {
 
     func signOut() async {
         await MainActor.run {
-            Task { try? await Clerk.shared.auth.signOut() }
+            // Fire-and-forget: discard the Task so MainActor.run's result isn't flagged unused.
+            _ = Task { try? await Clerk.shared.auth.signOut() }
         }
     }
 }

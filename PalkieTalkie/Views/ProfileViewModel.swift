@@ -123,14 +123,7 @@ final class ProfileViewModel {
 
     static func clerkDefaultPreferredName() -> String {
         guard let user = Clerk.shared.user else { return "" }
-        if let first = user.firstName, !first.isEmpty { return first }
-        let firstPart = user.firstName ?? ""
-        let lastPart = user.lastName ?? ""
-        let full = [firstPart, lastPart].filter { !$0.isEmpty }.joined(separator: " ")
-        if !full.isEmpty { return full }
-        if let email = user.primaryEmailAddress?.emailAddress {
-            return String(email.prefix(while: { $0 != "@" }))
-        }
-        return ""
+        // First/last only, never the email local-part (see composePreferredName) — empty is the right default when Clerk has no name.
+        return composePreferredName(firstName: user.firstName, lastName: user.lastName)
     }
 }

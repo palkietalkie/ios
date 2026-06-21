@@ -13,7 +13,9 @@ final class PracticeViewModel {
     var targetAccents: Set<String> = []
     var proficiency: String = "intermediate"
     var tutorSpeakingSpeed: String = "normal"
-    var goals: String = ""
+    // Goals: multi-select preset slugs + free-text "Other", same shape as onboarding (see GoalsCodec). Parsed from / joined into the single `users.goals` TEXT.
+    var selectedGoals: Set<String> = []
+    var otherGoal: String = ""
     var languages: [LanguageDTO] = []
     var practiceOptions: PracticeOptionsDTO?
     var loaded: Bool = false
@@ -30,13 +32,32 @@ final class PracticeViewModel {
             targetAccents = Set(cached.targetAccents)
             proficiency = cached.proficiency
             tutorSpeakingSpeed = cached.tutorSpeakingSpeed
-            goals = cached.goals ?? ""
+            applyGoals(cached.goals ?? "")
             loaded = true
         }
     }
 
     var accentsForTargetLanguage: [String] {
         languages.first(where: { $0.name == targetLanguage })?.accents ?? []
+    }
+
+    var goalPresets: [String] {
+        practiceOptions?.goals ?? []
+    }
+
+    func toggleGoal(_ slug: String) {
+        if selectedGoals.contains(slug) {
+            selectedGoals.remove(slug)
+        } else {
+            selectedGoals.insert(slug)
+        }
+    }
+
+    /// Parse the stored goals string into chips + Other. Depends on practiceOptions being set first (to know which tokens are presets), so call it after options load.
+    func applyGoals(_ raw: String) {
+        let parsed = splitGoals(raw, presets: goalPresets)
+        selectedGoals = parsed.selected
+        otherGoal = parsed.other
     }
 
     func load(api: BackendAPI) async {
@@ -57,7 +78,7 @@ final class PracticeViewModel {
             targetAccents = Set(profile.targetAccents)
             proficiency = profile.proficiency
             tutorSpeakingSpeed = profile.tutorSpeakingSpeed
-            goals = profile.goals ?? ""
+            applyGoals(profile.goals ?? "")
             JSONCache.save(profile, key: Self.profileKey)
             loaded = true
             saveError = nil
@@ -77,7 +98,7 @@ final class PracticeViewModel {
             targetAccents: targetAccents.isEmpty ? nil : Array(targetAccents),
             proficiency: proficiency,
             tutorSpeakingSpeed: tutorSpeakingSpeed,
-            goals: goals,
+            goals: joinGoals(presets: goalPresets, selected: selectedGoals, other: otherGoal),
             locationCity: nil,
             timezone: TimeZone.current.identifier,
         )
