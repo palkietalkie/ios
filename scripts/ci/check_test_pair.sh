@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Refuses a PR whose changed source files don't also change their paired test files.
+# Refuses a PR whose changed source files have no paired test file (CLAUDE.md "Every fix ships with a test").
 #
-# Convention enforced (matches CLAUDE.md "Every fix ships with a test"):
-#   PalkieTalkie/**/Foo.swift  ⇄  PalkieTalkieTests/**/*Foo*.swift
+# Convention enforced:
+#   PalkieTalkie/**/Foo.swift  ⇄  PalkieTalkieTests/**/*Foo*.swift   (the test must EXIST)
 #
-# iOS tests live in a flat PalkieTalkieTests/ directory and don't mirror source paths, so the rule is "any test file
-# whose filename contains the source basename counts." Loose match deliberately; tighter pairing would force a 1:1
-# split that doesn't match how iOS tests group features (e.g. SessionController has multiple *Tests.swift files).
+# iOS tests live in a flat PalkieTalkieTests/ directory and don't mirror source paths, so the rule is "any test file whose filename contains the source basename counts." Loose match deliberately; tighter pairing would force a 1:1 split that doesn't match how iOS tests group features (e.g. SessionController has multiple *Tests.swift files).
+#
+# Requires the paired test to EXIST, not to be CHANGED in the same PR. "Must be changed" false-positives on every pure refactor (file move, type split into Type+Feature.swift extensions, component extraction) where behavior — and therefore the right test — is unchanged. Real regressions are still caught: a behavior change that isn't tested breaks the existing test, and CI runs the full suite. This guard's job is "no source ships with zero test coverage."
 #
 # Skips: PalkieTalkie/Generated/* (generated), scripts/, .github/, Assets.xcassets/, Localizable.xcstrings, Info.plist.
 
@@ -34,14 +34,10 @@ while IFS= read -r f; do
 	esac
 
 	base=$(basename "$f" .swift)
-	# Escape ERE metacharacters in the basename so grep matches it literally. Without this, a '+' in a source name (e.g. SessionController+Recall.swift) is read as a quantifier and the real paired test never matches — the find() glob below does, producing a false "exists but unchanged".
-	base_re=$(printf '%s' "$base" | sed -E 's/[][(){}.*+?|^$\\]/\\&/g')
-	if ! printf '%s\n' "$CHANGED" | grep -qE "^PalkieTalkieTests/.*${base_re}.*\.swift$"; then
-		if find PalkieTalkieTests -name "*${base}*.swift" -print -quit 2>/dev/null | grep -q .; then
-			MISSING_PAIRS+=("  ${f}  (modified)  →  PalkieTalkieTests/*${base}*.swift  (exists but unchanged in PR)")
-		else
-			MISSING_PAIRS+=("  ${f}  (modified)  →  PalkieTalkieTests/*${base}*.swift  (no test for ${base}; create one)")
-		fi
+	# A `Type+Feature.swift` extension file is conventionally tested through the base type's tests (`TypeTests.swift`), not a `Type+FeatureTests.swift`. Match against the part before '+' so e.g. BackendEndpoints+Catalog.swift is satisfied by BackendEndpointsTests.swift, and SessionController+Observers.swift by SessionControllerTests.swift.
+	match="${base%%+*}"
+	if ! find PalkieTalkieTests -name "*${match}*.swift" -print -quit 2>/dev/null | grep -q .; then
+		MISSING_PAIRS+=("  ${f}  →  PalkieTalkieTests/*${match}*.swift  (no test for ${match}; create one)")
 	fi
 done <<<"$CHANGED"
 
