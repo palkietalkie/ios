@@ -140,11 +140,17 @@ struct OnboardingView: View {
                 title: "What should your tutor call you?",
                 why: "Your tutor uses your name in conversation, the way a friend would.",
             ) {
+                // Styled to match a ChoiceList box (same vertical padding, corner radius, fill) so the field's height lines up with the option boxes on the other steps instead of being a thin .roundedBorder strip.
                 TextField("Your name", text: $model.preferredName)
-                    .textFieldStyle(.roundedBorder)
                     .textContentType(.givenName)
                     .submitLabel(.done)
-                    .font(.title3)
+                    .padding(.vertical, 14)
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(.secondarySystemBackground)),
+                    )
             }
         case .native:
             StepScaffold(
