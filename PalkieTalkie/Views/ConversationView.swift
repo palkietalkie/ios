@@ -12,6 +12,8 @@ struct ConversationView: View {
     @Environment(\.micFrameReporter) private var micFrameReporter
     /// Captions = on-screen text of what the AI is saying, in the same language as the audio. Off by default — the product is voice-first. User can toggle on per-session via the CC button below the mic. Persisted across sessions in UserDefaults.
     @AppStorage("captionsEnabled") private var captionsEnabled: Bool = false
+    /// Render captions transliterated to Latin (romaji / pinyin) for learners who can't read the target's script yet. Persisted across sessions like captionsEnabled.
+    @AppStorage("captionsRomanized") private var captionsRomanized: Bool = false
     @State private var showUpgrade = false
 
     var body: some View {
@@ -32,7 +34,7 @@ struct ConversationView: View {
                     Color.clear
                     // Keep the transcript visible after a cap (even with captions off) so dismissing the limit cover reveals the conversation the user just finished.
                     if captionsEnabled || session.reviewLastTranscript {
-                        CaptionsScroll(transcript: session.transcript)
+                        CaptionsScroll(transcript: session.transcript, romanized: captionsRomanized)
                     }
                 }
                 .frame(maxHeight: .infinity)
@@ -40,8 +42,16 @@ struct ConversationView: View {
             .padding()
             // CC toggle sits top-right (YouTube-style), out of the center column so it never crowds or moves the mic. Placed as an overlay rather than a `.toolbar` item so it doesn't get the iOS 26 Liquid-Glass capsule the toolbar draws behind items — we want only CaptionsToggle's own rect fill, no circular ring.
             .overlay(alignment: .topTrailing) {
-                CaptionsToggle(enabled: $captionsEnabled)
-                    .padding()
+                HStack(spacing: 12) {
+                    // Romanize toggle appears only when captions are showing AND actually contain a non-Latin script — a Spanish learner never sees a control that would do nothing.
+                    if captionsEnabled || session.reviewLastTranscript,
+                       session.transcript.contains(where: { hasNonLatinScript($0.text) })
+                    {
+                        CaptionsRomanizeToggle(romanized: $captionsRomanized)
+                    }
+                    CaptionsToggle(enabled: $captionsEnabled)
+                }
+                .padding()
             }
             .task {
                 // AI starts the conversation the moment the screen appears — no button. If we land here mid-session, leave it alone. And don't restart into an instant 402 after the user hit their cap (even once they've dismissed the cover) — the window is spent until it resets.
