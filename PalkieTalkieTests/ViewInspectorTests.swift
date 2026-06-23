@@ -250,6 +250,8 @@ final class ViewInspectorTests: XCTestCase {
                 startResponse: StartResponse(
                     sessionId: "s", textPrompt: "", voiceId: "", wsUrl: "",
                     provider: "personaplex", ephemeralToken: nil,
+                    freeSecondsRemaining: nil,
+                    freeLimitKind: nil,
                 ),
                 endResponse: EndResponse(sessionId: "s", durationSeconds: 0),
             ),

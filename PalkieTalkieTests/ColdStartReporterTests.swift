@@ -15,10 +15,14 @@ private actor RecordingColdStartBackend: ConversationBackend {
             wsUrl: "",
             provider: "personaplex",
             ephemeralToken: nil,
+            freeSecondsRemaining: nil,
+            freeLimitKind: nil,
         )
     }
 
-    func endConversation(sessionId _: String) async throws -> EndResponse {
+    func endConversation(
+        sessionId _: String, inputTokens _: Int?, outputTokens _: Int?,
+    ) async throws -> EndResponse {
         EndResponse(sessionId: "", durationSeconds: 0)
     }
 

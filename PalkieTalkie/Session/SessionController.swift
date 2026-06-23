@@ -25,6 +25,12 @@ final class SessionController {
     var phase: Phase = .idle
     /// Flipped true when the model calls the `end_conversation` tool (the user said goodbye). `MainTabView` watches this to leave the Talk tab; switching tabs makes `ConversationView` disappear, which tears the session down. Reset by the navigator after it acts.
     var endRequestedByTool = false
+    /// Set true when the session ended because the user hit their free-plan time limit (not a tab switch or normal goodbye). ConversationView shows the "out of free time" screen with an upgrade CTA instead of going silently idle. Reset at the start of the next session.
+    var endedOnFreeCapLimit = false
+    /// Which cap was hit, "daily" or "weekly", so the limit screen says the right thing ("back tomorrow" vs the longer "back Monday"). nil until a cap actually ends a session.
+    var freeCapLimitKind: String?
+    /// True from a cap-end until the next start, even after the limit overlay is dismissed — so the Talk view keeps showing the last transcript (the user dismisses the overlay to read what they just said). Separate from `endedOnFreeCapLimit`, which only drives the overlay and clears on dismiss.
+    var reviewLastTranscript = false
     var transcript: [TranscriptChunk] = []
     /// True while the tutor is actively speaking. Drives the mic's swell/glow animation in ConversationView. Set when an AI (`.persona`) transcript chunk arrives, cleared after a short gap with no new AI chunk. This is the conversation-level "is it the AI's turn" signal — distinct from `phase == .live`, which stays true for the whole session.
     var isAISpeaking: Bool = false
@@ -61,19 +67,20 @@ final class SessionController {
     /// Active provider for the current session ("openai" / "personaplex"), from /start. Both providers flow through startObserversForRealtime (PersonaPlex's session also conforms to RealtimeClient), so the provider can't be inferred from the observer path — it's recorded here for session-error reporting.
     var serverProvider: String?
     var observerTasks: [Task<Void, Never>] = []
-    /// Tasks the controller scheduled to enforce the free-cap mid-session: one warns the AI to wrap up at ~30s remaining, the other hard-ends the session at 0s. Cancelled in teardown() so a manual end doesn't leave them pending.
-    private var freeCapTasks: [Task<Void, Never>] = []
+    /// Tasks the controller scheduled to enforce the free-cap mid-session: one warns the AI to wrap up at ~30s remaining, the other hard-ends the session at 0s. Cancelled in teardown() so a manual end doesn't leave them pending. Internal (not private) so the free-cap timers in SessionController+FreeCap.swift can install them.
+    var freeCapTasks: [Task<Void, Never>] = []
     /// Lives for the whole session (across reconnects), not per-WS — so it can still observe the path coming back after a drop. Started lazily by `start()`, cancelled only by `end()` (never by `teardown()`, which runs on every drop). Internal so the NetworkRecovery extension can manage it.
     var networkTask: Task<Void, Never>?
 
     /// In-progress turn buffer. Stream emissions from the same speaker accumulate here; flush as one `transcripts` row on speaker switch or session end. Per CLAUDE.md, a transcripts row = one TURN, not one realtime-stream fragment.
-    private struct TurnBuffer {
+    /// Internal (not private) so the buffering logic in SessionController+Transcript.swift can read and flush it. Stored state must live on the type itself; only the behavior moves to the extension.
+    struct TurnBuffer {
         let speaker: TranscriptChunk.Speaker
         var text: String
         let startedAt: Date
     }
 
-    private var pendingTurn: TurnBuffer?
+    var pendingTurn: TurnBuffer?
 
     init(
         context: ContextGathering = ContextGatherer.shared,
@@ -95,25 +102,11 @@ final class SessionController {
         self.pathMonitor = pathMonitor
     }
 
-    private func resolvePersonaIdIfNeeded() async throws -> Bool {
-        if UUID(uuidString: selectedPersonaId) != nil { return true }
-        return try await pickFirstPersonaFromServer()
-    }
-
-    /// Pulls /personas and pins selectedPersonaId to the first preset. Called when nothing is cached, and when /start
-    /// 404s on the cached UUID (user-created persona deleted, dev DB reset, preset list rotated → UUID5 changed).
-    private func pickFirstPersonaFromServer() async throws -> Bool {
-        let personas = try await backend.getPersonas(search: nil, sort: "recommended")
-        let resolved =
-            personas.first(where: { $0.isPreset })
-                ?? personas.first
-        guard let resolved else { return false }
-        selectedPersonaId = resolved.id
-        return true
-    }
-
     func start() async {
         startNetworkMonitoringIfNeeded()
+        endedOnFreeCapLimit = false
+        reviewLastTranscript = false
+        freeCapLimitKind = nil
         let t0 = Date()
         phase = .gatheringContext
         let gatherInterval = signposter.beginInterval("conversation.gatherContext")
@@ -193,20 +186,7 @@ final class SessionController {
             sessionStartedAt = Date()
             phase = .live
             await startObserversForRealtime(client: realtime)
-            let pump = AudioPump()
-            if response.provider == "openai", let pcmStreamer = streamer as? PCM16AudioStreamerType {
-                logger.error("audio pump → startPCM16 (OpenAI)")
-                await pump.startPCM16(streamer: pcmStreamer, client: realtime)
-            } else if let pSession = realtime as? PersonaPlexSessionType {
-                logger.error("audio pump → start (PersonaPlex)")
-                await pump.start(streamer: streamer, session: pSession)
-            } else {
-                logger
-                    .error(
-                        "audio pump → NO MATCH provider=\(response.provider, privacy: .public) streamerIsPCM16=\(streamer is PCM16AudioStreamerType, privacy: .public) realtimeIsPersonaPlex=\(realtime is PersonaPlexSessionType, privacy: .public)",
-                    )
-            }
-            self.pump = pump
+            self.pump = await startAudioPump(streamer: streamer, realtime: realtime, provider: response.provider)
 
             // Cold-start telemetry: time from start() until the first inbound audio chunk lands. Posted to backend
             // /events for percentile tracking across users — confirms the "5-8s hidden by tips" target.
@@ -221,8 +201,12 @@ final class SessionController {
                 tConnectEnd: tConnectEnd,
             )
 
-            // Free-cap mid-session enforcement. Fire-and-forget — a failed entitlement fetch leaves the session uncapped (premium-style) so a network blip doesn't end someone's conversation. Only schedules timers if the user is on free and a finite remaining window applies.
-            scheduleFreeCapWrapUp(realtime: realtime)
+            // Free-cap mid-session enforcement, driven by the precise seconds /start returned. nil (premium) schedules nothing.
+            scheduleFreeCapWrapUp(
+                realtime: realtime,
+                freeSecondsRemaining: response.freeSecondsRemaining,
+                freeLimitKind: response.freeLimitKind,
+            )
         } catch {
             // Logs keep the full diagnostic; the UI shows the friendly message for errors that provide one (BackendError, SessionStartError), falling back to the raw describe otherwise.
             logger.error("conversation start failed: \(String(describing: error), privacy: .public)")
@@ -232,6 +216,26 @@ final class SessionController {
         }
         // Consume the override exactly once — next session should fall back to normal context.
         startContextOverride = nil
+    }
+
+    /// Pick and start the provider-correct audio pump: OpenAI streams PCM16 both directions; PersonaPlex drives the Ogg-Opus session. Returns the started pump so the caller retains it for teardown.
+    private func startAudioPump(
+        streamer: AudioStreamerType, realtime: RealtimeClient, provider: String,
+    ) async -> AudioPump {
+        let pump = AudioPump()
+        if provider == "openai", let pcmStreamer = streamer as? PCM16AudioStreamerType {
+            logger.error("audio pump → startPCM16 (OpenAI)")
+            await pump.startPCM16(streamer: pcmStreamer, client: realtime)
+        } else if let pSession = realtime as? PersonaPlexSessionType {
+            logger.error("audio pump → start (PersonaPlex)")
+            await pump.start(streamer: streamer, session: pSession)
+        } else {
+            logger
+                .error(
+                    "audio pump → NO MATCH provider=\(provider, privacy: .public) streamerIsPCM16=\(streamer is PCM16AudioStreamerType, privacy: .public) realtimeIsPersonaPlex=\(realtime is PersonaPlexSessionType, privacy: .public)",
+                )
+        }
+        return pump
     }
 
     /// One-shot continuation parked by `awaitServerReady` (in SessionController+ServerReady.swift). Lives on the @MainActor instance so the ready-task and the timeout-task resolve it without sharing a mutable local across `@Sendable` closures.
@@ -266,7 +270,13 @@ final class SessionController {
                     )
                 }
             }
-            _ = try? await backend.endConversation(sessionId: id)
+            // Read realtime token usage before teardown nils the client. Nil for PersonaPlex (no OpenAI usage) so the backend stores NULL, not a misleading 0.
+            let usage = await openAIClient?.usage
+            _ = try? await backend.endConversation(
+                sessionId: id,
+                inputTokens: usage?.inputTokens,
+                outputTokens: usage?.outputTokens,
+            )
         }
         await teardown()
         // Audio upload AFTER teardown so the wav file is closed/finalized. Best-effort: a failed upload doesn't reopen the session — we just lose retention for that session. File is deleted whether upload succeeded or not so we don't accumulate local copies.
@@ -274,76 +284,6 @@ final class SessionController {
             await uploadMicAudioIfAny(sessionId: id, streamer: streamer)
         }
         phase = .idle
-    }
-
-    /// Fetch the entitlement, compute the smaller of the two remaining windows (day vs week), then schedule a wrap-up hint at `remaining - 30s` and a hard end at `remaining`. Premium users get no timers. Failures (network, decode) fail-open (no caps) — a single API blip should never end a paying user's conversation.
-    private func scheduleFreeCapWrapUp(realtime: RealtimeClient) {
-        Task { [weak self] in
-            guard let self else { return }
-            guard let entitlement = try? await backend.getEntitlement() else { return }
-            if entitlement.isPremium { return }
-            let remainingSec = min(
-                entitlement.freeMinutesRemainingToday,
-                entitlement.freeMinutesRemainingThisWeek,
-            ) * 60
-            guard remainingSec > 0 else {
-                await end()
-                return
-            }
-            let warnAt = max(remainingSec - 30, 5)
-            let hintTask = Task { [weak self] in
-                try? await Task.sleep(nanoseconds: UInt64(warnAt) * 1_000_000_000)
-                guard !Task.isCancelled else { return }
-                await realtime.injectSystemHint(
-                    "You have about 30 seconds left in this conversation before the user's free-plan limit ends the call. Wrap up naturally and warmly — a quick goodbye that fits your character. Don't ask new questions.",
-                )
-                await self?.logFreeCapEvent(stage: "warn", secondsRemaining: 30)
-            }
-            let endTask = Task { [weak self] in
-                try? await Task.sleep(nanoseconds: UInt64(remainingSec) * 1_000_000_000)
-                guard !Task.isCancelled else { return }
-                await self?.logFreeCapEvent(stage: "hard_end", secondsRemaining: 0)
-                await self?.end()
-            }
-            await self.storeFreeCapTasks([hintTask, endTask])
-        }
-    }
-
-    private func storeFreeCapTasks(_ tasks: [Task<Void, Never>]) {
-        freeCapTasks = tasks
-    }
-
-    private func logFreeCapEvent(stage: String, secondsRemaining: Int) {
-        logger.error("free-cap \(stage, privacy: .public) — \(secondsRemaining, privacy: .public)s remaining")
-    }
-
-    func appendTranscript(_ chunk: TranscriptChunk) {
-        transcript.append(chunk)
-        markAISpeaking(for: chunk)
-        // Aggregate stream fragments into turn rows. Speaker switch (or session end) flushes the in-flight buffer as one POST → one DB row. Fragments from the same speaker join into one turn's text.
-        if let pending = pendingTurn, pending.speaker == chunk.speaker {
-            pendingTurn?.text += chunk.text
-        } else {
-            flushPendingTurn(endedAt: chunk.timestamp)
-            pendingTurn = TurnBuffer(speaker: chunk.speaker, text: chunk.text, startedAt: chunk.timestamp)
-        }
-    }
-
-    /// POSTs the in-flight turn buffer as one transcripts row. Called on speaker switch and on session end.
-    /// Fire-and-forget: dropped POST = a missing turn row, not a corrupted one.
-    private func flushPendingTurn(endedAt: Date) {
-        guard let pending = pendingTurn, let sessionId = serverSessionId else { return }
-        pendingTurn = nil
-        let backend = backend
-        Task {
-            try? await backend.appendTranscript(
-                sessionId: sessionId,
-                speaker: pending.speaker.rawValue,
-                text: pending.text,
-                startedAt: pending.startedAt,
-                endedAt: endedAt,
-            )
-        }
     }
 
     /// Internal (not private) so SessionController+NetworkRecovery.swift can tear a dropped session down before reconnecting.

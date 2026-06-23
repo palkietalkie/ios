@@ -30,9 +30,18 @@ extension BackendAPI {
         try await get("/conversation/sessions?limit=\(limit)")
     }
 
-    func endConversation(sessionId: String) async throws -> EndResponse {
-        struct Empty: Codable {}
-        return try await post("/conversation/\(sessionId)/end", body: Empty())
+    /// End the session and report the OpenAI realtime token usage summed over it, for backend cost analysis. Tokens are nil for the PersonaPlex path (no OpenAI usage) and for any session that produced none; the backend stores NULL in that case rather than a misleading 0.
+    func endConversation(
+        sessionId: String, inputTokens: Int? = nil, outputTokens: Int? = nil,
+    ) async throws -> EndResponse {
+        struct Body: Codable {
+            let inputTokens: Int?
+            let outputTokens: Int?
+        }
+        return try await post(
+            "/conversation/\(sessionId)/end",
+            body: Body(inputTokens: inputTokens, outputTokens: outputTokens),
+        )
     }
 
     /// Append one TURN — one continuous block of speech from one speaker. Caller (SessionController) aggregates stream fragments and only POSTs when the speaker switches or the session ends. Natural key is (session_id, speaker, started_at).

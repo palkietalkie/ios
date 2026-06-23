@@ -254,4 +254,40 @@ final class OpenAIRealtimeHandleEventTests: XCTestCase {
         await client.handleEvent(data: data(#"{"no_type":"present"}"#))
         await client.close()
     }
+
+    func testResponseDoneAccumulatesUsageAcrossEvents() async {
+        let client = makeClient()
+        var usage = await client.usage
+        XCTAssertEqual(usage, .zero, "no responses yet")
+        await client.handleEvent(
+            data: data(#"{"type":"response.done","response":{"usage":{"input_tokens":1000,"output_tokens":400}}}"#),
+        )
+        await client.handleEvent(
+            data: data(#"{"type":"response.done","response":{"usage":{"input_tokens":250,"output_tokens":90}}}"#),
+        )
+        usage = await client.usage
+        XCTAssertEqual(usage, RealtimeUsage(inputTokens: 1250, outputTokens: 490))
+        await client.close()
+    }
+
+    func testResponseDoneWithoutUsageLeavesTotalUnchanged() async {
+        let client = makeClient()
+        await client.handleEvent(data: data(#"{"type":"response.done","response":{}}"#))
+        let usage = await client.usage
+        XCTAssertEqual(usage, .zero, "a response.done with no usage block must not corrupt the total")
+        await client.close()
+    }
+
+    func testUsageDeltaParsesAndDefaultsToZero() {
+        let full = OpenAIRealtimeClient.usageDelta(
+            from: ["response": ["usage": ["input_tokens": 7, "output_tokens": 3]]],
+        )
+        XCTAssertEqual(full, RealtimeUsage(inputTokens: 7, outputTokens: 3))
+        // Missing usage block, and missing one field, both degrade to 0 rather than throw.
+        XCTAssertEqual(OpenAIRealtimeClient.usageDelta(from: ["response": [:]]), .zero)
+        XCTAssertEqual(
+            OpenAIRealtimeClient.usageDelta(from: ["response": ["usage": ["input_tokens": 5]]]),
+            RealtimeUsage(inputTokens: 5, outputTokens: 0),
+        )
+    }
 }

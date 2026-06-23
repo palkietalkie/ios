@@ -15,7 +15,8 @@ protocol ConversationBackend: Sendable {
         context: ConversationContext,
         topicOverride: String?,
     ) async throws -> StartResponse
-    func endConversation(sessionId: String) async throws -> EndResponse
+    func endConversation(sessionId: String, inputTokens: Int?, outputTokens: Int?) async throws
+        -> EndResponse
     func appendTranscript(sessionId: String, speaker: String, text: String, startedAt: Date, endedAt: Date) async throws
     func recordColdStart(
         durationMs: Int,

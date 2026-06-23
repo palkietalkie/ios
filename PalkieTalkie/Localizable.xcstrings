@@ -14492,6 +14492,146 @@
         }
       }
     },
+    "Nice work this week!": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週もよく頑張りました！"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这周练得很棒！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這週練得很棒！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주도 잘했어요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Buen trabajo esta semana!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bom trabalho esta semana!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beau travail cette semaine !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gut gemacht diese Woche!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Làm tốt lắm tuần này!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kerja bagus minggu ini!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते बढ़िया काम किया!"
+          }
+        }
+      }
+    },
+    "Nice work today!": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日もよく頑張りました！"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天练得很棒！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天練得很棒！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘도 잘했어요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Buen trabajo hoy!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bom trabalho hoje!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beau travail aujourd'hui !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gut gemacht heute!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Làm tốt lắm hôm nay!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kerja bagus hari ini!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आज बढ़िया काम किया!"
+          }
+        }
+      }
+    },
     "Niʻihau Hawaiian": {
       "localizations": {
         "ja": {
@@ -15468,6 +15608,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "Northern Russian"
+          }
+        }
+      }
+    },
+    "Not now": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あとで"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂不"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫不"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "나중에"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ahora no"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agora não"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas maintenant"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jetzt nicht"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Để sau"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nanti saja"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी नहीं"
           }
         }
       }
@@ -28908,6 +29118,146 @@
           "stringUnit": {
             "state": "translated",
             "value": "सब तैयार है"
+          }
+        }
+      }
+    },
+    "You've made the most of this week's free practice. It refreshes Monday, or upgrade for unlimited anytime.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週の無料練習をしっかり活用しましたね。月曜日にまた使えるようになります。アップグレードすれば、もっと好きなだけ練習できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你充分利用了本周的免费练习。周一会刷新，升级就能想练多久就练多久。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你充分利用了本週的免費練習。週一會刷新，升級就能想練多久就練多久。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주 무료 연습을 알차게 활용했어요. 월요일에 다시 채워져요. 업그레이드하면 원하는 만큼 마음껏 연습할 수 있어요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aprovechaste al máximo tu práctica gratis de esta semana. Se renueva el lunes, o mejora tu plan y practica todo lo que quieras."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você aproveitou ao máximo sua prática grátis desta semana. Ela renova na segunda-feira, ou faça upgrade e pratique o quanto quiser."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous avez profité à fond de votre pratique gratuite de cette semaine. Elle se renouvelle lundi, ou passez à la version supérieure et pratiquez autant que vous voulez."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du hast deine kostenlose Übungszeit diese Woche voll genutzt. Sie wird am Montag erneuert, oder hol dir ein Upgrade und übe so viel du willst."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn đã tận dụng tối đa phần luyện tập miễn phí tuần này. Nó làm mới vào thứ Hai, hoặc nâng cấp để luyện tập thỏa thích."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kamu sudah memanfaatkan latihan gratis minggu ini sepenuhnya. Akan diperbarui Senin, atau tingkatkan dan berlatih sepuasnya."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपने इस हफ़्ते की मुफ़्त प्रैक्टिस का पूरा फ़ायदा उठाया। यह सोमवार को फिर मिलेगी, या अपग्रेड करें और जितना चाहें उतना अभ्यास करें।"
+          }
+        }
+      }
+    },
+    "You've made the most of today's free practice. It refreshes tomorrow, or upgrade for unlimited anytime.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日の無料練習をしっかり活用しましたね。明日また使えるようになります。アップグレードすれば、もっと好きなだけ練習できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你充分利用了今天的免费练习。明天会刷新，升级就能想练多久就练多久。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你充分利用了今天的免費練習。明天會刷新，升級就能想練多久就練多久。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘의 무료 연습을 알차게 활용했어요. 내일 다시 채워져요. 업그레이드하면 원하는 만큼 마음껏 연습할 수 있어요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aprovechaste al máximo tu práctica gratis de hoy. Se renueva mañana, o mejora tu plan y practica todo lo que quieras."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Você aproveitou ao máximo sua prática grátis de hoje. Ela renova amanhã, ou faça upgrade e pratique o quanto quiser."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous avez profité à fond de votre pratique gratuite d'aujourd'hui. Elle se renouvelle demain, ou passez à la version supérieure et pratiquez autant que vous voulez."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Du hast deine kostenlose Übungszeit heute voll genutzt. Sie wird morgen erneuert, oder hol dir ein Upgrade und übe so viel du willst."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn đã tận dụng tối đa phần luyện tập miễn phí hôm nay. Nó làm mới vào ngày mai, hoặc nâng cấp để luyện tập thỏa thích."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kamu sudah memanfaatkan latihan gratis hari ini sepenuhnya. Akan diperbarui besok, atau tingkatkan dan berlatih sepuasnya."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपने आज की मुफ़्त प्रैक्टिस का पूरा फ़ायदा उठाया। यह कल फिर मिलेगी, या अपग्रेड करें और जितना चाहें उतना अभ्यास करें।"
           }
         }
       }

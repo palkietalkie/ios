@@ -84,7 +84,9 @@ actor FakeConversationBackend: ConversationBackend {
         return startResponse
     }
 
-    func endConversation(sessionId _: String) async throws -> EndResponse {
+    func endConversation(
+        sessionId _: String, inputTokens _: Int?, outputTokens _: Int?,
+    ) async throws -> EndResponse {
         endCount += 1
         return endResponse
     }
@@ -395,6 +397,8 @@ final class SessionControllerTests: XCTestCase {
                 wsUrl: "wss://test",
                 provider: "personaplex",
                 ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "srv-1", durationSeconds: 10),
         )
@@ -454,6 +458,8 @@ final class SessionControllerTests: XCTestCase {
             startResponse: StartResponse(
                 sessionId: "x", textPrompt: "", voiceId: "", wsUrl: "",
                 provider: "personaplex", ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "x", durationSeconds: 0),
             startError: BackendError.notAuthenticated(reason: "test"),
@@ -477,6 +483,8 @@ final class SessionControllerTests: XCTestCase {
                 wsUrl: "wss://test",
                 provider: "personaplex",
                 ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "srv-1", durationSeconds: 0),
             personas: [
@@ -545,6 +553,8 @@ final class SessionControllerTests: XCTestCase {
                 wsUrl: "wss://test",
                 provider: "personaplex",
                 ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "srv-2", durationSeconds: 0),
         )
@@ -568,6 +578,8 @@ final class SessionControllerTests: XCTestCase {
                 wsUrl: "wss://test",
                 provider: "personaplex",
                 ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "srv-emo", durationSeconds: 0),
         )
@@ -593,6 +605,8 @@ final class SessionControllerTests: XCTestCase {
                 wsUrl: "wss://test",
                 provider: "personaplex",
                 ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "srv-noemo", durationSeconds: 0),
         )

@@ -151,6 +151,8 @@ final class BackendAPITests: XCTestCase {
             wsUrl: "wss://x",
             provider: "personaplex",
             ephemeralToken: nil,
+            freeSecondsRemaining: nil,
+            freeLimitKind: nil,
         )
         transport.responseData = try BackendAPI.encoder.encode(resp)
         let api = makeAPI(transport: transport)

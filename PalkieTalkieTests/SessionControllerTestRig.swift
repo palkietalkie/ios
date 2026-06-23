@@ -16,6 +16,8 @@ func makeSessionControllerRig(
             wsUrl: "wss://test",
             provider: "personaplex",
             ephemeralToken: nil,
+            freeSecondsRemaining: nil,
+            freeLimitKind: nil,
         ),
         endResponse: EndResponse(sessionId: "srv-1", durationSeconds: 10),
     )

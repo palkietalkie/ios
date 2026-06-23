@@ -62,6 +62,11 @@ struct DeviceTokenIn: Codable {
     let apnsToken: String
 }
 
+struct EndRequest: Codable {
+    let inputTokens: Int?
+    let outputTokens: Int?
+}
+
 struct EndResponse: Codable {
     let sessionId: String
     let durationSeconds: Int
@@ -252,6 +257,8 @@ struct StartResponse: Codable {
     let wsUrl: String
     let provider: String
     let ephemeralToken: String?
+    let freeSecondsRemaining: Int?
+    let freeLimitKind: String?
 }
 
 struct StatsOverview: Codable {
