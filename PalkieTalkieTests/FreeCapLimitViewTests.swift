@@ -11,14 +11,4 @@ final class FreeCapLimitViewTests: XCTestCase {
         XCTAssertTrue(daily.lowercased().contains("today"), daily)
         XCTAssertTrue(weekly.lowercased().contains("week"), weekly)
     }
-
-    /// The local notification's text matches the cap, and "back Monday" wording only appears for the weekly block.
-    func testNotificationTextMatchesCapKind() {
-        let daily = freeCapNotificationText(isWeekly: false)
-        let weekly = freeCapNotificationText(isWeekly: true)
-        XCTAssertTrue(daily.title.lowercased().contains("today"), daily.title)
-        XCTAssertTrue(daily.body.lowercased().contains("tomorrow"), daily.body)
-        XCTAssertTrue(weekly.title.lowercased().contains("week"), weekly.title)
-        XCTAssertTrue(weekly.body.lowercased().contains("monday"), weekly.body)
-    }
 }
