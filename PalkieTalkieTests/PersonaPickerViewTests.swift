@@ -28,6 +28,30 @@ final class PersonaPickerViewTests: XCTestCase {
         }
     }
 
+    /// Report is offered only on community personas (public, not a preset, not mine). Locks the moderation surface: a regression that made presets or your own personas reportable, or hid the button on real community content, would break App Store 1.2 compliance or annoy users.
+    func testOnlyCommunityPersonasAreReportable() {
+        func persona(isPreset: Bool, isPublic: Bool, isOwner: Bool) -> PersonaDTO {
+            PersonaDTO(id: "x", name: "X", description: "", voiceId: "NATM1",
+                       role: nil, age: nil, background: nil, vocabularyRegister: nil,
+                       conversationalStyle: nil, topicalPreferences: nil,
+                       isPreset: isPreset, isPublic: isPublic, isOwner: isOwner,
+                       likeCount: 0, likedByMe: false)
+        }
+        XCTAssertTrue(PersonaPickerView.isReportable(persona(isPreset: false, isPublic: true, isOwner: false)))
+        XCTAssertFalse(
+            PersonaPickerView.isReportable(persona(isPreset: true, isPublic: true, isOwner: false)),
+            "presets are first-party",
+        )
+        XCTAssertFalse(
+            PersonaPickerView.isReportable(persona(isPreset: false, isPublic: true, isOwner: true)),
+            "can't report your own",
+        )
+        XCTAssertFalse(
+            PersonaPickerView.isReportable(persona(isPreset: false, isPublic: false, isOwner: false)),
+            "private personas aren't shared content",
+        )
+    }
+
     /// Hosts the picker with one preset, one owner, and one community persona so all three badge branches (`buildBadge` → `buildChip`) actually render without crashing. The list also exercises the row + like-column builders end to end.
     func testHostsPopulatedListRendersAllBadgeBranches() async throws {
         let transport = FakeTransport()

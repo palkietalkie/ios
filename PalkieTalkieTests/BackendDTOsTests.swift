@@ -34,6 +34,8 @@ final class BackendDTOsTests: XCTestCase {
             wsUrl: "wss://example.test",
             provider: "openai",
             ephemeralToken: "ek_test",
+            freeSecondsRemaining: nil,
+            freeLimitKind: nil,
         )
         let data = try BackendAPI.encoder.encode(original)
         // Verify the wire format actually used snake_case (camelCase would crash the backend's pydantic parsing).

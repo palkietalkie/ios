@@ -112,6 +112,16 @@ final class BackendEndpointsTests: XCTestCase {
         XCTAssertEqual(transport.lastRequest?.url?.path, "/personas/p1/like")
     }
 
+    func testReportPersonaPOST() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data("{}".utf8)
+        let api = makeAPI(transport: transport)
+
+        try await api.reportPersona(id: "p1")
+        XCTAssertEqual(transport.lastRequest?.httpMethod, "POST")
+        XCTAssertEqual(transport.lastRequest?.url?.path, "/personas/p1/report")
+    }
+
     // MARK: - Voices / languages / options
 
     func testGetVoices() async throws {
@@ -134,13 +144,14 @@ final class BackendEndpointsTests: XCTestCase {
     func testGetPracticeOptions() async throws {
         let transport = FakeTransport()
         let raw = """
-        {"proficiency":["beginner","intermediate","advanced"],"tutor_speaking_speed":["slow","normal","fast"]}
+        {"proficiency":["beginner","intermediate","advanced"],"tutor_speaking_speed":["slow","normal","fast"],"goals":["everyday_conversation","work_meetings"]}
         """
         transport.responseData = Data(raw.utf8)
         let api = makeAPI(transport: transport)
         let opts = try await api.getPracticeOptions()
         XCTAssertEqual(opts.proficiency, ["beginner", "intermediate", "advanced"])
         XCTAssertEqual(opts.tutorSpeakingSpeed, ["slow", "normal", "fast"])
+        XCTAssertEqual(opts.goals, ["everyday_conversation", "work_meetings"])
     }
 
     // MARK: - Consent

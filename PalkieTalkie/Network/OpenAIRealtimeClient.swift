@@ -45,6 +45,12 @@ actor OpenAIRealtimeClient: RealtimeClient {
     /// First-event wall-clock for relative-time diagnostics. Set lazily on first event so logs show `t=…ms` rather than absolute timestamps — easier to read the ordering between `response.output_audio.delta` and `conversation.item.input_audio_transcription.completed`.
     private var firstEventAt: Date?
 
+    /// Token usage summed across every `response.done` in the session. SessionController reads this at end and reports it to the backend for cost analysis.
+    private var usageAcc = RealtimeUsage.zero
+    var usage: RealtimeUsage {
+        usageAcc
+    }
+
     /// Persona prompt to push via `session.update` after the WS opens. Captured in the initializer because the OpenAI Realtime protocol requires the client to send instructions on every new session (the ephemeral token doesn't carry them).
     private let instructions: String?
 
@@ -290,6 +296,8 @@ actor OpenAIRealtimeClient: RealtimeClient {
             if let transcriptText = parsed["transcript"] as? String, !transcriptText.isEmpty {
                 transcriptContinuation?.yield(.init(speaker: .user, text: transcriptText))
             }
+        case "response.done":
+            accumulateUsage(from: parsed)
         case "response.function_call_arguments.done":
             yieldToolCall(from: parsed)
         case "error":
@@ -304,6 +312,24 @@ actor OpenAIRealtimeClient: RealtimeClient {
     }
 
     /// Parse a `response.function_call_arguments.done` event and forward it as a `ToolCall`. arguments is a JSON string like {"query":"..."}. Split out of `handleEvent` to keep that switch under SwiftLint's complexity budget.
+    /// Sum the token usage from one `response.done`. OpenAI reports per-response totals under `response.usage`; the session total is the sum across responses.
+    private func accumulateUsage(from parsed: [String: Any]) {
+        let delta = Self.usageDelta(from: parsed)
+        usageAcc.inputTokens += delta.inputTokens
+        usageAcc.outputTokens += delta.outputTokens
+    }
+
+    /// One `response.done`'s token usage, or `.zero` if the event lacks a usage block. Static + pure so the parsing is unit-testable without a live WS (a malformed event must contribute 0, never corrupt the running total).
+    static func usageDelta(from parsed: [String: Any]) -> RealtimeUsage {
+        guard let response = parsed["response"] as? [String: Any],
+              let usage = response["usage"] as? [String: Any]
+        else { return .zero }
+        return RealtimeUsage(
+            inputTokens: usage["input_tokens"] as? Int ?? 0,
+            outputTokens: usage["output_tokens"] as? Int ?? 0,
+        )
+    }
+
     private func yieldToolCall(from parsed: [String: Any]) {
         guard let callId = parsed["call_id"] as? String, let name = parsed["name"] as? String else {
             return

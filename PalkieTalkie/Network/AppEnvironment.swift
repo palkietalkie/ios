@@ -32,6 +32,16 @@ enum AppEnvironment {
         }
         return BackendAuthAnnouncer(baseURL: url, auth: ClerkAuthAdapter())
     }
+
+    static func makeProductionOnboardingAnnouncer() -> any OnboardingAnnouncing {
+        guard
+            let urlString = Bundle.main.object(forInfoDictionaryKey: "BACKEND_URL") as? String,
+            let url = URL(string: urlString)
+        else {
+            fatalError("Info.plist BACKEND_URL is missing or unparseable — check project.yml settings.configs")
+        }
+        return BackendOnboardingAnnouncer(baseURL: url, auth: ClerkAuthAdapter())
+    }
 }
 
 extension EnvironmentValues {
@@ -40,4 +50,7 @@ extension EnvironmentValues {
 
     /// Auth surface (user id, email, sign-out, JWT for backend calls). Same injection pattern as `backendAPI`.
     @Entry var authing: any Authing = ClerkAuthAdapter()
+
+    /// Onboarding drop-off feed reporter. Defaults to a no-op so tests/previews never touch the network; PalkieTalkieApp injects the real one in production.
+    @Entry var onboardingAnnouncer: any OnboardingAnnouncing = NoopOnboardingAnnouncer()
 }

@@ -43,4 +43,15 @@ final class AppEnvironmentTests: XCTestCase {
         let announcer: (any AuthAnnouncing)? = AppEnvironment.makeProductionAnnouncer()
         XCTAssertNotNil(announcer)
     }
+
+    /// The onboarding drop-off announcer factory reads BACKEND_URL + wires the Clerk adapter, same as the auth announcer. PalkieTalkieApp injects it at the root, so a fatalError on a missing URL would crash launch — pin the happy path. Skips until the test-host Info.plist exposes BACKEND_URL.
+    func testProductionOnboardingAnnouncerBuildsWithoutThrowing() throws {
+        guard let url = Bundle.main.object(forInfoDictionaryKey: "BACKEND_URL") as? String,
+              !url.isEmpty
+        else {
+            throw XCTSkip("BACKEND_URL not in test-host Info.plist yet; the factory would fatalError.")
+        }
+        let announcer: (any OnboardingAnnouncing)? = AppEnvironment.makeProductionOnboardingAnnouncer()
+        XCTAssertNotNil(announcer)
+    }
 }

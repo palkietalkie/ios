@@ -25,6 +25,16 @@ protocol RealtimeClient: AnyObject, Sendable {
 
     /// Return a tool's result to the model (function_call_output) and let it continue. No-op on providers without tools.
     func submitToolOutput(callId: String, output: String) async
+
+    /// Cumulative realtime token usage for the session so far, summed from the provider's usage reports (OpenAI `response.done`). SessionController reads this at session end and reports it to the backend for cost analysis. Zero for providers that don't expose token usage (PersonaPlex bills through Modal).
+    var usage: RealtimeUsage { get async }
+}
+
+/// Summed realtime token usage across one session (OpenAI `response.done.usage`). Reported to the backend at session end; the backend stores it on the session row.
+struct RealtimeUsage: Equatable {
+    var inputTokens: Int
+    var outputTokens: Int
+    static let zero = RealtimeUsage(inputTokens: 0, outputTokens: 0)
 }
 
 /// A tool/function call the realtime model wants the client to fulfill during the conversation.
@@ -57,4 +67,8 @@ extension RealtimeClient {
     }
 
     func submitToolOutput(callId _: String, output _: String) async {}
+
+    var usage: RealtimeUsage {
+        get async { .zero }
+    }
 }

@@ -15,10 +15,14 @@ private actor RecordingColdStartBackend: ConversationBackend {
             wsUrl: "",
             provider: "personaplex",
             ephemeralToken: nil,
+            freeSecondsRemaining: nil,
+            freeLimitKind: nil,
         )
     }
 
-    func endConversation(sessionId _: String) async throws -> EndResponse {
+    func endConversation(
+        sessionId _: String, inputTokens _: Int?, outputTokens _: Int?,
+    ) async throws -> EndResponse {
         EndResponse(sessionId: "", durationSeconds: 0)
     }
 
@@ -39,6 +43,8 @@ private actor RecordingColdStartBackend: ConversationBackend {
     func recordAIEmotions(
         sessionId _: String, laugh _: Int, cheer _: Int, gasp _: Int, sigh _: Int, groan _: Int,
     ) async throws {}
+
+    func recordSessionError(sessionId _: String?, provider _: String, reason _: String) async throws {}
 
     func uploadMicAudio(sessionId _: String, deflatedWav _: Data) async throws {}
 

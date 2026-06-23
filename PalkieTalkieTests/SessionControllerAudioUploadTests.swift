@@ -19,6 +19,8 @@ final class SessionControllerAudioUploadTests: XCTestCase {
                 wsUrl: "wss://test",
                 provider: "personaplex",
                 ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "srv-upload-1", durationSeconds: 10),
         )

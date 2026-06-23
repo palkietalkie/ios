@@ -40,9 +40,9 @@ final class AuthAnnouncerTests: XCTestCase {
         XCTAssertEqual(ts, "999.9", "the parent ts is returned so verify can thread under it")
     }
 
-    func testSucceededAttachesBearerAndThreadTs() async throws {
+    func testSucceededAttachesBearerThreadTsAndIdentity() async throws {
         let (request, ts) = await captureRequest(
-            auth: StubAuthing(token: "jwt-123"),
+            auth: StubAuthing(token: "jwt-123", email: "wes@palkietalkie.com", preferredName: "Wes Nishio"),
             responseJSON: #"{"thread_ts": "2"}"#,
             event: .succeeded(method: "Apple", threadTs: "999.9"),
         )
@@ -52,6 +52,9 @@ final class AuthAnnouncerTests: XCTestCase {
         XCTAssertEqual(body["method"] as? String, "Apple")
         XCTAssertEqual(body["outcome"] as? String, "succeeded")
         XCTAssertEqual(body["thread_ts"] as? String, "999.9")
+        // Identity rides along so the feed shows a human, not a user_… id.
+        XCTAssertEqual(body["preferred_name"] as? String, "Wes Nishio")
+        XCTAssertEqual(body["email"] as? String, "wes@palkietalkie.com")
         XCTAssertEqual(ts, "2")
     }
 

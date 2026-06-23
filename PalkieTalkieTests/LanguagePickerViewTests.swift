@@ -28,6 +28,15 @@ final class LanguagePickerViewTests: XCTestCase {
         }
     }
 
+    /// The picker renders the shared `supportedAppLocales` SSoT (not its own private copy), so every catalog label shows up. Guards against the picker and onboarding's language step drifting apart.
+    func testRendersEverySupportedLocaleLabel() throws {
+        let sut = LanguagePickerView()
+        let texts = try sut.inspect().findAll(ViewType.Text.self).compactMap { try? $0.string() }
+        for option in supportedAppLocales where !option.label.isEmpty {
+            XCTAssertTrue(texts.contains(option.label), "expected \(option.label) from supportedAppLocales to render")
+        }
+    }
+
     /// Tapping a row writes the locale code to UserDefaults — the AppStorage key the entire app reads at the root to apply `.environment(\.locale, …)`. Locking this writes-the-code behavior here so a refactor that swaps a different key surfaces immediately.
     func testTappingRowWritesAppLocaleAppStorageKey() throws {
         UserDefaults.standard.removeObject(forKey: "AppLocale")

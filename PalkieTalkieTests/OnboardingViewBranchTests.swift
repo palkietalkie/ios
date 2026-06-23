@@ -55,6 +55,39 @@ final class OnboardingViewBranchTests: XCTestCase {
         await host(OnboardingView(onContinue: {}).environment(\.backendAPI, api))
     }
 
+    /// Render the early steps not hosted elsewhere (intro, display language, native) so their currentStep branches execute.
+    func testHostsAtEarlySteps() async throws {
+        let langs = [LanguageDTO(name: "English", accents: ["US"]), LanguageDTO(name: "Japanese", accents: ["Tokyo"])]
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode(langs)
+        let api = makeAPI(transport)
+        for step in [OnboardingViewModel.Step.intro, .displayLanguage, .native] {
+            let model = OnboardingViewModel()
+            model.languages = langs
+            model.nativeLanguages = ["Japanese"]
+            model.step = step
+            await host(
+                OnboardingView(onContinue: {}, model: model)
+                    .environment(\.backendAPI, api)
+                    .environment(\.authing, StubAuthing()),
+            )
+        }
+    }
+
+    /// Render the .name step (injected model) so the name TextField + its StepScaffold branch renders.
+    func testHostsAtNameStep() async throws {
+        let model = OnboardingViewModel()
+        model.preferredName = "Wes"
+        model.step = .name
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode([LanguageDTO(name: "English", accents: ["US"])])
+        await host(
+            OnboardingView(onContinue: {}, model: model)
+                .environment(\.backendAPI, makeAPI(transport))
+                .environment(\.authing, StubAuthing()),
+        )
+    }
+
     /// Render the view at the .target step (injected model) so the second step's StepScaffold + single-select ChoiceList branch renders.
     func testHostsAtTargetStep() async throws {
         let model = OnboardingViewModel()
@@ -80,6 +113,42 @@ final class OnboardingViewBranchTests: XCTestCase {
         let transport = FakeTransport()
         transport.responseData = try BackendAPI.encoder.encode([LanguageDTO(name: "English", accents: ["US General"])])
         await host(OnboardingView(onContinue: {}, model: model).environment(\.backendAPI, makeAPI(transport)))
+    }
+
+    /// Render the proficiency + speed steps (injected model with practice options) so their ChoiceList branches, with one already chosen, render.
+    func testHostsAtProficiencyAndSpeedSteps() async throws {
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode([LanguageDTO(name: "English", accents: ["US"])])
+        let api = makeAPI(transport)
+        for step in [OnboardingViewModel.Step.proficiency, .speed] {
+            let model = OnboardingViewModel()
+            model.practiceOptions = PracticeOptionsDTO(
+                proficiency: ["beginner", "intermediate", "advanced"],
+                tutorSpeakingSpeed: ["slow", "normal", "fast"],
+                goals: ["travel"],
+            )
+            model.proficiency = "intermediate"
+            model.tutorSpeakingSpeed = "normal"
+            model.step = step
+            await host(OnboardingView(onContinue: {}, model: model).environment(\.backendAPI, api))
+        }
+    }
+
+    /// Render the goals step (free-text) and the getStarted primer (no "change later" note, "Start talking" button).
+    func testHostsAtGoalsAndGetStartedSteps() async throws {
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode([LanguageDTO(name: "English", accents: ["US"])])
+        let api = makeAPI(transport)
+        for step in [OnboardingViewModel.Step.goals, .getStarted] {
+            let model = OnboardingViewModel()
+            model.practiceOptions = PracticeOptionsDTO(
+                proficiency: [], tutorSpeakingSpeed: [], goals: ["job_interview", "travel"],
+            )
+            model.toggleGoal("travel")
+            model.otherGoal = "rapping"
+            model.step = step
+            await host(OnboardingView(onContinue: {}, model: model).environment(\.backendAPI, api))
+        }
     }
 
     /// Onboarding body when user already has accents picked — renders the non-empty-accents text branch in the LabeledContent label.

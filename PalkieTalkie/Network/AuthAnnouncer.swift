@@ -46,6 +46,9 @@ struct BackendAuthAnnouncer: AuthAnnouncing {
             guard let token = try? await auth.sessionToken() else { return nil }
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             payload = ["method": method, "outcome": "succeeded"]
+            // Name + email so the feed reads "Wes Nishio (wes@…)" instead of an opaque user_… id. The JWT often lacks these claims, so iOS sends what Clerk holds.
+            if let name = await auth.preferredName { payload["preferred_name"] = name }
+            if let mail = await auth.email { payload["email"] = mail }
             if let threadTs { payload["thread_ts"] = threadTs }
         case let .failed(method, reason, email, threadTs):
             payload = ["method": method, "outcome": "failed", "reason": reason]

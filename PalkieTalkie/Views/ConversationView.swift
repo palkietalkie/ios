@@ -12,6 +12,7 @@ struct ConversationView: View {
     @Environment(\.micFrameReporter) private var micFrameReporter
     /// Captions = on-screen text of what the AI is saying, in the same language as the audio. Off by default — the product is voice-first. User can toggle on per-session via the CC button below the mic. Persisted across sessions in UserDefaults.
     @AppStorage("captionsEnabled") private var captionsEnabled: Bool = false
+    @State private var showUpgrade = false
 
     var body: some View {
         NavigationStack {
@@ -29,7 +30,8 @@ struct ConversationView: View {
                 ZStack {
                     // Color.clear keeps this region claiming its half whether captions are shown or not — without it the empty region collapses and the mic above re-centers, which is the "mic jumps when I tap CC" bug.
                     Color.clear
-                    if captionsEnabled {
+                    // Keep the transcript visible after a cap (even with captions off) so dismissing the limit cover reveals the conversation the user just finished.
+                    if captionsEnabled || session.reviewLastTranscript {
                         CaptionsScroll(transcript: session.transcript)
                     }
                 }
@@ -42,8 +44,8 @@ struct ConversationView: View {
                     .padding()
             }
             .task {
-                // AI starts the conversation the moment the screen appears — no button. If we land here mid-session, leave it alone.
-                if session.phase == .idle {
+                // AI starts the conversation the moment the screen appears — no button. If we land here mid-session, leave it alone. And don't restart into an instant 402 after the user hit their cap (even once they've dismissed the cover) — the window is spent until it resets.
+                if session.phase == .idle, !session.reviewLastTranscript {
                     await session.start()
                 }
             }
@@ -56,6 +58,17 @@ struct ConversationView: View {
                     break
                 }
             }
+            // Out of free time: a full cover over the Talk view; "Not now" dismisses it to reveal the transcript underneath.
+            .overlay {
+                if session.endedOnFreeCapLimit {
+                    FreeCapLimitView(
+                        limitKind: session.freeCapLimitKind,
+                        onUpgrade: { showUpgrade = true },
+                        onDismiss: { session.endedOnFreeCapLimit = false },
+                    )
+                }
+            }
+            .sheet(isPresented: $showUpgrade) { SubscriptionView() }
         }
     }
 

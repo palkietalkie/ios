@@ -10,10 +10,10 @@ final class PalkieTalkieAppTests: XCTestCase {
         XCTAssertTrue((PalkieTalkieApp.self as Any) is any App.Type)
     }
 
-    /// `init()` performs the full production wiring (Clerk.configure + AppEnvironment factories + PushNotifications + SessionController). Constructing the App under XCTest exercises that whole composition once and asserts it doesn't trap — the same init the real `@main` launch runs. This catches a regression where any of those factories starts panicking at construction time.
+    /// `init()` + `body` perform the full production wiring (Clerk.configure + AppEnvironment factories incl. the onboarding announcer injected via `.environment` + PushNotifications + SessionController). Constructing the App and evaluating `body` exercises that whole composition once and asserts it doesn't trap — the same path the real `@main` launch runs. Catches a regression where any of those factories starts panicking at construction time.
     func testInitWiresProductionDependenciesWithoutTrapping() {
         let app = PalkieTalkieApp()
-        // body is `some Scene` (non-optional); evaluating it forces the WindowGroup + environment wiring to build.
+        // body is `some Scene` (non-optional); evaluating it forces the WindowGroup + environment wiring (including the onboarding announcer) to build.
         _ = app.body
     }
 }

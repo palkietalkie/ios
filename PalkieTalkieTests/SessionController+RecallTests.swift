@@ -52,6 +52,8 @@ final class SessionControllerRecallToolTests: XCTestCase {
                     wsUrl: "wss://t",
                     provider: "openai",
                     ephemeralToken: "ek",
+                    freeSecondsRemaining: nil,
+                    freeLimitKind: nil,
                 ),
                 endResponse: EndResponse(sessionId: "s", durationSeconds: 0),
             ),

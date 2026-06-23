@@ -66,6 +66,8 @@ final class SessionControllerOpenAITests: XCTestCase {
                 sessionId: "S-O", textPrompt: "say hello",
                 voiceId: "marin", wsUrl: "wss://api.openai.com/v1/realtime",
                 provider: "openai", ephemeralToken: "ek_test_token",
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "S-O", durationSeconds: 0),
         )
@@ -97,6 +99,8 @@ final class SessionControllerOpenAITests: XCTestCase {
                 sessionId: "S-O", textPrompt: "",
                 voiceId: "marin", wsUrl: "wss://test",
                 provider: "openai", ephemeralToken: "ek",
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "S-O", durationSeconds: 0),
         )
@@ -126,6 +130,8 @@ final class SessionControllerOpenAITests: XCTestCase {
             startResponse: StartResponse(
                 sessionId: "S", textPrompt: "", voiceId: "",
                 wsUrl: "wss://test", provider: "personaplex", ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "S", durationSeconds: 0),
         )

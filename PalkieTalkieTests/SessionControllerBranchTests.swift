@@ -27,6 +27,8 @@ final class SessionControllerBranchTests: XCTestCase {
             startResponse: StartResponse(
                 sessionId: "s", textPrompt: "", voiceId: "", wsUrl: "wss://x",
                 provider: "personaplex", ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "s", durationSeconds: 0),
             personas: [], // ← empty
@@ -49,6 +51,8 @@ final class SessionControllerBranchTests: XCTestCase {
             startResponse: StartResponse(
                 sessionId: "s", textPrompt: "", voiceId: "", wsUrl: "",
                 provider: "personaplex", ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "s", durationSeconds: 0),
         )
@@ -70,6 +74,8 @@ final class SessionControllerBranchTests: XCTestCase {
             startResponse: StartResponse(
                 sessionId: "s", textPrompt: "", voiceId: "", wsUrl: "",
                 provider: "personaplex", ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "s", durationSeconds: 0),
         )
@@ -90,6 +96,8 @@ final class SessionControllerBranchTests: XCTestCase {
             startResponse: StartResponse(
                 sessionId: "s", textPrompt: "", voiceId: "", wsUrl: "wss://x",
                 provider: "personaplex", ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "s", durationSeconds: 0),
         )
@@ -113,6 +121,8 @@ final class SessionControllerBranchTests: XCTestCase {
             startResponse: StartResponse(
                 sessionId: "s", textPrompt: "", voiceId: "", wsUrl: "",
                 provider: "personaplex", ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "s", durationSeconds: 0),
             startError: BackendError.http(500, "boom"),
@@ -137,6 +147,8 @@ final class SessionControllerBranchTests: XCTestCase {
             startResponse: StartResponse(
                 sessionId: "s", textPrompt: "", voiceId: "", wsUrl: "wss://x",
                 provider: "personaplex", ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "s", durationSeconds: 0),
             personas: [], // empty even on retry

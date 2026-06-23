@@ -22,10 +22,18 @@ final class SessionControllerErrorStreamTests: XCTestCase {
             return
         }
         XCTAssertEqual(message, "modal container crashed")
+
+        // The failure must also be reported to the backend /events — without this, a remote tester's session failure leaves no server-side trace (the audio WS is iOS↔provider direct).
+        let reported = rig.backend.sessionErrorCalls
+        XCTAssertEqual(reported.count, 1)
+        XCTAssertEqual(reported.first?.0, "s")
+        XCTAssertEqual(reported.first?.1, "personaplex")
+        XCTAssertEqual(reported.first?.2, "modal container crashed")
     }
 
     private struct Rig {
         let controller: SessionController
+        let backend: FakeConversationBackend
     }
 
     private func makeController(session: FakePersonaPlexSession) -> Rig {
@@ -33,6 +41,8 @@ final class SessionControllerErrorStreamTests: XCTestCase {
             startResponse: StartResponse(
                 sessionId: "s", textPrompt: "", voiceId: "", wsUrl: "wss://test",
                 provider: "personaplex", ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
             ),
             endResponse: EndResponse(sessionId: "s", durationSeconds: 0),
         )
@@ -48,6 +58,6 @@ final class SessionControllerErrorStreamTests: XCTestCase {
             streamerFactory: StubAudioStreamerFactory(streamer: FakeAudioStreamer()),
             sessionFactory: StubSessionFactory(session: session),
         )
-        return Rig(controller: controller)
+        return Rig(controller: controller, backend: backend)
     }
 }

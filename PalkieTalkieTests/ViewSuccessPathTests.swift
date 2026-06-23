@@ -59,6 +59,8 @@ final class ViewSuccessPathTests: XCTestCase {
                 startResponse: StartResponse(
                     sessionId: "s", textPrompt: "", voiceId: "", wsUrl: "",
                     provider: "personaplex", ephemeralToken: nil,
+                    freeSecondsRemaining: nil,
+                    freeLimitKind: nil,
                 ),
                 endResponse: EndResponse(sessionId: "s", durationSeconds: 0),
             ),
@@ -218,6 +220,7 @@ final class ViewSuccessPathTests: XCTestCase {
         let practiceOptions = PracticeOptionsDTO(
             proficiency: ["beginner", "intermediate", "advanced"],
             tutorSpeakingSpeed: ["slow", "normal", "fast"],
+            goals: ["travel", "job_interview"],
         )
         let kg = KGGraphDTO(
             nodes: [

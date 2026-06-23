@@ -15,6 +15,11 @@ enum AffinityEmotion: String, CaseIterable {
     case sigh
     case groan
 
+    /// Penalty categories (cost the user affinity) need a higher confidence bar than rewards: Apple's generic classifier readily mislabels synthesized breath/pauses in TTS as "sigh", and the tutor (OpenAI Realtime especially) rarely sighs for real, so a stray low-confidence negative must not penalize. Missing a real reward is cheaper than inventing a penalty.
+    var isPenalty: Bool {
+        self == .sigh || self == .groan
+    }
+
     /// Map an Apple SoundAnalysis label to a category, or nil if it isn't an affinity signal. Substring match on the stem so it survives Apple relabeling the version1 set ("belly_laugh", "chuckle_chortle", ...).
     static func category(for identifier: String) -> AffinityEmotion? {
         let id = identifier.lowercased()
@@ -49,8 +54,10 @@ struct AffinityCounters {
 ///
 /// `@unchecked Sendable` is required, not a shortcut: `SNResultsObserving` mandates an `NSObject` subclass, and `NSObject` is not `Sendable`. Every non-`Sendable` member (the analyzer, the format, the frame cursor) is touched only on the private serial `queue`; the only cross-thread read, the counts, goes through an `OSAllocatedUnfairLock`. So the type is genuinely safe to hand to the `AudioStreamer` actor.
 final class EmotionDetector: NSObject, SNResultsObserving, @unchecked Sendable {
-    /// A label has to clear this to count. High enough that the classifier's constant low-confidence guesses ("speech" is almost always top) never trip a false reaction.
-    static let confidenceThreshold = 0.45
+    /// Rewards (laugh/cheer/gasp) clear this. High enough that the classifier's constant low-confidence guesses ("speech" is almost always top) never trip a false reaction.
+    static let rewardConfidenceThreshold = 0.45
+    /// Penalties (sigh/groan) clear this much higher bar — they cost the user affinity, and the classifier false-fires "sigh" on TTS breath, so only a strongly-confident negative counts. Conservative starting value; calibrate against real on-device OpenAI audio.
+    static let penaltyConfidenceThreshold = 0.8
 
     private let analyzer: SNAudioStreamAnalyzer
     private let format: AVAudioFormat
@@ -104,20 +111,24 @@ final class EmotionDetector: NSObject, SNResultsObserving, @unchecked Sendable {
     /// Which affinity categories a classifier window puts "present": labels that map to a category AND clear the confidence threshold. Scans every prediction, not just the top one ("speech" usually outranks a laugh, but the laugh still clears the bar and is the signal we want). Pure and static so the core observer decision is unit-testable without a live SNClassificationResult, which the simulator can't produce.
     static func presentCategories(
         in predictions: [(identifier: String, confidence: Double)],
-        threshold: Double,
+        rewardThreshold: Double,
+        penaltyThreshold: Double,
     ) -> Set<AffinityEmotion> {
-        Set(
-            predictions
-                .filter { $0.confidence >= threshold }
-                .compactMap { AffinityEmotion.category(for: $0.identifier) },
-        )
+        var present: Set<AffinityEmotion> = []
+        for prediction in predictions {
+            guard let category = AffinityEmotion.category(for: prediction.identifier) else { continue }
+            let bar = category.isPenalty ? penaltyThreshold : rewardThreshold
+            if prediction.confidence >= bar { present.insert(category) }
+        }
+        return present
     }
 
     func request(_: SNRequest, didProduce result: SNResult) {
         guard let classification = result as? SNClassificationResult else { return }
         let present = Self.presentCategories(
             in: classification.classifications.map { ($0.identifier, $0.confidence) },
-            threshold: Self.confidenceThreshold,
+            rewardThreshold: Self.rewardConfidenceThreshold,
+            penaltyThreshold: Self.penaltyConfidenceThreshold,
         )
         state.withLock { $0.observe(present: present) }
     }

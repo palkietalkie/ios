@@ -8,6 +8,8 @@ struct AnnounceIn: Codable {
     let outcome: String?
     let threadTs: String?
     let pendingEmail: String?
+    let preferredName: String?
+    let email: String?
     let reason: String?
 }
 
@@ -60,6 +62,11 @@ struct DeviceTokenIn: Codable {
     let apnsToken: String
 }
 
+struct EndRequest: Codable {
+    let inputTokens: Int?
+    let outputTokens: Int?
+}
+
 struct EndResponse: Codable {
     let sessionId: String
     let durationSeconds: Int
@@ -108,6 +115,17 @@ struct MistakeOut: Codable {
     let original: String
     let correction: String
     let count: Int
+}
+
+struct OnboardingAnnounceIn: Codable {
+    let step: String
+    let phase: String
+    let threadTs: String?
+    let preferredName: String?
+}
+
+struct OnboardingAnnounceOut: Codable {
+    let threadTs: String?
 }
 
 struct PersonaCreate: Codable {
@@ -170,6 +188,7 @@ struct PlanLimitsResponse: Codable {
 struct PracticeOptionsOut: Codable {
     let proficiency: [String]
     let tutorSpeakingSpeed: [String]
+    let goals: [String]
 }
 
 struct ProfileOut: Codable {
@@ -206,6 +225,10 @@ struct ProviderStatus: Codable {
     let expiresAt: Date?
 }
 
+struct ReportPersonaIn: Codable {
+    let reason: String?
+}
+
 struct SectionOut: Codable {
     let topic: String
     let items: [ItemOut]
@@ -234,6 +257,8 @@ struct StartResponse: Codable {
     let wsUrl: String
     let provider: String
     let ephemeralToken: String?
+    let freeSecondsRemaining: Int?
+    let freeLimitKind: String?
 }
 
 struct StatsOverview: Codable {

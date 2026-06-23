@@ -9,6 +9,8 @@ echo "[pre-push] paired-test guard (same check CI runs)..."
 bash "$REPO/scripts/ci/check_test_pair.sh" origin/main
 echo "[pre-push] swift file-name PascalCase guard..."
 bash "$REPO/scripts/ci/check_swift_pascal_case.sh"
+echo "[pre-push] Views/ placement guard (views + view models only)..."
+bash "$REPO/scripts/ci/check_view_dir_placement.sh"
 
 # API-types drift gate: the committed Generated/APITypes.swift must match what the backend's live OpenAPI produces, so a backend field change that iOS didn't regenerate for can't ship a silently-broken decode. Generate from the dev backend (always up) into a temp file and diff. Network-unreachable is a warn-skip, not a block — a flaky network shouldn't wedge a push.
 echo "[pre-push] API-types codegen drift gate..."
@@ -42,11 +44,13 @@ xcodebuild \
 	-enableCodeCoverage YES \
 	CODE_SIGNING_ALLOWED=NO \
 	test -quiet
-pct=$(xcrun xccov view --report --json /tmp/PalkieTalkiePrePush.xcresult \
-	| python3 -c "import json,sys; d=json.loads(sys.stdin.read()); t=next((x for x in d['targets'] if x['name'].startswith('PalkieTalkie.app') or x['name']=='PalkieTalkie'), None); print(round(t['lineCoverage']*100, 2)) if t else (print('NO_TARGET') or exit(1))")
-echo "[pre-push] line coverage: ${pct}%"
+COV_JSON=$(xcrun xccov view --report --json /tmp/PalkieTalkiePrePush.xcresult)
 rm -rf /tmp/PalkieTalkiePrePush.xcresult
+# On failure, parse_coverage.py --top prints the most-uncovered files to stderr so the gate failure is actionable.
+pct=$(printf '%s' "$COV_JSON" | python3 "$REPO/scripts/ci/parse_coverage.py")
+echo "[pre-push] line coverage: ${pct}%"
 awk "BEGIN {exit !(${pct} >= 90)}" || {
-	echo "[pre-push] line coverage ${pct}% is below the 90% gate" >&2
+	echo "[pre-push] line coverage ${pct}% is below the 90% gate — test these first:" >&2
+	printf '%s' "$COV_JSON" | python3 "$REPO/scripts/ci/parse_coverage.py" --top 15 >/dev/null
 	exit 1
 }
