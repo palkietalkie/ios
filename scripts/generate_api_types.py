@@ -71,8 +71,12 @@ def python_to_swift(prop: dict[str, Any], required: bool) -> str:
         item_type = python_to_swift(prop.get("items", {}), True)
         base = f"[{item_type}]"
     elif schema_type == "object":
-        # Free-form dicts — model as [String: String] until we need richer.
-        base = "[String: String]"
+        # Typed dict: additionalProperties carries the value type (e.g. dict[str, float] → [String: Double]). Free-form objects with no value type fall back to [String: String].
+        addl = prop.get("additionalProperties")
+        if isinstance(addl, dict) and (addl.get("type") or "$ref" in addl):
+            base = f"[String: {python_to_swift(addl, True)}]"
+        else:
+            base = "[String: String]"
     else:
         base = "String"
     return base if required else base + "?"

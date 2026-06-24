@@ -147,7 +147,12 @@ final class OnboardingViewModelTests: XCTestCase {
         vm.targetAccents = ["US"]
         vm.proficiency = "advanced"
         vm.tutorSpeakingSpeed = "fast"
-        vm.practiceOptions = PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: ["travel"])
+        vm.practiceOptions = PracticeOptionsDTO(
+            proficiency: [],
+            tutorSpeakingSpeed: [],
+            tutorSpeakingSpeedRates: [:],
+            goals: ["travel"],
+        )
         vm.toggleGoal("travel")
         await vm.save(api: api)
         let sent = try decodeProfileUpdate(transport.lastRequest?.httpBody)
@@ -220,7 +225,12 @@ final class OnboardingViewModelTests: XCTestCase {
         vm.proficiency = "advanced"
         vm.tutorSpeakingSpeed = "fast"
         // Goals: a preset chip + a free-text "Other" fold into one comma-joined string.
-        vm.practiceOptions = PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: ["job_interview"])
+        vm.practiceOptions = PracticeOptionsDTO(
+            proficiency: [],
+            tutorSpeakingSpeed: [],
+            tutorSpeakingSpeedRates: [:],
+            goals: ["job_interview"],
+        )
         vm.toggleGoal("job_interview")
         vm.otherGoal = "chatting with my barista"
         await vm.save(api: api)
@@ -381,7 +391,7 @@ final class OnboardingWizardLogicTests: XCTestCase {
     func testGoalsForSaveJoinsSelectedPresetsInOrderThenOther() {
         let vm = loadedModel()
         vm.practiceOptions = PracticeOptionsDTO(
-            proficiency: [], tutorSpeakingSpeed: [],
+            proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:],
             goals: ["everyday_conversation", "dating_relationships", "travel"],
         )
         vm.toggleGoal("travel")

@@ -125,6 +125,7 @@ final class OnboardingViewBranchTests: XCTestCase {
             model.practiceOptions = PracticeOptionsDTO(
                 proficiency: ["beginner", "intermediate", "advanced"],
                 tutorSpeakingSpeed: ["slow", "normal", "fast"],
+                tutorSpeakingSpeedRates: [:],
                 goals: ["travel"],
             )
             model.proficiency = "intermediate"
@@ -142,7 +143,10 @@ final class OnboardingViewBranchTests: XCTestCase {
         for step in [OnboardingViewModel.Step.goals, .getStarted] {
             let model = OnboardingViewModel()
             model.practiceOptions = PracticeOptionsDTO(
-                proficiency: [], tutorSpeakingSpeed: [], goals: ["job_interview", "travel"],
+                proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:], goals: [
+                    "job_interview",
+                    "travel",
+                ],
             )
             model.toggleGoal("travel")
             model.otherGoal = "rapping"

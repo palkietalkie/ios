@@ -188,6 +188,7 @@ struct PlanLimitsResponse: Codable {
 struct PracticeOptionsOut: Codable {
     let proficiency: [String]
     let tutorSpeakingSpeed: [String]
+    let tutorSpeakingSpeedRates: [String: Double]
     let goals: [String]
 }
 

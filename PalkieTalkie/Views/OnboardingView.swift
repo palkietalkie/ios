@@ -221,7 +221,13 @@ struct OnboardingView: View {
                 ChoiceList(
                     options: model.practiceOptions?.tutorSpeakingSpeed ?? [],
                     isSelected: { model.tutorSpeakingSpeed == $0 },
-                    display: formatSlugLabel,
+                    // Append the backend-sourced rate ("Slow · 0.85×") so the concrete number disambiguates slow vs very slow.
+                    display: { slug in
+                        guard let rate = model.practiceOptions?.tutorSpeakingSpeedRates[slug] else {
+                            return formatSlugLabel(slug)
+                        }
+                        return "\(formatSlugLabel(slug)) · \(formatSpeedRate(rate))"
+                    },
                 ) {
                     model.pickSpeed($0)
                 }

@@ -43,7 +43,12 @@ struct PracticeView: View {
                 }
                 Picker("Tutor speaking speed", selection: $model.tutorSpeakingSpeed) {
                     ForEach(model.practiceOptions?.tutorSpeakingSpeed ?? [], id: \.self) { slug in
-                        Text(formatSlugLabel(slug)).tag(slug)
+                        // Append the backend-sourced playback rate ("Slow · 0.85×") so the concrete number disambiguates slow vs very slow. The rate is a pure value (verbatim); the label keeps its existing rendering.
+                        if let rate = model.practiceOptions?.tutorSpeakingSpeedRates[slug] {
+                            (Text(formatSlugLabel(slug)) + Text(verbatim: " · \(formatSpeedRate(rate))")).tag(slug)
+                        } else {
+                            Text(formatSlugLabel(slug)).tag(slug)
+                        }
                     }
                 }
             }

@@ -57,7 +57,7 @@ final class PracticeViewModelTests: XCTestCase {
     func testApplyGoalsSplitsPresetsFromOtherWhenOptionsKnown() {
         let vm = PracticeViewModel()
         vm.practiceOptions = PracticeOptionsDTO(
-            proficiency: [], tutorSpeakingSpeed: [], goals: ["travel", "job_interview"],
+            proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:], goals: ["travel", "job_interview"],
         )
         vm.applyGoals("travel, chatting with my barista")
         XCTAssertEqual(vm.selectedGoals, ["travel"])
@@ -107,6 +107,7 @@ final class PracticeViewModelTests: XCTestCase {
             data: BackendAPI.encoder.encode(PracticeOptionsDTO(
                 proficiency: ["beginner"],
                 tutorSpeakingSpeed: ["normal"],
+                tutorSpeakingSpeedRates: [:],
                 goals: ["travel"],
             )),
         )
@@ -135,7 +136,12 @@ final class PracticeViewModelTests: XCTestCase {
         try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode([] as [LanguageDTO]))
         try transport.enqueue(
             path: "/practice/options",
-            data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: [])),
+            data: BackendAPI.encoder.encode(PracticeOptionsDTO(
+                proficiency: [],
+                tutorSpeakingSpeed: [],
+                tutorSpeakingSpeedRates: [:],
+                goals: [],
+            )),
         )
         let api = makeAPI(transport)
         let vm = PracticeViewModel()
