@@ -144,13 +144,14 @@ final class BackendEndpointsTests: XCTestCase {
     func testGetPracticeOptions() async throws {
         let transport = FakeTransport()
         let raw = """
-        {"proficiency":["beginner","intermediate","advanced"],"tutor_speaking_speed":["slow","normal","fast"],"goals":["everyday_conversation","work_meetings"]}
+        {"proficiency":["beginner","intermediate","advanced"],"tutor_speaking_speed":["slow","normal","fast"],"tutor_speaking_speed_rates":{"slow":0.85,"normal":1.0,"fast":1.15},"goals":["everyday_conversation","work_meetings"]}
         """
         transport.responseData = Data(raw.utf8)
         let api = makeAPI(transport: transport)
         let opts = try await api.getPracticeOptions()
         XCTAssertEqual(opts.proficiency, ["beginner", "intermediate", "advanced"])
         XCTAssertEqual(opts.tutorSpeakingSpeed, ["slow", "normal", "fast"])
+        XCTAssertEqual(opts.tutorSpeakingSpeedRates, ["slow": 0.85, "normal": 1.0, "fast": 1.15])
         XCTAssertEqual(opts.goals, ["everyday_conversation", "work_meetings"])
     }
 
