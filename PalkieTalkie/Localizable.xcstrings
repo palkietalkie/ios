@@ -29262,146 +29262,6 @@
         }
       }
     },
-    "You've made the most of this week's free practice. It refreshes Monday, or upgrade for unlimited anytime.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "今週の無料練習をしっかり活用しましたね。月曜日にまた使えるようになります。アップグレードすれば、もっと好きなだけ練習できます。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你充分利用了本周的免费练习。周一会刷新，升级就能想练多久就练多久。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你充分利用了本週的免費練習。週一會刷新，升級就能想練多久就練多久。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "이번 주 무료 연습을 알차게 활용했어요. 월요일에 다시 채워져요. 업그레이드하면 원하는 만큼 마음껏 연습할 수 있어요."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aprovechaste al máximo tu práctica gratis de esta semana. Se renueva el lunes, o mejora tu plan y practica todo lo que quieras."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você aproveitou ao máximo sua prática grátis desta semana. Ela renova na segunda-feira, ou faça upgrade e pratique o quanto quiser."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vous avez profité à fond de votre pratique gratuite de cette semaine. Elle se renouvelle lundi, ou passez à la version supérieure et pratiquez autant que vous voulez."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Du hast deine kostenlose Übungszeit diese Woche voll genutzt. Sie wird am Montag erneuert, oder hol dir ein Upgrade und übe so viel du willst."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bạn đã tận dụng tối đa phần luyện tập miễn phí tuần này. Nó làm mới vào thứ Hai, hoặc nâng cấp để luyện tập thỏa thích."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kamu sudah memanfaatkan latihan gratis minggu ini sepenuhnya. Akan diperbarui Senin, atau tingkatkan dan berlatih sepuasnya."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपने इस हफ़्ते की मुफ़्त प्रैक्टिस का पूरा फ़ायदा उठाया। यह सोमवार को फिर मिलेगी, या अपग्रेड करें और जितना चाहें उतना अभ्यास करें।"
-          }
-        }
-      }
-    },
-    "You've made the most of today's free practice. It refreshes tomorrow, or upgrade for unlimited anytime.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "今日の無料練習をしっかり活用しましたね。明日また使えるようになります。アップグレードすれば、もっと好きなだけ練習できます。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你充分利用了今天的免费练习。明天会刷新，升级就能想练多久就练多久。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你充分利用了今天的免費練習。明天會刷新，升級就能想練多久就練多久。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "오늘의 무료 연습을 알차게 활용했어요. 내일 다시 채워져요. 업그레이드하면 원하는 만큼 마음껏 연습할 수 있어요."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aprovechaste al máximo tu práctica gratis de hoy. Se renueva mañana, o mejora tu plan y practica todo lo que quieras."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você aproveitou ao máximo sua prática grátis de hoje. Ela renova amanhã, ou faça upgrade e pratique o quanto quiser."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vous avez profité à fond de votre pratique gratuite d'aujourd'hui. Elle se renouvelle demain, ou passez à la version supérieure et pratiquez autant que vous voulez."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Du hast deine kostenlose Übungszeit heute voll genutzt. Sie wird morgen erneuert, oder hol dir ein Upgrade und übe so viel du willst."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bạn đã tận dụng tối đa phần luyện tập miễn phí hôm nay. Nó làm mới vào ngày mai, hoặc nâng cấp để luyện tập thỏa thích."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kamu sudah memanfaatkan latihan gratis hari ini sepenuhnya. Akan diperbarui besok, atau tingkatkan dan berlatih sepuasnya."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपने आज की मुफ़्त प्रैक्टिस का पूरा फ़ायदा उठाया। यह कल फिर मिलेगी, या अपग्रेड करें और जितना चाहें उतना अभ्यास करें।"
-          }
-        }
-      }
-    },
     "Your name": {
       "localizations": {
         "ja": {
@@ -31148,6 +31008,356 @@
           "stringUnit": {
             "state": "translated",
             "value": "wpm"
+          }
+        }
+      }
+    },
+    "Connection lost. Reconnecting.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続が切れました。再接続しています。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接已断开,正在重新连接。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連線已中斷,正在重新連線。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "연결이 끊겼습니다. 다시 연결하는 중입니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conexión perdida. Reconectando."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conexão perdida. Reconectando."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connexion perdue. Reconnexion en cours."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbindung verloren. Verbindung wird wiederhergestellt."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mất kết nối. Đang kết nối lại."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koneksi terputus. Menyambungkan kembali."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कनेक्शन टूट गया। फिर से कनेक्ट किया जा रहा है।"
+          }
+        }
+      }
+    },
+    "That's your free practice for today. Come back tomorrow, I'll be here!": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本日の無料分はここまで！また明日も来てね。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天的免费练习就到这里啦！明天再来吧，我等你！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天的免費練習就到這裡啦！明天再來吧，我等你！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘 무료 연습은 여기까지예요! 내일 또 와요, 기다릴게요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eso es tu práctica gratis de hoy. ¡Vuelve mañana, aquí te espero!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essa foi sua prática grátis de hoje. Volte amanhã, vou estar aqui!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "C'est ta pratique gratuite pour aujourd'hui. Reviens demain, je serai là !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das war deine kostenlose Übung für heute. Komm morgen wieder, ich bin da!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phần luyện tập miễn phí hôm nay đến đây thôi! Mai quay lại nhé, mình đợi bạn!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latihan gratismu untuk hari ini sampai di sini! Sampai jumpa besok, ya!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आज की मुफ़्त प्रैक्टिस यहीं तक! कल फिर आना, मैं यहीं हूँ!"
+          }
+        }
+      }
+    },
+    "That's your free practice for this week. Come back Monday, I'll be here!": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週の無料分はここまで！また来週も来てね。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这周的免费练习就到这里啦！周一再来吧，我等你！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這週的免費練習就到這裡啦！週一再來吧，我等你！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주 무료 연습은 여기까지예요! 월요일에 또 와요, 기다릴게요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eso es tu práctica gratis de esta semana. ¡Vuelve el lunes, aquí te espero!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essa foi sua prática grátis desta semana. Volte na segunda, vou estar aqui!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "C'est ta pratique gratuite pour cette semaine. Reviens lundi, je serai là !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das war deine kostenlose Übung für diese Woche. Komm am Montag wieder, ich bin da!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phần luyện tập miễn phí tuần này đến đây thôi! Thứ Hai quay lại nhé, mình đợi bạn!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latihan gratismu untuk minggu ini sampai di sini! Sampai jumpa Senin, ya!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते की मुफ़्त प्रैक्टिस यहीं तक! सोमवार को फिर आना, मैं यहीं हूँ!"
+          }
+        }
+      }
+    },
+    "That's your free practice for today. Come back tomorrow, or go unlimited anytime.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本日の無料分はここまで！また明日も来てね。もっと話したいなら、いつでもアップグレードできるよ。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天的免费练习就到这里啦！明天再来吧，或者升级，随时畅聊。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天的免費練習就到這裡啦！明天再來吧，或者升級，隨時暢聊。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘 무료 연습은 여기까지예요! 내일 또 와요. 더 하고 싶으면 언제든 업그레이드해요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eso es tu práctica gratis de hoy. Vuelve mañana, o hazte ilimitado cuando quieras."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essa foi sua prática grátis de hoje. Volte amanhã, ou vá ilimitado quando quiser."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "C'est ta pratique gratuite pour aujourd'hui. Reviens demain, ou passe en illimité quand tu veux."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das war deine kostenlose Übung für heute. Komm morgen wieder, oder hol dir jederzeit Unbegrenzt."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phần luyện tập miễn phí hôm nay đến đây thôi! Mai quay lại nhé, hoặc nâng cấp để trò chuyện thỏa thích bất cứ lúc nào."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latihan gratismu untuk hari ini sampai di sini! Sampai jumpa besok, atau buka akses tanpa batas kapan saja."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आज की मुफ़्त प्रैक्टिस यहीं तक! कल फिर आना, या जब चाहो अनलिमिटेड पाओ।"
+          }
+        }
+      }
+    },
+    "That's your free practice for this week. Come back Monday, or go unlimited anytime.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週の無料分はここまで！また来週も来てね。もっと話したいなら、いつでもアップグレードできるよ。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这周的免费练习就到这里啦！周一再来吧，或者升级，随时畅聊。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這週的免費練習就到這裡啦！週一再來吧，或者升級，隨時暢聊。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주 무료 연습은 여기까지예요! 월요일에 또 와요. 더 하고 싶으면 언제든 업그레이드해요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eso es tu práctica gratis de esta semana. Vuelve el lunes, o hazte ilimitado cuando quieras."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essa foi sua prática grátis desta semana. Volte na segunda, ou vá ilimitado quando quiser."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "C'est ta pratique gratuite pour cette semaine. Reviens lundi, ou passe en illimité quand tu veux."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das war deine kostenlose Übung für diese Woche. Komm am Montag wieder, oder hol dir jederzeit Unbegrenzt."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phần luyện tập miễn phí tuần này đến đây thôi! Thứ Hai quay lại nhé, hoặc nâng cấp để trò chuyện thỏa thích bất cứ lúc nào."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latihan gratismu untuk minggu ini sampai di sini! Sampai jumpa Senin, atau buka akses tanpa batas kapan saja."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते की मुफ़्त प्रैक्टिस यहीं तक! सोमवार को फिर आना, या जब चाहो अनलिमिटेड पाओ।"
           }
         }
       }

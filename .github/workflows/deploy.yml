@@ -73,7 +73,7 @@ jobs:
       - name: Set build number from App Store Connect
         if: steps.check-secrets.outputs.ready == 'true'
         run: |
-          # Same script release.sh uses; reads APPLE_ASC_API_KEY_BASE64 (job env). openssl/curl/jq are on the macOS runner.
+          # Same script release-testflight.sh uses; reads APPLE_ASC_API_KEY_BASE64 (job env). openssl/curl/jq are on the macOS runner.
           BUILD_NUMBER="$(./scripts/next-build-number.sh)"
           : "${BUILD_NUMBER:?could not compute next build number from ASC}"
           echo "BUILD_NUMBER=$BUILD_NUMBER" >>"$GITHUB_ENV"

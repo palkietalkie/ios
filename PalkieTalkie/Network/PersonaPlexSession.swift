@@ -52,6 +52,10 @@ actor PersonaPlexSession: PersonaPlexSessionType, RealtimeClient {
         get async { await client.errors }
     }
 
+    var disconnected: AsyncStream<String> {
+        get async { await client.disconnected }
+    }
+
     var bargeIn: AsyncStream<Void> {
         // PersonaPlex handles barge-in server-side via Inner Monologue — the WS just stops sending audio frames the moment user speech is detected, so iOS doesn't need to interrupt local playback. Return a finished stream.
         get async { AsyncStream<Void> { $0.finish() } }

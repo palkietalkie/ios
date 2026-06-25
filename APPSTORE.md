@@ -355,7 +355,7 @@ Skip both. Not building either surface at launch.
 
 ### Build
 
-`ios/scripts/release.sh` — archive → export → upload. Build number auto-set from git commit count; creds from `ios/.env`; prod baked via project.yml (`api.palkietalkie.com` + `pk_live` Clerk); team `7P7YY88H3V`.
+`ios/scripts/release-testflight.sh` — archive → export → upload. Build number auto-set from git commit count; creds from `ios/.env`; prod baked via project.yml (`api.palkietalkie.com` + `pk_live` Clerk); team `7P7YY88H3V`.
 
 ### Game Center
 

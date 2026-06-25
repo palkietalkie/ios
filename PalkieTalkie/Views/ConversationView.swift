@@ -73,7 +73,7 @@ struct ConversationView: View {
                 if session.endedOnFreeCapLimit {
                     FreeCapLimitView(
                         limitKind: session.freeCapLimitKind,
-                        onUpgrade: { showUpgrade = true },
+                        onUpgrade: FeatureFlags.subscriptionsEnabled ? { showUpgrade = true } : nil,
                         onDismiss: { session.endedOnFreeCapLimit = false },
                     )
                 }

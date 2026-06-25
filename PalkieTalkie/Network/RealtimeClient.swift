@@ -14,6 +14,8 @@ protocol RealtimeClient: AnyObject, Sendable {
     var inboundAudio: AsyncStream<Data> { get async }
     var transcript: AsyncStream<TranscriptChunk> { get async }
     var errors: AsyncStream<String> { get async }
+    /// Emits the error description when the transport dies UNEXPECTEDLY — the recv loop caught a socket/network error (e.g. NSPOSIXErrorDomain 57 "Socket is not connected", NSURLErrorDomain -1009 offline), as opposed to a clean `close()`. SessionController treats this as RECOVERABLE and reconnects, unlike `errors` (server-side app errors) which are terminal. NWPathMonitor alone misses this: a wifi→cellular handoff drops the socket while the path stays "online". Default is a no-op stream for providers/doubles that don't surface it.
+    var disconnected: AsyncStream<String> { get async }
     /// Emits when the server reports the user has started speaking — iOS should stop playing queued AI audio so the cancellation feels immediate. PersonaPlex handles barge-in server-side via Inner Monologue (its WS just stops sending audio frames); for that path this stream is silent.
     var bargeIn: AsyncStream<Void> { get async }
 
@@ -62,6 +64,10 @@ struct TranscriptChunk: Identifiable {
 
 /// Defaults so providers without function calling (PersonaPlex) and test doubles don't each need to implement the tool surface. OpenAIRealtimeClient overrides both.
 extension RealtimeClient {
+    var disconnected: AsyncStream<String> {
+        get async { AsyncStream { $0.finish() } }
+    }
+
     var toolCalls: AsyncStream<ToolCall> {
         get async { AsyncStream { $0.finish() } }
     }

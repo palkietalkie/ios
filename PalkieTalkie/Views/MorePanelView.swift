@@ -39,10 +39,12 @@ struct MorePanelView: View {
                 } label: {
                     Label("Past conversations", systemImage: "bubble.left.and.bubble.right")
                 }
-                NavigationLink {
-                    SubscriptionView()
-                } label: {
-                    Label("Subscription", systemImage: "creditcard")
+                if FeatureFlags.subscriptionsEnabled {
+                    NavigationLink {
+                        SubscriptionView()
+                    } label: {
+                        Label("Subscription", systemImage: "creditcard")
+                    }
                 }
                 Section {
                     Button(role: .destructive) {

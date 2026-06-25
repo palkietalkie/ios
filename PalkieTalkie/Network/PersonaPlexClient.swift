@@ -118,6 +118,11 @@ actor PersonaPlexClient {
     private var metadataContinuation: AsyncStream<Data>.Continuation?
     private var errorStream: AsyncStream<String>?
     private var errorContinuation: AsyncStream<String>.Continuation?
+    // AsyncStream's two halves: SessionController iterates the `stream`; the recv loop / close push into the `continuation`. Emits on an UNEXPECTED transport death so SessionController reconnects, distinct from a clean close().
+    private var disconnectedStream: AsyncStream<String>?
+    private var disconnectedContinuation: AsyncStream<String>.Continuation?
+    /// Set by close() so the recv loop's resulting receive() error is recognized as an intentional shutdown and does NOT emit a `disconnected` (which would trigger a pointless reconnect after a user-initiated end).
+    private var isClosing = false
 
     // Set true the first time the server sends its handshake byte (0x00). The audio pump must NOT start until this is true: the server's recv_loop only starts after step_system_prompts_async (~30s on cold start). If we send audio before that, the bytes either get buffered out of order or dropped, and sphn's stream decoder fails because the OpusHead pages arrived too early.
     private var handshakeReceived = false
@@ -167,6 +172,15 @@ actor PersonaPlexClient {
             self.errorContinuation = continuation
         }
         errorStream = stream
+        return stream
+    }
+
+    var disconnected: AsyncStream<String> {
+        if let existing = disconnectedStream { return existing }
+        let stream = AsyncStream<String> { continuation in
+            self.disconnectedContinuation = continuation
+        }
+        disconnectedStream = stream
         return stream
     }
 
@@ -236,12 +250,14 @@ actor PersonaPlexClient {
     }
 
     func close() async {
+        isClosing = true
         task?.cancel(with: .goingAway, reason: nil)
         task = nil
         transcriptContinuation?.finish()
         audioContinuation?.finish()
         metadataContinuation?.finish()
         errorContinuation?.finish()
+        disconnectedContinuation?.finish()
         // Resume anyone still parked in waitForServerHandshake() — e.g. a session closed (timeout/teardown) before the `\x00` byte arrived. Without this the continuation leaks. Callers race this against a timeout, so a late resume here is ignored.
         let waiters = handshakeWaiters
         handshakeWaiters.removeAll()
@@ -279,6 +295,8 @@ actor PersonaPlexClient {
                     .error(
                         "WS recv loop exit at frame #\(frameCount, privacy: .public), error: \(String(describing: error), privacy: .public), closeCode: \(task.closeCode.rawValue, privacy: .public)",
                     )
+                // A clean close() also lands here (cancelled receive) — only an UNEXPECTED exit is a recoverable disconnect worth reconnecting from.
+                if !isClosing { disconnectedContinuation?.yield(String(describing: error)) }
                 break
             }
         }
@@ -286,6 +304,7 @@ actor PersonaPlexClient {
         audioContinuation?.finish()
         metadataContinuation?.finish()
         errorContinuation?.finish()
+        disconnectedContinuation?.finish()
     }
 
     /// Internal so the test bundle can feed synthetic frames at the unit-test layer. Production goes through

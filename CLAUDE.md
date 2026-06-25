@@ -15,7 +15,7 @@ Real-time voice conversation cannot tolerate delays. If the user finishes speaki
 | Platform      | Swift / SwiftUI, iOS 26+            | —                                                               |
 | State         | `@State` / `@Observable` in memory  | Backend is the only durable store (Neon + AuraDB + Pinecone). No on-device DB. |
 | Audio         | AVAudioEngine + AVAudioPlayerNode   | AVFoundation                                                    |
-| Audio Session | `.playAndRecord` + `.default` mode  | Session-wide voice processing OFF; mic-input AEC enabled surgically via `inputNode.setVoiceProcessingEnabled(true)`. See `Audio/AudioSession.swift` for the rationale (the `.videoChat` mode's AGC noise-gate silences sub-`-11dBFS` output, which killed OpenAI's quieter TTS). |
+| Audio Session | `.playAndRecord`, AEC on + AGC off  | We request `.default` but `setVoiceProcessingEnabled(true)` (for AEC) forces the runtime mode to `.voiceChat` anyway. The noise gate that killed OpenAI's quieter TTS rides on AGC, so we disable AGC (`isVoiceProcessingAGCEnabled = false`) while keeping AEC. See `Audio/AudioSession.swift` + `AudioStreamer.start()`. |
 | Networking    | URLSessionWebSocketTask             | Foundation (built-in)                                           |
 | Opus codec    | swift-opus                          | github.com/alta/swift-opus (pinned `revision:` — PersonaPlex audio path only) |
 | Auth          | Clerk iOS SDK (`ClerkKit`)          | clerk.com                                                       |
@@ -103,7 +103,7 @@ Caveats:
 
 - UI language: default = device locale; user can override in app settings.
 - AVAudioEngine stays running for the entire conversation — never stop/start between turns. Engine startup costs ~200ms and triggers audio glitches.
-- Audio session mode is `.default`, NOT `.voiceChat` / `.videoChat`. Those modes apply iOS's voice-processing AGC + noise gate at the session level, which silences sub-`-11dBFS` output as "background noise" and killed OpenAI's quieter TTS in earlier builds. AEC for the mic side is enabled surgically via `inputNode.setVoiceProcessingEnabled(true)` in `AudioStreamer.start()`.
+- Audio session: we request `.default`, but `inputNode.setVoiceProcessingEnabled(true)` (enabled in `AudioStreamer.start()` for AEC) forces the effective session mode to `.voiceChat` at runtime, the on-device log shows `sessionMode=AVAudioSessionModeVoiceChat`. So the mode setting does NOT keep us off the voice-processing path. The noise gate that silences sub-`-11dBFS` output (it killed OpenAI's quieter TTS, clipping "Wes"→"We") rides on AGC, not AEC, so we keep AEC and disable AGC via `isVoiceProcessingAGCEnabled = false`. Do not force the mode back to `.default`; that drops AEC and reopens the self-echo loop.
 - Clerk iOS SDK is `ClerkKit` (v1.x — import via `import ClerkKit`, not `import Clerk`). `Clerk.configure(publishableKey:)` is a static method now (not on `.shared`); `clerk.auth.signOut()` replaces `Clerk.shared.signOut()`.
 
 ## Setup (once per clone)

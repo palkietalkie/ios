@@ -277,6 +277,7 @@ actor FakePersonaPlexSession: PersonaPlexSessionType {
     private let (transcriptStream, transcriptCont) = AsyncStream.makeStream(of: TranscriptChunk.self)
     private let (errorStream, errorCont) = AsyncStream.makeStream(of: String.self)
     private let (toolStream, toolCont) = AsyncStream.makeStream(of: ToolCall.self)
+    private let (disconnectedStream, disconnectedCont) = AsyncStream.makeStream(of: String.self)
     var submittedOutputs: [(callId: String, output: String)] = []
 
     var openCount = 0
@@ -359,6 +360,17 @@ actor FakePersonaPlexSession: PersonaPlexSessionType {
 
     func emit(error: String) {
         errorCont.yield(error)
+    }
+
+    nonisolated var disconnected: AsyncStream<String> {
+        get async { disconnectedStream }
+    }
+
+    /// Simulate the transport dying mid-call (recv loop caught a socket error), WITHOUT any NWPathMonitor offline event — the wifi→cellular handoff case. Yields the recoverable disconnect signal and finishes the inbound streams like the real recv loop does.
+    func dropConnection(reason: String = "Socket is not connected") {
+        disconnectedCont.yield(reason)
+        audioCont.finish()
+        transcriptCont.finish()
     }
 }
 

@@ -211,6 +211,7 @@ final class SessionController {
             // Logs keep the full diagnostic; the UI shows the friendly message for errors that provide one (BackendError, SessionStartError), falling back to the raw describe otherwise.
             logger.error("conversation start failed: \(String(describing: error), privacy: .public)")
             let userMessage = (error as? LocalizedError)?.errorDescription ?? String(describing: error)
+            await markServerSessionEnded()
             phase = .error(userMessage)
             await teardown()
         }

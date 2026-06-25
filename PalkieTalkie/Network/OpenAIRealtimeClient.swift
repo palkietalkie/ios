@@ -37,6 +37,11 @@ actor OpenAIRealtimeClient: RealtimeClient {
     private var bargeInContinuation: AsyncStream<Void>.Continuation?
     private var toolCallStream: AsyncStream<ToolCall>?
     private var toolCallContinuation: AsyncStream<ToolCall>.Continuation?
+    // AsyncStream's two halves: SessionController iterates the `stream`; the recv loop / close push into the `continuation`. We keep the continuation so the loop can feed what the observer reads.
+    private var disconnectedStream: AsyncStream<String>?
+    private var disconnectedContinuation: AsyncStream<String>.Continuation?
+    /// Set by close() so the recv loop's resulting receive() error is recognized as an intentional shutdown and does NOT emit a `disconnected` (which would trigger a pointless reconnect after a user-initiated end).
+    private var isClosing = false
 
     // Ready-state gating. Unlike PersonaPlex (which sends a `\x00` handshake byte), OpenAI Realtime's server is warm from the moment we receive the first `session.created` event. We track that event as the "ready" signal so the audio pump unblocks predictably.
     private var ready = false
@@ -83,6 +88,10 @@ actor OpenAIRealtimeClient: RealtimeClient {
         get async { await toolCallStreamMaybeInit() }
     }
 
+    nonisolated var disconnected: AsyncStream<String> {
+        get async { await disconnectedStreamMaybeInit() }
+    }
+
     private func audioStreamMaybeInit() -> AsyncStream<Data> {
         if let existing = audioStream { return existing }
         let s = AsyncStream<Data> { continuation in
@@ -107,6 +116,15 @@ actor OpenAIRealtimeClient: RealtimeClient {
             self.errorContinuation = continuation
         }
         errorStream = s
+        return s
+    }
+
+    private func disconnectedStreamMaybeInit() -> AsyncStream<String> {
+        if let existing = disconnectedStream { return existing }
+        let s = AsyncStream<String> { continuation in
+            self.disconnectedContinuation = continuation
+        }
+        disconnectedStream = s
         return s
     }
 
@@ -225,12 +243,14 @@ actor OpenAIRealtimeClient: RealtimeClient {
     }
 
     func close() async {
+        isClosing = true
         task?.cancel(with: .goingAway, reason: nil)
         task = nil
         audioContinuation?.finish()
         transcriptContinuation?.finish()
         errorContinuation?.finish()
         toolCallContinuation?.finish()
+        disconnectedContinuation?.finish()
         // Resume anyone still parked in waitForServerReady() — e.g. a session closed (timeout/teardown) before `session.created` arrived. Without this the continuation leaks. Callers race this against a timeout, so a late resume here is ignored.
         let waiters = readyWaiters
         readyWaiters.removeAll()
@@ -256,12 +276,15 @@ actor OpenAIRealtimeClient: RealtimeClient {
                 }
             } catch {
                 logger.error("OpenAI WS recv loop exit: \(String(describing: error), privacy: .public)")
+                // A clean close() throws here too (cancelled receive) — only an UNEXPECTED exit is a recoverable disconnect worth reconnecting from.
+                if !isClosing { disconnectedContinuation?.yield(String(describing: error)) }
                 break
             }
         }
         audioContinuation?.finish()
         transcriptContinuation?.finish()
         errorContinuation?.finish()
+        disconnectedContinuation?.finish()
     }
 
     /// Visible to the test bundle so we can feed synthetic JSON event frames at the unit-test layer without spinning up a real WebSocket. Production callers go through `readLoop()` which receives from the WS task and forwards into this method.

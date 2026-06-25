@@ -54,7 +54,8 @@ targets:
     settings:
       base:
         SWIFT_VERSION: "6.2"
-        TARGETED_DEVICE_FAMILY: "1"
+        # 1,2 = iPhone + iPad (universal). iPhone-only ("1") was a deliberate beta narrowing, but it's the only thing keeping the app off iPad, and an iPad is the only iOS device some testers (e.g. Haruna) own. SwiftUI adapts the layout; iPad-specific polish can follow.
+        TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
         SUPPORTS_MACCATALYST: false
         # Auto-extract every SwiftUI LocalizedStringKey usage (Text("…"), Label("…"), navigationTitle("…"), etc.) into Localizable.xcstrings at build time. Translators fill in non-English entries; missing translations fall back to the English source.

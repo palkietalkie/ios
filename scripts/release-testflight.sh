@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build, sign, and upload a prod App Store / TestFlight build of Palkie Talkie.
 #
-# Usage: ./scripts/release.sh
+# Usage: ./scripts/release-testflight.sh
 # The build number is the highest already on App Store Connect + 1 (clean sequential
 # +1; Apple just requires it to increase). Derived from ASC, not git, so it never
 # jumps when commit count diverges from upload count.
