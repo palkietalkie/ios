@@ -34,4 +34,26 @@ final class RatingPromptViewTests: XCTestCase {
         XCTAssertFalse(RatingPolicy.routesToAppStore(rating: 3))
         XCTAssertFalse(RatingPolicy.routesToAppStore(rating: 1))
     }
+
+    @MainActor
+    func testCommitRatingRecordsEveryRatingButOnlyPromptsStoreForHappyOnes() {
+        var recorded: (Int, String?)?
+        var promptedStore = false
+        // Happy: recorded AND store prompt fired.
+        commitRating(rating: 5, comment: nil,
+                     record: { r, c in recorded = (r, c) },
+                     requestStoreReview: { promptedStore = true })
+        XCTAssertEqual(recorded?.0, 5)
+        XCTAssertTrue(promptedStore)
+
+        // Unhappy: recorded (we keep the feedback) but NOT pushed to the public store.
+        recorded = nil
+        promptedStore = false
+        commitRating(rating: 2, comment: "tutor too fast",
+                     record: { r, c in recorded = (r, c) },
+                     requestStoreReview: { promptedStore = true })
+        XCTAssertEqual(recorded?.0, 2)
+        XCTAssertEqual(recorded?.1, "tutor too fast")
+        XCTAssertFalse(promptedStore)
+    }
 }

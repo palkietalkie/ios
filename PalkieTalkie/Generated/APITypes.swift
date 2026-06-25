@@ -226,6 +226,11 @@ struct ProviderStatus: Codable {
     let expiresAt: Date?
 }
 
+struct RatingIn: Codable {
+    let rating: Int
+    let comment: String?
+}
+
 struct ReportPersonaIn: Codable {
     let reason: String?
 }

@@ -17,23 +17,46 @@ enum RatingPolicy {
         return now.timeIntervalSince(last) >= Double(reAskAfterDays) * secondsPerDay
     }
 
-    /// 4-5 stars go to the PUBLIC App Store prompt; 1-3 stay private (feedback straight to us), so we don't push unhappy users to leave public reviews.
+    /// 4-5 stars also fire the PUBLIC App Store prompt; 1-3 stay private (their comment reaches only us), so we don't push unhappy users to leave public reviews. Note this gates the DESTINATION only — we collect an optional comment from every rating regardless.
     static func routesToAppStore(rating: Int) -> Bool {
         rating >= 4
     }
 }
 
-/// In-app "how's it going" prompt. Reports every rating to the backend (which Slacks it), routes happy users to the
-/// App Store review prompt and unhappy ones to a private comment box. Presentation + StoreKit live in the parent.
-struct RatingPromptView: View {
-    /// Called once the user commits a rating. `comment` is only collected for low ratings.
-    let onRate: (_ rating: Int, _ comment: String?) -> Void
-    let onDismiss: () -> Void
+/// Apply a committed rating: ALWAYS hand it to `record` (we keep every rating's feedback, happy or not), and additionally fire the App Store review prompt only for ratings that route to the public store.
+/// Extracted from the view so the "record everyone, prompt-store only the happy ones" gate is unit-testable instead of buried in a SwiftUI closure.
+@MainActor
+func commitRating(
+    rating: Int,
+    comment: String?,
+    record: (_ rating: Int, _ comment: String?) -> Void,
+    requestStoreReview: () -> Void,
+) {
+    record(rating, comment)
+    if RatingPolicy.routesToAppStore(rating: rating) {
+        requestStoreReview()
+    }
+}
 
-    @State private var rating = 0
-    @State private var comment = ""
+/// In-app "how's it going" prompt: pick a star, optionally add a comment, Send.
+/// Every rating + comment is reported to the backend (which Slacks it); 4-5 additionally surface Apple's App Store review prompt. Presentation + StoreKit live in the parent.
+struct RatingPromptView: View {
+    @State private var model: RatingPromptViewModel
+
+    init(
+        onRate: @escaping (_ rating: Int, _ comment: String?) -> Void,
+        onDismiss: @escaping () -> Void,
+    ) {
+        _model = State(initialValue: RatingPromptViewModel(onRate: onRate, onDismiss: onDismiss))
+    }
+
+    /// Test seam: inject a pre-configured model (e.g. with a star already chosen) so the comment-box branch can be exercised.
+    init(model: RatingPromptViewModel) {
+        _model = State(initialValue: model)
+    }
 
     var body: some View {
+        @Bindable var model = model
         VStack(spacing: 24) {
             Text("How's Palkie Talkie so far?")
                 .font(.title2.weight(.semibold))
@@ -42,32 +65,28 @@ struct RatingPromptView: View {
             HStack(spacing: 8) {
                 ForEach(1 ... 5, id: \.self) { star in
                     Button {
-                        rating = star
-                        // 4-5: nothing more to say, send immediately and let the parent fire the App Store prompt.
-                        if RatingPolicy.routesToAppStore(rating: star) {
-                            onRate(star, nil)
-                        }
+                        model.selectStar(star)
                     } label: {
-                        Image(systemName: star <= rating ? "star.fill" : "star")
+                        Image(systemName: star <= model.rating ? "star.fill" : "star")
                             .font(.largeTitle)
-                            .foregroundStyle(star <= rating ? Color.yellow : Color.secondary)
+                            .foregroundStyle(star <= model.rating ? Color.yellow : Color.secondary)
                     }
                     .buttonStyle(.plain)
                 }
             }
 
-            // Low rating → keep it private: ask what's wrong and send that to us instead of the public store.
-            if rating > 0, !RatingPolicy.routesToAppStore(rating: rating) {
-                TextField("What would make it better?", text: $comment, axis: .vertical)
+            // Collected from everyone once a star is picked; optional. Low ratings stay private, high ratings still also reach the public store via the parent's requestReview.
+            if model.showsCommentBox {
+                TextField("Anything you'd like to add?", text: $model.comment, axis: .vertical)
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(2 ... 4)
                 Button("Send") {
-                    onRate(rating, comment.isEmpty ? nil : comment)
+                    model.submit()
                 }
                 .buttonStyle(.borderedProminent)
             }
 
-            Button("Maybe later") { onDismiss() }
+            Button("Maybe later") { model.dismiss() }
                 .foregroundStyle(.secondary)
         }
         .padding(32)

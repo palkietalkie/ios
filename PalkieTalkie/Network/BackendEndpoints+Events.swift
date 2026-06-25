@@ -95,27 +95,6 @@ extension BackendAPI {
             ),
         )
     }
-
-    /// Report the in-app "rate your experience" result.
-    /// Posted to /events so it lands in Neon AND pings Slack (early qualitative signal), independent of whether the user also went on to the public App Store prompt.
-    /// Best-effort.
-    func recordExperienceRating(rating: Int, comment: String?) async throws {
-        struct Props: Codable {
-            let rating: Int
-            let comment: String?
-        }
-        struct Body: Codable {
-            let eventType: String
-            let props: Props
-        }
-        let _: EmptyResponse = try await post(
-            "/events",
-            body: Body(
-                eventType: "experience_rating",
-                props: Props(rating: rating, comment: comment.map { String($0.prefix(1000)) }),
-            ),
-        )
-    }
 }
 
 /// Per-phase milliseconds for one cold-start. Sums roughly to total minus parallelism gaps. Backend stores these in

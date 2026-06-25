@@ -31432,76 +31432,6 @@
         }
       }
     },
-    "What would make it better?": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "どうすればもっと良くなりますか？"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "怎样能做得更好？"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "怎樣能做得更好？"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "어떻게 하면 더 좋아질까요?"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "¿Qué podríamos mejorar?"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "O que poderíamos melhorar?"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Qu'est-ce qui pourrait l'améliorer ?"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Was könnten wir besser machen?"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Điều gì sẽ làm nó tốt hơn?"
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apa yang bisa membuatnya lebih baik?"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इसे बेहतर कैसे बनाया जा सकता है?"
-          }
-        }
-      }
-    },
     "Send": {
       "localizations": {
         "ja": {
@@ -31638,6 +31568,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "बाद में"
+          }
+        }
+      }
+    },
+    "Anything you'd like to add?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "他に何かあればぜひお聞かせください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还有什么想补充的吗？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還有什麼想補充的嗎？"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "더 하고 싶은 말이 있나요?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Quieres añadir algo?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quer acrescentar algo?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous voulez ajouter quelque chose ?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Möchtest du etwas hinzufügen?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn muốn bổ sung điều gì không?"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ada yang ingin ditambahkan?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कुछ और कहना चाहेंगे?"
           }
         }
       }

@@ -164,12 +164,14 @@ struct ConversationView: View {
 
     private func submitRating(_ rating: Int, comment: String?) {
         let backend = backendAPI
-        Task { try? await backend.recordExperienceRating(rating: rating, comment: comment) }
+        commitRating(
+            rating: rating,
+            comment: comment,
+            record: { r, c in Task { try? await backend.recordExperienceRating(rating: r, comment: c) } },
+            // 4-5 stars also surface Apple's native App Store review prompt (iOS decides whether to actually show it).
+            requestStoreReview: { requestReview() },
+        )
         showRatingPrompt = false
-        // 4-5 stars also surface Apple's native App Store review prompt (iOS decides whether to actually show it).
-        if RatingPolicy.routesToAppStore(rating: rating) {
-            requestReview()
-        }
     }
 
     /// Runs on ANY sheet dismissal (rated, "Maybe later", or swipe-down): stamp that we asked now, so the next ask is ≥ reAskAfterDays later, then start the conversation the prompt deferred.

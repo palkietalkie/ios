@@ -236,6 +236,30 @@ final class ViewInspectorTests: XCTestCase {
         XCTAssertEqual(toggles.count, 3, "Apple Calendar + Google Calendar + Outlook")
     }
 
+    // MARK: - RatingPromptView
+
+    func testRatingPromptTappingStarThenSendCommitsRating() throws {
+        var rated: (Int, String?)?
+        // Inject the model (a reference type) so tapping a star mutates the same object the re-inspection reads.
+        let model = RatingPromptViewModel(onRate: { r, c in rated = (r, c) }, onDismiss: {})
+        let sut = RatingPromptView(model: model)
+        // First five buttons are the stars; tap the third → rating 3, which reveals the comment box + Send.
+        let stars = try sut.inspect().findAll(ViewType.Button.self)
+        try stars[2].tap()
+        XCTAssertEqual(model.rating, 3)
+        try sut.inspect().find(button: "Send").tap()
+        XCTAssertEqual(rated?.0, 3)
+        XCTAssertNil(rated?.1) // no comment typed → nil
+    }
+
+    func testRatingPromptMaybeLaterDismisses() throws {
+        var dismissed = false
+        let model = RatingPromptViewModel(onRate: { _, _ in }, onDismiss: { dismissed = true })
+        let sut = RatingPromptView(model: model)
+        try sut.inspect().find(button: "Maybe later").tap()
+        XCTAssertTrue(dismissed)
+    }
+
     // MARK: - Helpers
 
     private func makeSessionController() -> SessionController {
