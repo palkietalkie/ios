@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 extension EnvironmentValues {
@@ -15,6 +16,12 @@ struct ConversationView: View {
     /// Render captions transliterated to Latin (romaji / pinyin) for learners who can't read the target's script yet. Persisted across sessions like captionsEnabled.
     @AppStorage("captionsRomanized") private var captionsRomanized: Bool = false
     @State private var showUpgrade = false
+    @Environment(\.requestReview) private var requestReview
+    @Environment(\.backendAPI) private var backendAPI
+    /// One-time "rate your experience" prompt, shown once after a few meaningful sessions (see RatingPolicy).
+    /// When we last showed the rating prompt (timeIntervalSince1970; 0 = never). We re-ask every RatingPolicy.reAskAfterDays so we use up to Apple's 3 prompts per rolling 365 days.
+    @AppStorage("ratingLastPromptedAt") private var ratingLastPromptedAt: Double = 0
+    @State private var showRatingPrompt = false
 
     var body: some View {
         NavigationStack {
@@ -54,10 +61,23 @@ struct ConversationView: View {
                 .padding()
             }
             .task {
+                // After a few meaningful sessions, ask for a rating ONCE before opening the next one, so the prompt isn't talked over by the AI starting up. The deferred session starts when the prompt is dismissed.
+                let totalMinutes = UserDefaults.standard.integer(forKey: "totalConversationSeconds") / 60
+                let lastPrompted = ratingLastPromptedAt == 0 ? nil : Date(timeIntervalSince1970: ratingLastPromptedAt)
+                if RatingPolicy.shouldPrompt(totalMinutes: totalMinutes, lastPromptedAt: lastPrompted, now: Date()) {
+                    showRatingPrompt = true
+                    return
+                }
                 // AI starts the conversation the moment the screen appears — no button. If we land here mid-session, leave it alone. And don't restart into an instant 402 after the user hit their cap (even once they've dismissed the cover) — the window is spent until it resets.
                 if session.phase == .idle, !session.reviewLastTranscript {
                     await session.start()
                 }
+            }
+            .sheet(isPresented: $showRatingPrompt, onDismiss: { onRatingSheetClosed() }) {
+                RatingPromptView(
+                    onRate: { rating, comment in submitRating(rating, comment: comment) },
+                    onDismiss: { showRatingPrompt = false },
+                )
             }
             .onDisappear {
                 // Leaving the Talk tab (switching tabs or backgrounding) ends the session — no explicit end button. Fire end() whenever there could be an in-flight server session, not just on .live/.connecting: fast tab-switches caught the previous version in .startingSession (after POST /start landed but before WS upgrade completed), which left the session dangling — no /end posted, no post-session pipelines, no word_freq/phrase_freq rows.
@@ -139,6 +159,29 @@ struct ConversationView: View {
             .transition(.opacity)
         default:
             EmptyView()
+        }
+    }
+
+    private func submitRating(_ rating: Int, comment: String?) {
+        let backend = backendAPI
+        Task { try? await backend.recordExperienceRating(rating: rating, comment: comment) }
+        showRatingPrompt = false
+        // 4-5 stars also surface Apple's native App Store review prompt (iOS decides whether to actually show it).
+        if RatingPolicy.routesToAppStore(rating: rating) {
+            requestReview()
+        }
+    }
+
+    /// Runs on ANY sheet dismissal (rated, "Maybe later", or swipe-down): stamp that we asked now, so the next ask is ≥ reAskAfterDays later, then start the conversation the prompt deferred.
+    private func onRatingSheetClosed() {
+        ratingLastPromptedAt = Date().timeIntervalSince1970
+        startDeferredSession()
+    }
+
+    /// Start the conversation the rating prompt deferred when it appeared on this view's first .task.
+    private func startDeferredSession() {
+        if session.phase == .idle, !session.reviewLastTranscript {
+            Task { await session.start() }
         }
     }
 }

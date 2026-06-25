@@ -75,15 +75,16 @@ require swiftlint "brew install swiftlint"
 
 # Swift: auto-format whole repo, then lint strictly. Whole-repo so a stray un-formatted file lingering from another tool can't slip in.
 echo "[pre-commit] swiftformat (auto-fix, whole repo)..."
+DIRTY_BEFORE=$(git diff --name-only)
 swiftformat --quiet .
 
-# Re-stage anything swiftformat changed that was already staged so the commit picks up the fixes.
+# Re-stage swiftformat's changes — but ONLY for files that were already staged AND otherwise clean. A file with pre-existing unstaged edits is skipped (re-adding it would fold unreviewed work into the commit); unstaged files are never introduced.
 CHANGED=$(git diff --name-only)
 if [ -n "$CHANGED" ]; then
 	echo "$CHANGED" | while read -r f; do
-		if echo "$STAGED" | grep -qx "$f"; then
-			git add "$f"
-		fi
+		echo "$STAGED" | grep -qx "$f" || continue
+		echo "$DIRTY_BEFORE" | grep -qx "$f" && continue
+		git add "$f" && echo "[pre-commit] re-staged formatter changes in $f"
 	done
 fi
 

@@ -250,6 +250,12 @@ final class SessionController {
         phase = .ending
         // Flush any in-progress turn buffer before tearing down so the last utterance lands in transcripts. Without this, the final turn (often the AI's closing line, or whatever the user said before tapping end) is lost.
         flushPendingTurn(endedAt: Date())
+        // Accumulate conversation time for the rating-prompt trigger (engagement is measured in cumulative minutes, not session count). sessionStartedAt is set once we go .live and is nilled in teardown just below, so this is real conversation time; a never-live session adds nothing.
+        if let startedAt = sessionStartedAt {
+            let key = "totalConversationSeconds"
+            let elapsed = Int(Date().timeIntervalSince(startedAt))
+            UserDefaults.standard.set(UserDefaults.standard.integer(forKey: key) + elapsed, forKey: key)
+        }
         let id = serverSessionId
         let streamer = audioStreamer
         if let id {
