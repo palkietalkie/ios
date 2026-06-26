@@ -32411,6 +32411,391 @@
           }
         }
       }
+    },
+    "notif_weekly_recap_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your week in review"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週のまとめ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本周回顾"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本週回顧"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주 돌아보기"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu semana en resumen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua semana em resumo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre semaine en résumé"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Woche im Überblick"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhìn lại tuần qua"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ringkasan mingguanmu"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपके हफ़्ते का सारांश"
+          }
+        }
+      }
+    },
+    "notif_weekly_recap_body_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ session, %@ min this week. You're on a %@-day streak, keep it going!"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週は%@回の練習、%@分。%@日連続中、この調子で！"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本周练习 %@ 次，%@ 分钟。已连续 %@ 天，继续保持！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本週練習 %@ 次，%@ 分鐘。已連續 %@ 天，繼續保持！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주 %@번 연습, %@분. %@일 연속 중이에요. 계속 이어가요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesión, %@ min esta semana. Estás en una racha de %@. ¡Sigue así!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessão, %@ min esta semana. Você está em uma sequência de %@. Continue assim!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ session, %@ min cette semaine. Vous êtes sur une série de %@. Continuez !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Sitzung, %@ Min. diese Woche. Du bist auf einer Serie von %@. Mach weiter so!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ buổi tập, %@ phút tuần này. Bạn đang có chuỗi %@ ngày, cứ tiếp tục nhé!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesi, %@ menit minggu ini. Kamu sedang dalam rangkaian %@ hari, terus lanjutkan!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते %@ सत्र, %@ मिनट। आप %@ दिन की स्ट्रीक पर हैं, जारी रखें!"
+          }
+        }
+      }
+    },
+    "notif_weekly_recap_body_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessions, %@ min this week. You're on a %@-day streak, keep it going!"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週は%@回の練習、%@分。%@日連続中、この調子で！"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本周练习 %@ 次，%@ 分钟。已连续 %@ 天，继续保持！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本週練習 %@ 次，%@ 分鐘。已連續 %@ 天，繼續保持！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주 %@번 연습, %@분. %@일 연속 중이에요. 계속 이어가요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesiones, %@ min esta semana. Estás en una racha de %@. ¡Sigue así!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessões, %@ min esta semana. Você está em uma sequência de %@. Continue assim!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessions, %@ min cette semaine. Vous êtes sur une série de %@. Continuez !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Sitzungen, %@ Min. diese Woche. Du bist auf einer Serie von %@. Mach weiter so!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ buổi tập, %@ phút tuần này. Bạn đang có chuỗi %@ ngày, cứ tiếp tục nhé!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesi, %@ menit minggu ini. Kamu sedang dalam rangkaian %@ hari, terus lanjutkan!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते %@ सत्र, %@ मिनट। आप %@ दिन की स्ट्रीक पर हैं, जारी रखें!"
+          }
+        }
+      }
+    },
+    "notif_weekly_recap_body_one_no_streak": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ session, %@ min this week. Keep it going!"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週は%@回の練習、%@分。この調子で！"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本周练习 %@ 次，%@ 分钟。继续保持！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本週練習 %@ 次，%@ 分鐘。繼續保持！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주 %@번 연습, %@분. 계속 이어가요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesión, %@ min esta semana. ¡Sigue así!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessão, %@ min esta semana. Continue assim!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ session, %@ min cette semaine. Continuez !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Sitzung, %@ Min. diese Woche. Mach weiter so!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ buổi tập, %@ phút tuần này. Cứ tiếp tục nhé!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesi, %@ menit minggu ini. Terus lanjutkan!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते %@ सत्र, %@ मिनट। जारी रखें!"
+          }
+        }
+      }
+    },
+    "notif_weekly_recap_body_other_no_streak": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessions, %@ min this week. Keep it going!"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週は%@回の練習、%@分。この調子で！"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本周练习 %@ 次，%@ 分钟。继续保持！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本週練習 %@ 次，%@ 分鐘。繼續保持！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주 %@번 연습, %@분. 계속 이어가요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesiones, %@ min esta semana. ¡Sigue así!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessões, %@ min esta semana. Continue assim!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessions, %@ min cette semaine. Continuez !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Sitzungen, %@ Min. diese Woche. Mach weiter so!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ buổi tập, %@ phút tuần này. Cứ tiếp tục nhé!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesi, %@ menit minggu ini. Terus lanjutkan!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते %@ सत्र, %@ मिनट। जारी रखें!"
+          }
+        }
+      }
     }
   }
 }
