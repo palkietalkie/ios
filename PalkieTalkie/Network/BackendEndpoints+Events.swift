@@ -95,6 +95,46 @@ extension BackendAPI {
             ),
         )
     }
+
+    /// Echo a realtime function-tool call to the backend. The tool call rides the iOS↔provider WS directly, so the backend never sees it otherwise — this is what makes `end_conversation` (and recall_* / web_fetch usage) visible in the events table and Slack. Fire-and-forget.
+    func recordToolCall(sessionId: String?, name: String, query: String?) async throws {
+        // `name` first so the Slack line leads with the tool, not the session UUID.
+        struct Props: Codable {
+            let name: String
+            let query: String?
+            let sessionId: String?
+        }
+        struct Body: Codable {
+            let eventType: String
+            let props: Props
+        }
+        let _: EmptyResponse = try await post(
+            "/events",
+            body: Body(
+                eventType: "tool_call",
+                props: Props(name: name, query: query.map { String($0.prefix(200)) }, sessionId: sessionId),
+            ),
+        )
+    }
+
+    /// Record WHY a session ended (`tool` / `free_cap` / `user_left`) so the backend can measure the abnormal-end ratio. The end reason is a client-only decision (the realtime WS is iOS↔provider direct), so without this `/end` looks identical no matter what triggered it. Durable events row only, not Slacked. Fire-and-forget.
+    func recordSessionEnd(sessionId: String, reason: String) async throws {
+        struct Props: Codable {
+            let sessionId: String
+            let reason: String
+        }
+        struct Body: Codable {
+            let eventType: String
+            let props: Props
+        }
+        let _: EmptyResponse = try await post(
+            "/events",
+            body: Body(
+                eventType: "session_ended",
+                props: Props(sessionId: sessionId, reason: reason),
+            ),
+        )
+    }
 }
 
 /// Per-phase milliseconds for one cold-start. Sums roughly to total minus parallelism gaps. Backend stores these in

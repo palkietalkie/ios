@@ -25,6 +25,8 @@ final class SessionController {
     var phase: Phase = .idle
     /// Flipped true when the model calls the `end_conversation` tool (the user said goodbye). `MainTabView` watches this to leave the Talk tab; switching tabs makes `ConversationView` disappear, which tears the session down. Reset by the navigator after it acts.
     var endRequestedByTool = false
+    /// Durable twin of `endRequestedByTool` for the `session_ended` end-reason telemetry. The navigator clears `endRequestedByTool` the instant it acts, BEFORE the tab switch makes ConversationView disappear and run `end()`, so reading that flag in `end()` would mislabel a model hang-up as `user_left`. This one survives until `end()` consumes it. Reset at the next `start()`. Internal (not private) so the tool handler in SessionController+Recall.swift can set it.
+    var modelRequestedEnd = false
     /// Set true when the session ended because the user hit their free-plan time limit (not a tab switch or normal goodbye). ConversationView shows the "out of free time" screen with an upgrade CTA instead of going silently idle. Reset at the start of the next session.
     var endedOnFreeCapLimit = false
     /// Which cap was hit, "daily" or "weekly", so the limit screen says the right thing ("back tomorrow" vs the longer "back Monday"). nil until a cap actually ends a session.
@@ -111,6 +113,7 @@ final class SessionController {
         endedOnFreeCapLimit = false
         reviewLastTranscript = false
         freeCapLimitKind = nil
+        modelRequestedEnd = false
         let t0 = Date()
         phase = .gatheringContext
         let gatherInterval = signposter.beginInterval("conversation.gatherContext")
@@ -294,6 +297,9 @@ final class SessionController {
                 inputTokens: usage?.inputTokens,
                 outputTokens: usage?.outputTokens,
             )
+            // Record WHY the session ended so the backend can measure the abnormal-end ratio. /end alone looks identical no matter the trigger; this is the only place the client's reason is known.
+            let endReason = endedOnFreeCapLimit ? "free_cap" : (modelRequestedEnd ? "tool" : "user_left")
+            _ = try? await backend.recordSessionEnd(sessionId: id, reason: endReason)
         }
         await teardown()
         // Audio upload AFTER teardown so the wav file is closed/finalized. Best-effort: a failed upload doesn't reopen the session — we just lose retention for that session. File is deleted whether upload succeeded or not so we don't accumulate local copies.

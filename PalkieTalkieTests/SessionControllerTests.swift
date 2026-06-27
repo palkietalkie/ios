@@ -138,6 +138,17 @@ actor FakeConversationBackend: ConversationBackend {
         sessionErrorCalls.append((sessionId, provider, reason))
     }
 
+    nonisolated(unsafe) var toolCallCalls: [(sessionId: String?, name: String, query: String?)] = []
+    nonisolated(unsafe) var sessionEndCalls: [(sessionId: String, reason: String)] = []
+
+    func recordToolCall(sessionId: String?, name: String, query: String?) async throws {
+        toolCallCalls.append((sessionId, name, query))
+    }
+
+    func recordSessionEnd(sessionId: String, reason: String) async throws {
+        sessionEndCalls.append((sessionId, reason))
+    }
+
     func uploadMicAudio(sessionId: String, deflatedWav: Data) async throws {
         micUploads.append((sessionId, deflatedWav.count))
         if let err = micUploadError { throw err }

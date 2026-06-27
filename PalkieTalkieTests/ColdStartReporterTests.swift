@@ -46,6 +46,10 @@ private actor RecordingColdStartBackend: ConversationBackend {
 
     func recordSessionError(sessionId _: String?, provider _: String, reason _: String) async throws {}
 
+    func recordToolCall(sessionId _: String?, name _: String, query _: String?) async throws {}
+
+    func recordSessionEnd(sessionId _: String, reason _: String) async throws {}
+
     func uploadMicAudio(sessionId _: String, deflatedWav _: Data) async throws {}
 
     func uploadModelAudio(sessionId _: String, deflatedWav _: Data) async throws {}

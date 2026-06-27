@@ -26,6 +26,8 @@ protocol ConversationBackend: Sendable {
     func recordPitchRange(sessionId: String, minHz: Float, maxHz: Float) async throws
     func recordAIEmotions(sessionId: String, laugh: Int, cheer: Int, gasp: Int, sigh: Int, groan: Int) async throws
     func recordSessionError(sessionId: String?, provider: String, reason: String) async throws
+    func recordToolCall(sessionId: String?, name: String, query: String?) async throws
+    func recordSessionEnd(sessionId: String, reason: String) async throws
     func uploadMicAudio(sessionId: String, deflatedWav: Data) async throws
     func uploadModelAudio(sessionId: String, deflatedWav: Data) async throws
     func getPersonas(search: String?, sort: String) async throws -> [PersonaDTO]
