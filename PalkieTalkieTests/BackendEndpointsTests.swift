@@ -421,6 +421,48 @@ final class BackendEndpointsTests: XCTestCase {
         XCTAssertEqual(props["sigh"] as? Int, 2)
     }
 
+    func testRecordToolCallPostsNameQueryAndSession() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data("{}".utf8)
+        let api = makeAPI(transport: transport)
+        try await api.recordToolCall(sessionId: "S-12", name: "recall_facts", query: "wes")
+        XCTAssertEqual(transport.lastRequest?.url?.path, "/events")
+        let body = try XCTUnwrap(transport.lastRequest?.httpBody)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["event_type"] as? String, "tool_call")
+        let props = try XCTUnwrap(json["props"] as? [String: Any])
+        XCTAssertEqual(props["name"] as? String, "recall_facts")
+        XCTAssertEqual(props["query"] as? String, "wes")
+        XCTAssertEqual(props["session_id"] as? String, "S-12")
+    }
+
+    func testRecordToolCallWithoutQueryOmitsIt() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data("{}".utf8)
+        let api = makeAPI(transport: transport)
+        try await api.recordToolCall(sessionId: "S-13", name: "end_conversation", query: nil)
+        let body = try XCTUnwrap(transport.lastRequest?.httpBody)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["event_type"] as? String, "tool_call")
+        let props = try XCTUnwrap(json["props"] as? [String: Any])
+        XCTAssertEqual(props["name"] as? String, "end_conversation")
+        XCTAssertNil(props["query"] as? String, "end_conversation carries no query, so none is sent")
+    }
+
+    func testRecordSessionEndPostsReasonAndSession() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data("{}".utf8)
+        let api = makeAPI(transport: transport)
+        try await api.recordSessionEnd(sessionId: "S-14", reason: "tool")
+        XCTAssertEqual(transport.lastRequest?.url?.path, "/events")
+        let body = try XCTUnwrap(transport.lastRequest?.httpBody)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["event_type"] as? String, "session_ended")
+        let props = try XCTUnwrap(json["props"] as? [String: Any])
+        XCTAssertEqual(props["reason"] as? String, "tool")
+        XCTAssertEqual(props["session_id"] as? String, "S-14")
+    }
+
     // MARK: - Integrations
 
     func testListIntegrations() async throws {
