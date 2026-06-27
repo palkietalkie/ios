@@ -71,6 +71,8 @@ final class SessionController {
     var freeCapTasks: [Task<Void, Never>] = []
     /// Lives for the whole session (across reconnects), not per-WS — so it can still observe the path coming back after a drop. Started lazily by `start()`, cancelled only by `end()` (never by `teardown()`, which runs on every drop). Internal so the NetworkRecovery extension can manage it.
     var networkTask: Task<Void, Never>?
+    /// Monotonic lifecycle epoch, bumped at the top of `start()` and `end()`. An in-flight `start()` captures it and bails at its checkpoints once it no longer matches, so when the user leaves the Talk tab mid-start (which runs `end()`, whose teardown `close()` un-parks `start()`'s `awaitServerReady`), the resumed `start()` does not march on to `.live` over the transport `end()` just closed.
+    private var lifecycleGeneration = 0
 
     /// In-progress turn buffer. Stream emissions from the same speaker accumulate here; flush as one `transcripts` row on speaker switch or session end. Per CLAUDE.md, a transcripts row = one TURN, not one realtime-stream fragment.
     /// Internal (not private) so the buffering logic in SessionController+Transcript.swift can read and flush it. Stored state must live on the type itself; only the behavior moves to the extension.
@@ -103,6 +105,8 @@ final class SessionController {
     }
 
     func start() async {
+        lifecycleGeneration += 1
+        let generation = lifecycleGeneration
         startNetworkMonitoringIfNeeded()
         endedOnFreeCapLimit = false
         reviewLastTranscript = false
@@ -153,6 +157,8 @@ final class SessionController {
                     "/start returned: provider=\(response.provider, privacy: .public) wsUrl=\(response.wsUrl, privacy: .public) tokenLen=\(response.ephemeralToken?.count ?? 0, privacy: .public)",
                 )
 
+            // If the user left the Talk tab during the backend call, end() already ran; bail before opening a WS it can't tear down.
+            guard generation == lifecycleGeneration else { return }
             phase = .connecting
             let connectInterval = signposter.beginInterval("conversation.websocketConnect")
             let realtime: RealtimeClient
@@ -178,6 +184,8 @@ final class SessionController {
             guard await awaitServerReady(realtime, timeoutSeconds: readyTimeout) else {
                 throw SessionStartError.serverReadyTimeout
             }
+            // end() during the server-ready park closes the transport, which un-parks the wait above; if that happened, don't build the audio path or go .live over a session end() already tore down.
+            guard generation == lifecycleGeneration else { return }
             let tConnectEnd = Date()
 
             let streamer = try await streamerFactory.makeStreamer()
@@ -245,6 +253,8 @@ final class SessionController {
     // Cold-start telemetry moved to `ColdStartReporter.swift` so the orchestrator stays focused on phase machine + collaborator wiring.
 
     func end() async {
+        // Supersede any in-flight start(): it captured the prior generation and bails at its next checkpoint instead of marching to .live over the transport this teardown closes.
+        lifecycleGeneration += 1
         // Explicit end (user left the Talk tab) — stop watching the path. A drop-driven teardown does NOT come through here, so the monitor keeps running to catch the path returning.
         cancelNetworkMonitoring()
         phase = .ending
