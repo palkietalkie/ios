@@ -186,6 +186,31 @@ final class BackendEndpointsTests: XCTestCase {
         XCTAssertEqual(json["product_improvement"] as? Bool, true)
     }
 
+    func testGetNotificationPrefs() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data(#"{"reminders_enabled":false,"reminder_hour_local":8}"#.utf8)
+        let api = makeAPI(transport: transport)
+        let prefs = try await api.getNotificationPrefs()
+        XCTAssertEqual(transport.lastRequest?.url?.path, "/notification-prefs")
+        XCTAssertFalse(prefs.remindersEnabled)
+        XCTAssertEqual(prefs.reminderHourLocal, 8)
+    }
+
+    func testSetNotificationPrefsPUT() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data(#"{"reminders_enabled":true,"reminder_hour_local":9}"#.utf8)
+        let api = makeAPI(transport: transport)
+        _ = try await api.setNotificationPrefs(
+            NotificationPrefsUpdate(remindersEnabled: true, reminderHourLocal: 9),
+        )
+        XCTAssertEqual(transport.lastRequest?.httpMethod, "PUT")
+        XCTAssertEqual(transport.lastRequest?.url?.path, "/notification-prefs")
+        let body = try XCTUnwrap(transport.lastRequest?.httpBody)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["reminders_enabled"] as? Bool, true)
+        XCTAssertEqual(json["reminder_hour_local"] as? Int, 9)
+    }
+
     // MARK: - Stats
 
     func testGetStats() async throws {

@@ -13,10 +13,14 @@ extension SessionController {
             name: call.name,
             query: call.query.isEmpty ? nil : call.query,
         )
-        // The user signalled they're done. Don't send a tool result (we're tearing down); flag it so the tab navigator leaves the conversation screen, and record it durably so end() can label the session_ended event `tool` even after the navigator clears endRequestedByTool.
+        // The user signalled they're done. Don't send a tool result (we're tearing down); record it durably so end() can label the session_ended event `tool` even after the navigator clears endRequestedByTool.
         if call.name == "end_conversation" {
-            endRequestedByTool = true
             modelRequestedEnd = true
+            // Let the model's goodbye finish playing before flagging the navigator to leave — tearing down now cuts it off, and the user never hears it (the transcript arrives well ahead of the audio, so we wait on the audio drain, not the transcript).
+            Task { [weak self] in
+                await self?.waitForAIToFinishSpeaking()
+                self?.endRequestedByTool = true
+            }
             return
         }
         let output: String

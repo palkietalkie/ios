@@ -25,6 +25,11 @@ struct MorePanelView: View {
                     Label("Integrations", systemImage: "link")
                 }
                 NavigationLink {
+                    NotificationSettingsView()
+                } label: {
+                    Label("Notifications", systemImage: "bell")
+                }
+                NavigationLink {
                     PrivacyDataView()
                 } label: {
                     Label("Privacy & Data", systemImage: "lock.shield")

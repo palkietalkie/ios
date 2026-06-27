@@ -225,6 +225,7 @@ final class FakeAudioStreamer: AudioStreamerType, PCM16AudioStreamerType, @unche
     nonisolated(unsafe) var played: [Data] = []
     nonisolated(unsafe) var playedPCM16: [Data] = []
     nonisolated(unsafe) var interruptCount = 0
+    nonisolated(unsafe) var outputPlaying = false
     private let (stream, continuation) = AsyncStream.makeStream(of: Data.self)
     private let (pcm16Stream, pcm16Continuation) = AsyncStream.makeStream(of: Data.self)
     nonisolated let pitchTracker = PitchTracker()
@@ -268,6 +269,10 @@ final class FakeAudioStreamer: AudioStreamerType, PCM16AudioStreamerType, @unche
 
     func stop() async {
         stopCount += 1
+    }
+
+    func isOutputPlaying() async -> Bool {
+        outputPlaying
     }
 
     deinit {

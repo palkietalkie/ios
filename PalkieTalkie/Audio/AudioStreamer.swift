@@ -2,6 +2,7 @@
 @preconcurrency import AVFoundation
 import Foundation
 import Opus
+import os
 import OSLog
 
 private let signposter = OSSignposter(subsystem: "com.palkietalkie", category: "audio")
@@ -64,6 +65,8 @@ actor AudioStreamer {
     private var pcm16InputContinuation: AsyncStream<Data>.Continuation?
     private var pcm16InputStreamCache: AsyncStream<Data>?
     private var pendingMicSamples: [Float] = []
+    // Tutor-audio buffers scheduled but not yet played out. Decremented from each buffer's completion, which fires off-actor on the audio thread, hence a lock rather than actor-isolated state. isOutputPlaying reads it so end() can let a goodbye finish instead of cutting it off.
+    private let pendingOutputLock = OSAllocatedUnfairLock(initialState: 0)
     nonisolated let pitchTracker = PitchTracker()
     /// Live emotion counter on the AI's OUTPUT audio. Per-session (created in start(), released in stop()) because the classifier carries a running frame cursor that must reset each conversation.
     private var emotionDetector: EmotionDetector?
@@ -229,13 +232,22 @@ actor AudioStreamer {
                     "playPCM16 sched #\(n, privacy: .public): \(pcm16Bytes.count, privacy: .public)B → frames=\(samples.count, privacy: .public) peak=\(p, privacy: .public) engineRunning=\(self.engine.isRunning, privacy: .public) playerPlaying=\(self.playerNode.isPlaying, privacy: .public)",
                 )
         }
-        playerNode.scheduleBuffer(buffer, completionHandler: nil)
+        pendingOutputLock.withLock { $0 += 1 }
+        playerNode.scheduleBuffer(buffer) { [weak self] in
+            self?.pendingOutputLock.withLock { if $0 > 0 { $0 -= 1 } }
+        }
+    }
+
+    nonisolated func isOutputPlaying() -> Bool {
+        pendingOutputLock.withLock { $0 > 0 }
     }
 
     /// Drop everything queued and resume — caller (AudioPump) hooks this to the realtime client's `bargeIn` stream so user-speech-detected stops AI audio mid-sentence. `playerNode.stop()` cancels scheduled buffers; immediately `play()` again so the next AI turn's audio plays without re-entering the start() bring-up.
     func interruptPlayback() {
         playerNode.stop()
         playerNode.play()
+        // Barge-in flushed the queued tutor audio; those buffers will never finish playing, so clear the count.
+        pendingOutputLock.withLock { $0 = 0 }
     }
 
     /// Server frames carry Ogg-Opus bytes (encoded by sphn). Demux into raw Opus packets, decode each, schedule for playback. Loudness handled server-side (see `patch_moshi_server.py`).

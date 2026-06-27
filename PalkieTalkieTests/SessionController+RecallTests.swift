@@ -96,8 +96,10 @@ final class SessionControllerRecallToolTests: XCTestCase {
         await controller.handleToolCall(
             ToolCall(callId: "c3", name: "end_conversation", query: ""), client: client,
         )
-        XCTAssertTrue(controller.endRequestedByTool)
         XCTAssertTrue(client.submitted.isEmpty, "tearing down submits no tool output")
+        // Nothing is playing here, so the navigator flag lands within a tick (no goodbye to wait out).
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        XCTAssertTrue(controller.endRequestedByTool)
     }
 
     func testUnknownToolSubmitsUnknownNote() async {
@@ -137,6 +139,41 @@ final class SessionControllerRecallToolTests: XCTestCase {
         controller.endedOnFreeCapLimit = true
         await controller.end()
         XCTAssertEqual(backend.sessionEndCalls.last?.reason, "free_cap")
+    }
+
+    func testEndConversationWaitsForTheGoodbyeAudioBeforeLeavingTalk() async {
+        // Repro: the model says a goodbye line (still playing) then calls end_conversation; flagging the navigator immediately tears the session down and cuts the spoken goodbye off mid-audio. We must wait until the AI finishes speaking.
+        let controller = makeController()
+        let client = RecordingRealtimeClient()
+        controller.isAISpeaking = true // goodbye still playing
+        await controller.handleToolCall(
+            ToolCall(callId: "c8", name: "end_conversation", query: ""), client: client,
+        )
+        XCTAssertFalse(
+            controller.endRequestedByTool,
+            "must not leave Talk while the goodbye is still playing",
+        )
+        controller.isAISpeaking = false // goodbye finished
+        try? await Task.sleep(nanoseconds: 600_000_000)
+        XCTAssertTrue(controller.endRequestedByTool, "after the goodbye finishes, leave the Talk tab")
+    }
+
+    func testEndConversationWaitsForAudioDrainEvenAfterTheTranscriptStops() async {
+        // The transcript runs ahead of the audio, so isAISpeaking can be false while the goodbye is still playing out. Gate on the actual audio drain, not the transcript, or the goodbye is never heard.
+        let controller = makeController()
+        let streamer = FakeAudioStreamer()
+        streamer.outputPlaying = true // goodbye audio still draining
+        controller.audioStreamer = streamer
+        controller.isAISpeaking = false // transcript already finished (it's faster than audio)
+        let client = RecordingRealtimeClient()
+        await controller.handleToolCall(
+            ToolCall(callId: "c9", name: "end_conversation", query: ""), client: client,
+        )
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        XCTAssertFalse(controller.endRequestedByTool, "audio still draining → don't leave yet")
+        streamer.outputPlaying = false // audio finished playing out
+        try? await Task.sleep(nanoseconds: 300_000_000)
+        XCTAssertTrue(controller.endRequestedByTool, "audio drained → leave Talk")
     }
 
     func testToolEndReportsToolEvenAfterTheNavigatorClearsTheFlag() async {

@@ -18,6 +18,14 @@ extension BackendAPI {
         try await put("/consent", body: payload)
     }
 
+    func getNotificationPrefs() async throws -> NotificationPrefsOut {
+        try await get("/notification-prefs")
+    }
+
+    func setNotificationPrefs(_ payload: NotificationPrefsUpdate) async throws -> NotificationPrefsOut {
+        try await put("/notification-prefs", body: payload)
+    }
+
     func getEntitlement() async throws -> Entitlement {
         try await get("/entitlement")
     }

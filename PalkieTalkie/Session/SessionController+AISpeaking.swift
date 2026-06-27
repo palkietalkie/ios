@@ -13,4 +13,14 @@ extension SessionController {
             self?.isAISpeaking = false
         }
     }
+
+    /// Suspend until the tutor finishes its current spoken turn (or a safety timeout), so a caller can let a goodbye play out instead of cutting it off. Gates on BOTH the transcript flag (isAISpeaking) AND the actual audio drain (player still has buffers): the transcript arrives well ahead of the audio, so isAISpeaking alone goes quiet too early.
+    func waitForAIToFinishSpeaking(timeout: TimeInterval = 8) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            let stillPlaying = await audioStreamer?.isOutputPlaying() ?? false
+            if !isAISpeaking, !stillPlaying { return }
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+    }
 }

@@ -60,7 +60,8 @@ final class SessionController {
 
     // MARK: - Live state
 
-    private var audioStreamer: AudioStreamerType?
+    // Internal (not private) so SessionController+AISpeaking.swift can poll isOutputPlaying() to hold off teardown until a goodbye finishes.
+    var audioStreamer: AudioStreamerType?
     private var personaPlex: PersonaPlexSessionType?
     private var openAIClient: RealtimeClient?
     private var pump: AudioPump?

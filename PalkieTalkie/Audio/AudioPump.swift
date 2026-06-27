@@ -13,6 +13,8 @@ protocol AudioStreamerType: AnyObject, Sendable {
     var recordedModelAudioURL: URL? { get async }
     /// Tear down the audio graph (mic tap removed, engine stopped, queued buffers cleared). Safe to call when never started.
     func stop() async
+    /// True while the player still has tutor audio scheduled-but-not-yet-played. Lets end() hold off teardown so a goodbye finishes out loud instead of being cut off. The transcript arrives well ahead of the audio, so the transcript-based "AI speaking" flag goes quiet too early to gate on.
+    func isOutputPlaying() async -> Bool
 }
 
 extension AudioStreamer: AudioStreamerType {}

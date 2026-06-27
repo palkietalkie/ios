@@ -117,6 +117,16 @@ struct MistakeOut: Codable {
     let count: Int
 }
 
+struct NotificationPrefsOut: Codable {
+    let remindersEnabled: Bool
+    let reminderHourLocal: Int
+}
+
+struct NotificationPrefsUpdate: Codable {
+    let remindersEnabled: Bool
+    let reminderHourLocal: Int
+}
+
 struct OnboardingAnnounceIn: Codable {
     let step: String
     let phase: String
