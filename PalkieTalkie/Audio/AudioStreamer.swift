@@ -21,9 +21,6 @@ actor AudioStreamer {
     static let sampleRate: Double = 24000
     static let frameSamples: AVAudioFrameCount = 480 // 20ms @ 24kHz
 
-    /// Noise-gate cutoff in dBFS. Frames quieter than this get zeroed before encoding so OpenAI's server VAD doesn't trip on room tone. -45 ≈ between room tone (-50) and a whisper (-35). Tunable per real-world data.
-    static let noiseGateDbfs: Float = -45
-
     private let engine: AudioEngineProtocol
     private let playerNode: AudioPlayerNodeProtocol
 
@@ -50,6 +47,9 @@ actor AudioStreamer {
     private let modelAudioRecorder = WavAudioRecorder(prefix: "model", sampleRate: UInt32(AudioStreamer.sampleRate))
     /// The 0-or-1 leftover byte from the previous OpenAI audio chunk that didn't complete a 2-byte sample; prepended to the next chunk so a sample straddling the boundary isn't dropped. `Data()` = empty = nothing carried. See JARGON: PCM16 (streaming note) and Data. Reset at start().
     private var pcm16Carry = Data()
+
+    /// Per-frame near-field gate: silences anything that isn't the close, primary speaker so the provider VAD never opens a turn off far voices or ambient noise. Reset each session so a previous environment's floor doesn't carry over.
+    private var nearFieldGate = NearFieldGate()
 
     /// URL of the wav file containing the user-side audio from the most-recently-finished session. Cleared on next start(). Returned for upload + local cleanup by SessionController.end(). Nil if no session has finished yet.
     var recordedSessionAudioURL: URL? {
@@ -144,6 +144,7 @@ actor AudioStreamer {
         sessionAudioRecorder.open()
         modelAudioRecorder.open()
         pcm16Carry = Data()
+        nearFieldGate.reset()
 
         // The tap block must be @Sendable — capture only the actor + raw Float32 bytes. Samples are converted off-actor (in the audio thread) so we never block AVAudio's real-time path.
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { [weak self] buffer, _ in
@@ -316,8 +317,8 @@ actor AudioStreamer {
             var chunk = Array(pendingMicSamples.prefix(frameLen))
             pendingMicSamples.removeFirst(frameLen)
 
-            // Noise gate: zero out frames whose RMS sits at room-tone level. Cuts the chances of OpenAI's server VAD misfiring on wind / scooter rattle / AirPod-bleed of our own TTS. -45 dBFS is conservative — clear speech runs ~ -20 dBFS, room tone ~ -50 to -45. Adjust upward if false positives persist (raise gate), downward if real soft speech is being eaten (lower gate). AEC + voice processing still apply earlier in the chain; this is the final defense.
-            if AudioMath.rmsDbfs(chunk) < Self.noiseGateDbfs {
+            // Near-field gate: silence any frame that isn't the close primary speaker (the user) so the provider's server VAD only ever sees the user's own voice and can't open a phantom turn off far voices, a TV, wind, or scooter rattle. A fixed level gate can't do this (it can't tell a loud scooter from speech, and a single threshold is wrong in both a quiet office and a noisy street); NearFieldGate tracks the ambient floor and checks voicedness instead. AEC + voice processing still run earlier in the chain; this is the final, environment-adaptive defense.
+            if !nearFieldGate.shouldPass(frame: chunk) {
                 for i in chunk.indices {
                     chunk[i] = 0
                 }

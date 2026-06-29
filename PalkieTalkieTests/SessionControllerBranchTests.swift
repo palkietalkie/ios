@@ -165,4 +165,30 @@ final class SessionControllerBranchTests: XCTestCase {
         await controller.start()
         XCTAssertEqual(controller.phase, .idle)
     }
+
+    /// A 402 (free cap spent) must surface the limit screen, not a raw "HTTP 402" error. Bug: re-entering Talk after the cap dropped into .error with the raw body, which read as a dev error. It must go .idle + flag endedOnFreeCapLimit (so ConversationView shows FreeCapLimitView) and read free_limit_kind from the structured detail.
+    func testFreeCap402ShowsLimitScreenNotError() async {
+        let body = #"{"detail": {"free_limit_kind": "weekly", "message": "weekly free limit reached (30 min)."}}"#
+        let backend = FakeConversationBackend(
+            startResponse: StartResponse(
+                sessionId: "s", textPrompt: "", voiceId: "", wsUrl: "",
+                provider: "personaplex", ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
+            ),
+            endResponse: EndResponse(sessionId: "s", durationSeconds: 0),
+            startError: BackendError.http(402, body),
+        )
+        let controller = SessionController(
+            context: FakeContextGatherer(context: makeContext()),
+            backend: backend,
+            micPermission: StubMicPermission(shouldThrow: false),
+            streamerFactory: StubAudioStreamerFactory(streamer: FakeAudioStreamer()),
+            sessionFactory: StubSessionFactory(session: FakePersonaPlexSession()),
+        )
+        await controller.start()
+        XCTAssertEqual(controller.phase, .idle)
+        XCTAssertTrue(controller.endedOnFreeCapLimit)
+        XCTAssertEqual(controller.freeCapLimitKind, "weekly")
+    }
 }

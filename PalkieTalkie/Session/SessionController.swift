@@ -202,23 +202,17 @@ final class SessionController {
 
             // Cold-start telemetry: time from start() until the first inbound audio chunk lands. Posted to backend
             // /events for percentile tracking across users — confirms the "5-8s hidden by tips" target.
-            let inboundAudio = await realtime.inboundAudio
-            ColdStartReporter.scheduleReport(
-                backend: backend,
-                inboundAudio: inboundAudio,
-                sessionId: response.sessionId,
-                t0: t0,
-                tGatherEnd: tGatherEnd,
-                tStartEnd: tStartEnd,
-                tConnectEnd: tConnectEnd,
+            await scheduleStartTelemetry(
+                realtime: realtime, response: response,
+                t0: t0, tGatherEnd: tGatherEnd, tStartEnd: tStartEnd, tConnectEnd: tConnectEnd,
             )
-
-            // Free-cap mid-session enforcement, driven by the precise seconds /start returned. nil (premium) schedules nothing.
-            scheduleFreeCapWrapUp(
-                realtime: realtime,
-                freeSecondsRemaining: response.freeSecondsRemaining,
-                freeLimitKind: response.freeLimitKind,
-            )
+        } catch let BackendError.http(402, body) {
+            // Free cap spent: show the limit screen, not a raw "HTTP 402" string that reads as a dev error. No server session was created, so nothing to end. reviewLastTranscript stays false so returning to Talk re-checks and re-shows the cover (the window is still spent), instead of leaving the user on a blue, silent screen with no explanation.
+            logger.info("conversation/start 402 — free cap reached, showing limit screen")
+            freeCapLimitKind = parseFreeCapKind(from: body)
+            endedOnFreeCapLimit = true
+            phase = .idle
+            await teardown()
         } catch {
             // Logs keep the full diagnostic; the UI shows the friendly message for errors that provide one (BackendError, SessionStartError), falling back to the raw describe otherwise.
             logger.error("conversation start failed: \(String(describing: error), privacy: .public)")
@@ -229,6 +223,34 @@ final class SessionController {
         }
         // Consume the override exactly once — next session should fall back to normal context.
         startContextOverride = nil
+    }
+
+    /// Wire the cold-start telemetry (fires once first audio lands) and the free-cap mid-session wrap-up. Pulled out of start() to keep that function within the body-length budget.
+    private func scheduleStartTelemetry(
+        realtime: RealtimeClient, response: StartResponse,
+        t0: Date, tGatherEnd: Date, tStartEnd: Date, tConnectEnd: Date,
+    ) async {
+        let inboundAudio = await realtime.inboundAudio
+        ColdStartReporter.scheduleReport(
+            backend: backend, inboundAudio: inboundAudio, sessionId: response.sessionId,
+            t0: t0, tGatherEnd: tGatherEnd, tStartEnd: tStartEnd, tConnectEnd: tConnectEnd,
+        )
+        // Free-cap mid-session enforcement, driven by the precise seconds /start returned. nil (premium) schedules nothing.
+        scheduleFreeCapWrapUp(
+            realtime: realtime,
+            freeSecondsRemaining: response.freeSecondsRemaining,
+            freeLimitKind: response.freeLimitKind,
+        )
+    }
+
+    /// Pull `free_limit_kind` ("daily"/"weekly") out of the 402 body so the limit screen says the right thing. The backend sends a structured detail (`{"detail": {"free_limit_kind": ...}}`); nil if absent so FreeCapLimitView falls back to a generic message.
+    private func parseFreeCapKind(from body: String) -> String? {
+        struct Detail: Decodable { let freeLimitKind: String? }
+        struct Wrapper: Decodable { let detail: Detail }
+        guard let data = body.data(using: .utf8) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return (try? decoder.decode(Wrapper.self, from: data))?.detail.freeLimitKind
     }
 
     /// Pick and start the provider-correct audio pump: OpenAI streams PCM16 both directions; PersonaPlex drives the Ogg-Opus session. Returns the started pump so the caller retains it for teardown.
