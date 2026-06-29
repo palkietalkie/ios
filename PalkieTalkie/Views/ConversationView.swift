@@ -151,6 +151,8 @@ struct ConversationView: View {
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
+                    // Long-press to select + copy so the user can paste the error when reporting a bug.
+                    .textSelection(.enabled)
                 Button("Try again") {
                     Task { await session.start() }
                 }

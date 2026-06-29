@@ -4,7 +4,6 @@ import SwiftUI
 @MainActor
 struct ProfileView: View {
     @Environment(\.backendAPI) private var api
-    @Environment(\.authing) private var auth
     @State private var model = ProfileViewModel()
 
     var body: some View {
@@ -103,12 +102,6 @@ struct ProfileView: View {
                     .disabled(!model.loaded || model.saving)
                     if let saveError = model.saveError {
                         Text(saveError).font(.footnote).foregroundStyle(.red).textSelection(.enabled)
-                    }
-                }
-                Section {
-                    Button("Sign out", role: .destructive) {
-                        let auth = auth
-                        Task { await auth.signOut() }
                     }
                 }
             }
