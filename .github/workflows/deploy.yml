@@ -7,6 +7,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  # The post-upload step pushes a build-<n> tag back to the repo so every TestFlight build maps to its exact commit.
+  contents: write
+
 jobs:
   deploy:
     # `test` is skipped (not "success") on main pushes because its macOS jobs are disabled to save Actions minutes — so accept skipped too, else deploy never runs on merge.
@@ -118,6 +122,15 @@ jobs:
             --file "$IPA" \
             --apiKey "$APPLE_ASC_API_KEY_ID" \
             --apiIssuer "$APPLE_ASC_API_ISSUER_ID"
+
+      - name: Tag this commit with its build number
+        if: steps.check-secrets.outputs.ready == 'true'
+        # The build is now in ASC under this number, so the commit IS this build. Tag it permanently so we can always diff/checkout exactly what a given TestFlight build shipped (this is the automation that retires hand-guessing which commit was which build).
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "build-$BUILD_NUMBER" -m "TestFlight build $BUILD_NUMBER ($GITHUB_SHA)"
+          git push origin "build-$BUILD_NUMBER"
 
       - name: Submit to TestFlight beta review
         if: steps.check-secrets.outputs.ready == 'true'
