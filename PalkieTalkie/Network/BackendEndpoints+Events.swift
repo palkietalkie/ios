@@ -117,6 +117,36 @@ extension BackendAPI {
         )
     }
 
+    /// Report a crash captured on the PREVIOUS launch (the app aborted, so it couldn't send live). Lands as an `app_crash` event the backend Slacks to #gtm with name + reason + top app frame. Only these concise fields go on the wire, the full symbolicated stack already lives in App Store Connect (scripts/asc/fetch_testflight_feedback.py pulls it), so duplicating it here would just flood Slack.
+    func recordCrash(_ record: CrashRecord) async throws {
+        struct Props: Codable {
+            let kind: String
+            let name: String
+            let reason: String
+            let topFrame: String
+            let build: String
+            let crashedAt: Date
+        }
+        struct Body: Codable {
+            let eventType: String
+            let props: Props
+        }
+        let _: EmptyResponse = try await post(
+            "/events",
+            body: Body(
+                eventType: "app_crash",
+                props: Props(
+                    kind: record.kind,
+                    name: record.name,
+                    reason: String(record.reason.prefix(500)),
+                    topFrame: record.topFrame,
+                    build: record.build,
+                    crashedAt: record.crashedAt,
+                ),
+            ),
+        )
+    }
+
     /// Record WHY a session ended (`tool` / `free_cap` / `user_left`) so the backend can measure the abnormal-end ratio. The end reason is a client-only decision (the realtime WS is iOS↔provider direct), so without this `/end` looks identical no matter what triggered it. Durable events row only, not Slacked. Fire-and-forget.
     func recordSessionEnd(sessionId: String, reason: String) async throws {
         struct Props: Codable {
