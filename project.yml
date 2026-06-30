@@ -54,6 +54,8 @@ targets:
     settings:
       base:
         SWIFT_VERSION: "6.2"
+        # Bridges the Objective-C NSException catcher (ObjCExceptionCatcher) into Swift. Only Objective-C can @try/@catch an NSException, which AVFAudio raises on voice-processing setup failure and which would otherwise SIGABRT the app.
+        SWIFT_OBJC_BRIDGING_HEADER: PalkieTalkie/PalkieTalkie-Bridging-Header.h
         # 1,2 = iPhone + iPad (universal). iPhone-only ("1") was a deliberate beta narrowing, but it's the only thing keeping the app off iPad, and an iPad is the only iOS device some testers (e.g. Haruna) own. SwiftUI adapts the layout; iPad-specific polish can follow.
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"

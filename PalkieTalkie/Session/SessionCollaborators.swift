@@ -60,6 +60,8 @@ protocol AudioStreamerFactory: Sendable {
 
 struct DefaultAudioStreamerFactory: AudioStreamerFactory {
     func makeStreamer() async throws -> AudioStreamerType {
+        // Re-activate the audio session at every conversation start. It's configured once at app launch, but mic permission may not have been granted yet then, and any audio interruption since (phone call, Siri, another app taking the session) can leave it inactive or in the wrong category. Enabling voice processing on such a session is what made AVFAudio raise the NSException that crashed the Talk screen, so make the session right first. Best-effort: if it fails, AudioStreamer.start() now degrades to AEC-off rather than crashing.
+        try? AudioSessionManager.configureForFullDuplexVoice()
         let streamer = AudioStreamer()
         try await streamer.start()
         return streamer
