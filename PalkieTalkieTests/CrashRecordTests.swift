@@ -22,6 +22,38 @@ final class CrashRecordTests: XCTestCase {
         XCTAssertEqual(CrashRecord.topAppFrame(from: stack), "")
     }
 
+    func testFromExceptionMapsNameReasonAndKind() {
+        let exception = NSException(name: .genericException, reason: "boom", userInfo: nil)
+        let record = CrashRecord.fromException(exception, build: "29", at: Date(timeIntervalSince1970: 1))
+        XCTAssertEqual(record.kind, "nsexception")
+        XCTAssertEqual(record.name, "NSGenericException")
+        XCTAssertEqual(record.reason, "boom")
+        XCTAssertEqual(record.build, "29")
+    }
+
+    func testFromExceptionWithNilReasonIsEmptyString() {
+        let exception = NSException(name: .rangeException, reason: nil, userInfo: nil)
+        XCTAssertEqual(CrashRecord.fromException(exception, build: "29", at: Date()).reason, "")
+    }
+
+    func testFromSignalNamesTheSignalAndKeepsTopFrame() {
+        let symbols = ["6   PalkieTalkie  0x1 Foo.bar() + 4 (Foo.swift:9)"]
+        let record = CrashRecord.fromSignal(SIGABRT, symbols: symbols, build: "29", at: Date(timeIntervalSince1970: 1))
+        XCTAssertEqual(record.kind, "signal")
+        XCTAssertEqual(record.name, "SIGABRT")
+        XCTAssertEqual(record.reason, "fatal signal 6")
+        XCTAssertEqual(record.topFrame, "Foo.bar() + 4 (Foo.swift:9)")
+    }
+
+    func testSignalNameKnownAndUnknown() {
+        XCTAssertEqual(CrashRecord.signalName(SIGSEGV), "SIGSEGV")
+        XCTAssertEqual(CrashRecord.signalName(SIGILL), "SIGILL")
+        XCTAssertEqual(CrashRecord.signalName(SIGTRAP), "SIGTRAP")
+        XCTAssertEqual(CrashRecord.signalName(SIGBUS), "SIGBUS")
+        XCTAssertEqual(CrashRecord.signalName(SIGFPE), "SIGFPE")
+        XCTAssertEqual(CrashRecord.signalName(99), "SIG99")
+    }
+
     func testCodableRoundTrip() throws {
         let record = CrashRecord(
             kind: "nsexception",

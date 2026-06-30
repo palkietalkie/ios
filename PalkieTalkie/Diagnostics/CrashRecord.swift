@@ -22,4 +22,42 @@ struct CrashRecord: Codable, Equatable {
         }
         return frame.trimmingCharacters(in: .whitespaces)
     }
+
+    /// Build a record from an uncaught Objective-C exception. Pure (date injected) so it's unit-tested even though the handler that calls it can only fire on a real crash.
+    static func fromException(_ exception: NSException, build: String, at crashedAt: Date) -> CrashRecord {
+        CrashRecord(
+            kind: "nsexception",
+            name: exception.name.rawValue,
+            reason: exception.reason ?? "",
+            topFrame: topAppFrame(from: exception.callStackSymbols),
+            stack: exception.callStackSymbols,
+            build: build,
+            crashedAt: crashedAt,
+        )
+    }
+
+    /// Build a record from a fatal POSIX signal. Pure (symbols + date injected) so it's unit-tested.
+    static func fromSignal(_ signalNumber: Int32, symbols: [String], build: String, at crashedAt: Date) -> CrashRecord {
+        CrashRecord(
+            kind: "signal",
+            name: signalName(signalNumber),
+            reason: "fatal signal \(signalNumber)",
+            topFrame: topAppFrame(from: symbols),
+            stack: symbols,
+            build: build,
+            crashedAt: crashedAt,
+        )
+    }
+
+    static func signalName(_ signalNumber: Int32) -> String {
+        switch signalNumber {
+        case SIGABRT: "SIGABRT"
+        case SIGSEGV: "SIGSEGV"
+        case SIGBUS: "SIGBUS"
+        case SIGILL: "SIGILL"
+        case SIGFPE: "SIGFPE"
+        case SIGTRAP: "SIGTRAP"
+        default: "SIG\(signalNumber)"
+        }
+    }
 }

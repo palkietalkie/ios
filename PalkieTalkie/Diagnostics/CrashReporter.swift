@@ -17,29 +17,15 @@ enum CrashReporter {
         self.build = build
 
         NSSetUncaughtExceptionHandler { exception in
-            CrashReporter.store.save(CrashRecord(
-                kind: "nsexception",
-                name: exception.name.rawValue,
-                reason: exception.reason ?? "",
-                topFrame: CrashRecord.topAppFrame(from: exception.callStackSymbols),
-                stack: exception.callStackSymbols,
-                build: CrashReporter.build,
-                crashedAt: Date(),
-            ))
+            CrashReporter.store.save(CrashRecord.fromException(exception, build: CrashReporter.build, at: Date()))
         }
 
         for fatalSignal in fatalSignals {
             signal(fatalSignal) { signalNumber in
-                let symbols = Thread.callStackSymbols
-                CrashReporter.store.save(CrashRecord(
-                    kind: "signal",
-                    name: CrashReporter.signalName(signalNumber),
-                    reason: "fatal signal \(signalNumber)",
-                    topFrame: CrashRecord.topAppFrame(from: symbols),
-                    stack: symbols,
-                    build: CrashReporter.build,
-                    crashedAt: Date(),
-                ))
+                let record = CrashRecord.fromSignal(
+                    signalNumber, symbols: Thread.callStackSymbols, build: CrashReporter.build, at: Date(),
+                )
+                CrashReporter.store.save(record)
                 // Restore the default handler and re-raise so the OS still writes its own crash report (and TestFlight still collects it).
                 signal(signalNumber, SIG_DFL)
                 raise(signalNumber)
@@ -54,17 +40,5 @@ enum CrashReporter {
         let delivered = await post(record)
         if delivered { store.clear() }
         return delivered
-    }
-
-    private static func signalName(_ signalNumber: Int32) -> String {
-        switch signalNumber {
-        case SIGABRT: "SIGABRT"
-        case SIGSEGV: "SIGSEGV"
-        case SIGBUS: "SIGBUS"
-        case SIGILL: "SIGILL"
-        case SIGFPE: "SIGFPE"
-        case SIGTRAP: "SIGTRAP"
-        default: "SIG\(signalNumber)"
-        }
     }
 }
