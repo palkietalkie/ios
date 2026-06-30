@@ -1,6 +1,6 @@
 import Foundation
 
-/// Standalone lookups + small singletons that don't warrant their own file: code-defined catalogs (voices, languages), consent, entitlement, daily content, KG, and APNs token registration.
+/// Standalone lookups + small singletons that don't warrant their own file: code-defined catalogs (voices, languages), consent, entitlement, daily content, and APNs token registration.
 extension BackendAPI {
     func getVoices() async throws -> [VoiceDTO] {
         try await get("/voices")
@@ -46,11 +46,6 @@ extension BackendAPI {
             }
             return TalkSection(topic: raw.topic, items: items)
         }
-    }
-
-    func getKG() async throws -> KGGraphDTO {
-        // 30s, not the default 15s: /kg reads from AuraDB, which scales to zero and can take 10-20s to wake. The KG screen shows a spinner meanwhile; failing at 15s would surface a "request timed out" to a user who actually has a graph.
-        try await get("/kg", timeout: 30)
     }
 
     func registerPushToken(_ apnsToken: String) async throws {

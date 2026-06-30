@@ -89,4 +89,28 @@ final class KnowledgeGraphViewModelTests: XCTestCase {
         vm.edges = [KGEdgeDTO(src: "e1", rel: "knows", dst: "missing")]
         XCTAssertEqual(vm.relationships(for: naoto), ["knows missing"])
     }
+
+    func testRemoveEntityDropsItAndItsEdges() async {
+        let vm = KnowledgeGraphViewModel()
+        let naoto = KGEntityDTO(id: "e1", type: "person", name: "Naoto", attrs: [:])
+        vm.entities = [naoto, KGEntityDTO(id: "e2", type: "place", name: "Osaka", attrs: [:])]
+        vm.edges = [KGEdgeDTO(src: "e1", rel: "lives_in", dst: "e2")]
+        await vm.removeEntity(naoto, api: makeAPI(FakeTransport()))
+        XCTAssertEqual(vm.entities.map(\.id), ["e2"])
+        XCTAssertTrue(vm.edges.isEmpty, "edges touching the removed item must drop too")
+        XCTAssertNil(vm.error)
+    }
+
+    func testRemoveEntityRestoresGraphOnFailure() async {
+        let vm = KnowledgeGraphViewModel()
+        let naoto = KGEntityDTO(id: "e1", type: "person", name: "Naoto", attrs: [:])
+        vm.entities = [naoto]
+        vm.edges = [KGEdgeDTO(src: "e1", rel: "knows", dst: "e2")]
+        let transport = FakeTransport()
+        transport.responseStatus = 500
+        await vm.removeEntity(naoto, api: makeAPI(transport))
+        XCTAssertEqual(vm.entities.map(\.id), ["e1"], "a failed delete must restore the item")
+        XCTAssertEqual(vm.edges.count, 1)
+        XCTAssertNotNil(vm.error)
+    }
 }

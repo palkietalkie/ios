@@ -4,7 +4,11 @@ import SwiftUI
 @MainActor
 struct KnowledgeGraphView: View {
     @Environment(\.backendAPI) private var api
-    @State private var model = KnowledgeGraphViewModel()
+    @State private var model: KnowledgeGraphViewModel
+
+    init(model: KnowledgeGraphViewModel = KnowledgeGraphViewModel()) {
+        _model = State(initialValue: model)
+    }
 
     var body: some View {
         List {
@@ -37,6 +41,13 @@ struct KnowledgeGraphView: View {
                     Section {
                         ForEach(group.entities, id: \.id) { entity in
                             entityRow(entity)
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        Task { await model.removeEntity(entity, api: api) }
+                                    } label: {
+                                        Label("Remove", systemImage: "trash")
+                                    }
+                                }
                         }
                     } header: {
                         Label(Self.humanizeType(group.type), systemImage: Self.icon(for: group.type))

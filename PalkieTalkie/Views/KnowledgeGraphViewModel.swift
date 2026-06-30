@@ -1,6 +1,6 @@
 import Foundation
 
-/// Backing model for the standalone Knowledge Graph screen. Read-only: the post-session pipeline builds the graph; the user can't edit it.
+/// Backing model for the standalone Knowledge Graph screen. The post-session pipeline builds the graph; the user can't edit it beyond soft-deleting a wrong item (swipe-to-remove).
 ///
 /// Holds the full `{nodes, edges}` graph. The old inline Profile list dropped the edges, so relationships, the whole point of a graph, never surfaced. `groupedByType` and `relationships(for:)` are pure (no I/O) so the screen's structure is unit-tested.
 @MainActor
@@ -54,5 +54,21 @@ final class KnowledgeGraphViewModel {
             .filter { $0.src == entity.id }
             .map { "\($0.rel.replacingOccurrences(of: "_", with: " ")) \(nameById[$0.dst] ?? $0.dst)" }
             .sorted()
+    }
+
+    /// Soft-delete a wrong item. Optimistic: drop it AND every edge touching it immediately so the swipe feels instant (mirrors the server, which hides edges to a removed node); on failure, restore the previous graph and surface the error.
+    func removeEntity(_ entity: KGEntityDTO, api: BackendAPI) async {
+        let previousEntities = entities
+        let previousEdges = edges
+        entities.removeAll { $0.id == entity.id }
+        edges.removeAll { $0.src == entity.id || $0.dst == entity.id }
+        do {
+            try await api.removeKGEntity(id: entity.id)
+            JSONCache.save(KGGraphDTO(nodes: entities, edges: edges), key: Self.cacheKey)
+        } catch {
+            entities = previousEntities
+            edges = previousEdges
+            self.error = error.localizedDescription
+        }
     }
 }
