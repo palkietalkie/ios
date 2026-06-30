@@ -9,7 +9,6 @@ final class ProfileViewModelTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: ProfileViewModel.profileKey)
         UserDefaults.standard.removeObject(forKey: ProfileViewModel.languagesKey)
         UserDefaults.standard.removeObject(forKey: ProfileViewModel.practiceOptionsKey)
-        UserDefaults.standard.removeObject(forKey: ProfileViewModel.kgKey)
     }
 
     override func tearDown() async throws {
@@ -18,7 +17,6 @@ final class ProfileViewModelTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: ProfileViewModel.profileKey)
         UserDefaults.standard.removeObject(forKey: ProfileViewModel.languagesKey)
         UserDefaults.standard.removeObject(forKey: ProfileViewModel.practiceOptionsKey)
-        UserDefaults.standard.removeObject(forKey: ProfileViewModel.kgKey)
         try await super.tearDown()
     }
 
@@ -92,42 +90,13 @@ final class ProfileViewModelTests: XCTestCase {
                 goals: ["travel"],
             )),
         )
-        try transport.enqueue(
-            path: "/kg",
-            data: BackendAPI.encoder.encode(KGGraphDTO(
-                nodes: [KGEntityDTO(id: "e1", type: "person", name: "Naoto", attrs: [:])],
-                edges: [],
-            )),
-        )
         let api = makeAPI(transport)
         let vm = ProfileViewModel()
         await vm.load(api: api)
         XCTAssertEqual(vm.email, "wes@example.com")
         XCTAssertEqual(vm.preferredName, "Wes")
-        XCTAssertEqual(vm.knowledgeGraph.count, 1)
         XCTAssertTrue(vm.loaded)
         XCTAssertNil(vm.saveError)
-    }
-
-    /// Regression: getKG() used to be `try?`, so a contract mismatch (backend `{nodes,edges}` vs an iOS bare-array decode) silently swallowed the error and showed every user an empty KG. Now a decode failure must surface in `kgError`. The bare `[]` here is exactly the pre-fix shape that no longer matches KGGraphDTO.
-    func testKGDecodeFailureSurfacesError() async throws {
-        let transport = FakeTransport()
-        try transport.enqueue(path: "/profile", data: BackendAPI.encoder.encode(Self.sampleProfile))
-        try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode([] as [LanguageDTO]))
-        try transport.enqueue(
-            path: "/practice/options",
-            data: BackendAPI.encoder.encode(PracticeOptionsDTO(
-                proficiency: [],
-                tutorSpeakingSpeed: [],
-                tutorSpeakingSpeedRates: [:],
-                goals: [],
-            )),
-        )
-        transport.enqueue(path: "/kg", data: Data("[]".utf8))
-        let api = makeAPI(transport)
-        let vm = ProfileViewModel()
-        await vm.load(api: api)
-        XCTAssertNotNil(vm.kgError, "a KG decode failure must surface, not silently show an empty graph")
     }
 
     func testLoadFailureSetsErrorMessage() async {
@@ -154,7 +123,6 @@ final class ProfileViewModelTests: XCTestCase {
                 goals: [],
             )),
         )
-        try transport.enqueue(path: "/kg", data: BackendAPI.encoder.encode(KGGraphDTO(nodes: [], edges: [])))
         let api = makeAPI(transport)
         let vm = ProfileViewModel()
         vm.preferredName = "New Name"
@@ -172,7 +140,6 @@ final class ProfileViewModelTests: XCTestCase {
                 proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:], goals: [],
             )),
         )
-        try transport.enqueue(path: "/kg", data: BackendAPI.encoder.encode(KGGraphDTO(nodes: [], edges: [])))
     }
 
     func testAutoSaveNoOpsWhenNothingChanged() async throws {
@@ -226,7 +193,6 @@ final class ProfileViewModelTests: XCTestCase {
                 goals: [],
             )),
         )
-        try transport.enqueue(path: "/kg", data: BackendAPI.encoder.encode(KGGraphDTO(nodes: [], edges: [])))
         let api = makeAPI(transport)
         let vm = ProfileViewModel()
         // Leave preferredName / nativeLanguages / targetAccents / goals empty so they all serialize as nil.

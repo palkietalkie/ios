@@ -20,6 +20,11 @@ struct MorePanelView: View {
                     Label("Practice", systemImage: "graduationcap.fill")
                 }
                 NavigationLink {
+                    KnowledgeGraphView()
+                } label: {
+                    Label("Knowledge Graph", systemImage: "brain")
+                }
+                NavigationLink {
                     IntegrationsView()
                 } label: {
                     Label("Integrations", systemImage: "link")

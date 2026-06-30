@@ -9,7 +9,6 @@ final class ProfileViewModel {
     static let profileKey = "cache.profile"
     static let languagesKey = "cache.languages"
     static let practiceOptionsKey = "cache.practice_options"
-    static let kgKey = "cache.knowledge_graph"
 
     var email: String = ""
     var preferredName: String = ""
@@ -22,8 +21,6 @@ final class ProfileViewModel {
     var goals: String = ""
     var languages: [LanguageDTO] = []
     var practiceOptions: PracticeOptionsDTO?
-    var knowledgeGraph: [KGEntityDTO] = []
-    var kgError: String?
     var pronunciationSuggestion: String = ""
     var saveError: String?
     var loaded: Bool = false
@@ -57,7 +54,6 @@ final class ProfileViewModel {
     init() {
         languages = JSONCache.load([LanguageDTO].self, key: Self.languagesKey) ?? []
         practiceOptions = JSONCache.load(PracticeOptionsDTO.self, key: Self.practiceOptionsKey)
-        knowledgeGraph = JSONCache.load([KGEntityDTO].self, key: Self.kgKey) ?? []
         if let cached = JSONCache.load(ProfileDTO.self, key: Self.profileKey) {
             email = cached.email ?? ""
             preferredName = cached.preferredName ?? ""
@@ -107,15 +103,6 @@ final class ProfileViewModel {
             autoSaver.markSaved(formSnapshot)
         } catch {
             saveError = error.localizedDescription
-        }
-        // Surface KG load/decode failures instead of swallowing with `try?` — a silently-failed decode (the nodes/edges contract drift) is exactly how a populated KG showed up empty for real users.
-        do {
-            let freshKG = try await api.getKG()
-            knowledgeGraph = freshKG.nodes
-            JSONCache.save(freshKG.nodes, key: Self.kgKey)
-            kgError = nil
-        } catch {
-            kgError = error.localizedDescription
         }
     }
 

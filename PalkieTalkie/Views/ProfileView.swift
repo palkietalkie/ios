@@ -54,31 +54,6 @@ struct ProfileView: View {
                         }
                     }
                 }
-                Section("Knowledge Graph (read-only)") {
-                    if let kgError = model.kgError {
-                        Text("Couldn't load your knowledge graph: \(kgError)")
-                            .font(.footnote).textSelection(.enabled)
-                            .foregroundStyle(.red)
-                            .textSelection(.enabled)
-                    }
-                    if model.knowledgeGraph.isEmpty {
-                        Text(
-                            "No entities yet. As you talk, the AI starts recognizing the people, places, and projects.",
-                        )
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(model.knowledgeGraph, id: \.id) { entity in
-                            VStack(alignment: .leading) {
-                                Text(entity.name).font(.headline)
-                                Text(entity.type.capitalized).font(.caption).foregroundStyle(.secondary)
-                                ForEach(entity.attrs.sorted(by: { $0.key < $1.key }), id: \.key) { pair in
-                                    Text(verbatim: "\(pair.key): \(pair.value)").font(.caption2)
-                                }
-                            }
-                        }
-                    }
-                }
                 Section {
                     // No Save button — edits auto-save (the button sat off-screen at the bottom and users forgot it). This row is passive status only.
                     HStack {
