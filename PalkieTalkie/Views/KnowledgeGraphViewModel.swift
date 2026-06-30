@@ -11,6 +11,7 @@ final class KnowledgeGraphViewModel {
     var entities: [KGEntityDTO] = []
     var edges: [KGEdgeDTO] = []
     var error: String?
+    var loading = false
     var didInitialLoad = false
 
     init() {
@@ -25,13 +26,15 @@ final class KnowledgeGraphViewModel {
     }
 
     func load(api: BackendAPI) async {
+        loading = true
+        error = nil
+        defer { loading = false }
         // Surface load/decode failures instead of swallowing — a silently-failed decode (the nodes/edges contract drift) is exactly how a populated KG showed up empty for real users.
         do {
             let fresh = try await api.getKG()
             entities = fresh.nodes
             edges = fresh.edges
             JSONCache.save(fresh, key: Self.cacheKey)
-            error = nil
         } catch {
             self.error = error.localizedDescription
         }

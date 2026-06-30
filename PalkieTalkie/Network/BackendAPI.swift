@@ -53,9 +53,11 @@ final class BackendAPI: @unchecked Sendable {
 
     // MARK: - Public transport surface (used by BackendEndpoints)
 
-    func get<T: Decodable>(_ path: String) async throws -> T {
+    func get<T: Decodable>(_ path: String, timeout: TimeInterval? = nil) async throws -> T {
         var request = URLRequest(url: urlForPath(path))
         request.httpMethod = "GET"
+        // Per-request override of the session's default (15s). A few reads sit behind a service that scales to zero (AuraDB for /kg) and legitimately need longer to wait out a cold start rather than surface a "request timed out".
+        if let timeout { request.timeoutInterval = timeout }
         try await attachAuth(&request)
         return try await execute(request)
     }

@@ -15,13 +15,23 @@ struct KnowledgeGraphView: View {
                     .textSelection(.enabled)
             }
             if model.isEmpty, model.error == nil {
-                ContentUnavailableView(
-                    "Knowledge Graph",
-                    systemImage: "brain",
-                    description: Text(
-                        "No entities yet. As you talk, the AI starts recognizing the people, places, and projects.",
-                    ),
-                )
+                if model.loading {
+                    // AuraDB scales to zero and can take a beat to wake; show a spinner during the first load so the screen doesn't flash the empty state (or, on a slow wake, a timeout) before data arrives.
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    }
+                    .listRowBackground(Color.clear)
+                } else {
+                    ContentUnavailableView(
+                        "Knowledge Graph",
+                        systemImage: "brain",
+                        description: Text(
+                            "No entities yet. As you talk, the AI starts recognizing the people, places, and projects.",
+                        ),
+                    )
+                }
             } else {
                 ForEach(model.groupedByType, id: \.type) { group in
                     Section {

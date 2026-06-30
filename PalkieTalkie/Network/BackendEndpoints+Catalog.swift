@@ -49,7 +49,8 @@ extension BackendAPI {
     }
 
     func getKG() async throws -> KGGraphDTO {
-        try await get("/kg")
+        // 30s, not the default 15s: /kg reads from AuraDB, which scales to zero and can take 10-20s to wake. The KG screen shows a spinner meanwhile; failing at 15s would surface a "request timed out" to a user who actually has a graph.
+        try await get("/kg", timeout: 30)
     }
 
     func registerPushToken(_ apnsToken: String) async throws {
