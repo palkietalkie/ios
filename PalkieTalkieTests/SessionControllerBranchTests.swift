@@ -190,5 +190,9 @@ final class SessionControllerBranchTests: XCTestCase {
         XCTAssertEqual(controller.phase, .idle)
         XCTAssertTrue(controller.endedOnFreeCapLimit)
         XCTAssertEqual(controller.freeCapLimitKind, "weekly")
+        // Mark the window spent so returning to Talk re-shows the limit screen from local state (fixing the blank, silent idle mic the user hit after dismissing the cover) instead of firing another doomed /start.
+        XCTAssertTrue(controller.reviewLastTranscript)
+        // And arm the one-shot so the spoken line plays once, not on every revisit.
+        XCTAssertTrue(controller.freeCapAnnouncementPending)
     }
 }

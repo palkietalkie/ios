@@ -66,8 +66,24 @@ final class SessionControllerFreeCapTests: XCTestCase {
         XCTAssertTrue(controller.endedOnFreeCapLimit)
         XCTAssertEqual(controller.freeCapLimitKind, "weekly")
         XCTAssertTrue(controller.reviewLastTranscript)
+        // The spoken "nice work" line is armed exactly once here; FreeCapLimitView consumes it on first appear so it doesn't replay each time the cover re-shows on tab re-entry.
+        XCTAssertTrue(controller.freeCapAnnouncementPending)
         // Dismissing the cover ("Not now") hides the overlay but keeps the transcript visible to review.
         controller.endedOnFreeCapLimit = false
         XCTAssertTrue(controller.reviewLastTranscript, "transcript stays available after dismiss")
+    }
+
+    /// A fresh session disarms the one-shot announcement and clears the cap flags, so a LATER cap announces again (and the user isn't stuck on the limit screen forever).
+    func testNextStartDisarmsAnnouncementAndCapFlags() async throws {
+        let controller = makeController(backend: backend(freeSecondsRemaining: 1, freeLimitKind: "daily"))
+        await controller.start()
+        try await Task.sleep(nanoseconds: 1_400_000_000)
+        XCTAssertTrue(controller.freeCapAnnouncementPending)
+        XCTAssertTrue(controller.endedOnFreeCapLimit)
+        await controller.start()
+        XCTAssertFalse(controller.freeCapAnnouncementPending, "a new session re-arms the one-shot for a future cap")
+        XCTAssertFalse(controller.endedOnFreeCapLimit)
+        XCTAssertFalse(controller.reviewLastTranscript)
+        await controller.end()
     }
 }

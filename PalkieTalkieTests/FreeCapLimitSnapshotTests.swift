@@ -14,11 +14,17 @@ final class FreeCapLimitSnapshotTests: XCTestCase {
         try FileManager.default.createDirectory(at: snapshotsDir, withIntermediateDirectories: true)
         for kind in ["daily", "weekly"] {
             // ImageRenderer renders detached from the app bundle, so the global AccentColor asset isn't resolved and Color.accentColor would fall back to SwiftUI's default blue. Inject the brand tint explicitly so the PNG shows the coral the running app actually paints.
-            let view = FreeCapLimitView(limitKind: kind, onUpgrade: {}, onDismiss: {})
-                .tint(Color.brandCoral)
-                .frame(width: 393, height: 852)
-                .background(Color(.systemBackground))
-                .environment(\.colorScheme, .dark)
+            let view = FreeCapLimitView(
+                limitKind: kind,
+                shouldAnnounce: false,
+                onAnnounced: {},
+                onUpgrade: {},
+                onDismiss: {},
+            )
+            .tint(Color.brandCoral)
+            .frame(width: 393, height: 852)
+            .background(Color(.systemBackground))
+            .environment(\.colorScheme, .dark)
             let renderer = ImageRenderer(content: view)
             renderer.scale = 3
             let image = try XCTUnwrap(renderer.uiImage, "ImageRenderer produced no image")

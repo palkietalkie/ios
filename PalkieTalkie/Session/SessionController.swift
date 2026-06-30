@@ -33,6 +33,8 @@ final class SessionController {
     var freeCapLimitKind: String?
     /// True from a cap-end until the next start, even after the limit overlay is dismissed — so the Talk view keeps showing the last transcript (the user dismisses the overlay to read what they just said). Separate from `endedOnFreeCapLimit`, which only drives the overlay and clears on dismiss.
     var reviewLastTranscript = false
+    /// One-shot: the spoken "nice work" line should play on the NEXT presentation of the limit screen, then never again until the next session. Set when a cap ends a session (or a /start 402); FreeCapLimitView consumes it on first appear. Without it the announcement replayed every time the user returned to the Talk tab and the overlay re-appeared. Reset at the next `start()`.
+    var freeCapAnnouncementPending = false
     var transcript: [TranscriptChunk] = []
     /// True while the tutor is actively speaking. Drives the mic's swell/glow animation in ConversationView. Set when an AI (`.persona`) transcript chunk arrives, cleared after a short gap with no new AI chunk. This is the conversation-level "is it the AI's turn" signal — distinct from `phase == .live`, which stays true for the whole session.
     var isAISpeaking: Bool = false
@@ -114,6 +116,7 @@ final class SessionController {
         endedOnFreeCapLimit = false
         reviewLastTranscript = false
         freeCapLimitKind = nil
+        freeCapAnnouncementPending = false
         modelRequestedEnd = false
         let t0 = Date()
         phase = .gatheringContext
@@ -207,10 +210,12 @@ final class SessionController {
                 t0: t0, tGatherEnd: tGatherEnd, tStartEnd: tStartEnd, tConnectEnd: tConnectEnd,
             )
         } catch let BackendError.http(402, body) {
-            // Free cap spent: show the limit screen, not a raw "HTTP 402" string that reads as a dev error. No server session was created, so nothing to end. reviewLastTranscript stays false so returning to Talk re-checks and re-shows the cover (the window is still spent), instead of leaving the user on a blue, silent screen with no explanation.
+            // Free cap spent (opening Talk while already out of time): show the limit screen, not a raw "HTTP 402" that reads as a dev error. No server session was created, so nothing to end. Mark the window spent (reviewLastTranscript) just like a mid-session cap, so returning to Talk re-shows the limit screen from local state instead of firing another doomed /start, AND announce once so the spoken line doesn't replay on every revisit.
             logger.info("conversation/start 402 — free cap reached, showing limit screen")
             freeCapLimitKind = parseFreeCapKind(from: body)
             endedOnFreeCapLimit = true
+            reviewLastTranscript = true
+            freeCapAnnouncementPending = true
             phase = .idle
             await teardown()
         } catch {

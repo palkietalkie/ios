@@ -32,3 +32,6 @@ buildServer.json
 .env.production
 
 .pr-bodies/
+
+# Session recordings + transcripts pulled from prd for manual review (PII: voice + names). Never commit.
+recordings/

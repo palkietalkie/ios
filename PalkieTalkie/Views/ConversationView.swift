@@ -71,6 +71,9 @@ struct ConversationView: View {
                 // AI starts the conversation the moment the screen appears — no button. If we land here mid-session, leave it alone. And don't restart into an instant 402 after the user hit their cap (even once they've dismissed the cover) — the window is spent until it resets.
                 if session.phase == .idle, !session.reviewLastTranscript {
                     await session.start()
+                } else if session.phase == .idle, session.reviewLastTranscript {
+                    // Returning to Talk while the free-cap window is still spent: re-show the limit screen so the user always sees WHY a session won't start, instead of a silent idle mic with no explanation (they'd dismissed the cover, switched tabs, and come back to a dead screen). The spoken line does NOT replay — its one-shot was consumed on the first show.
+                    session.endedOnFreeCapLimit = true
                 }
             }
             .sheet(isPresented: $showRatingPrompt, onDismiss: { onRatingSheetClosed() }) {
@@ -93,6 +96,8 @@ struct ConversationView: View {
                 if session.endedOnFreeCapLimit {
                     FreeCapLimitView(
                         limitKind: session.freeCapLimitKind,
+                        shouldAnnounce: session.freeCapAnnouncementPending,
+                        onAnnounced: { session.freeCapAnnouncementPending = false },
                         onUpgrade: FeatureFlags.subscriptionsEnabled ? { showUpgrade = true } : nil,
                         onDismiss: { session.endedOnFreeCapLimit = false },
                     )

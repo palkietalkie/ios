@@ -6,6 +6,10 @@ import SwiftUI
 struct FreeCapLimitView: View {
     /// "daily" or "weekly" from the backend; anything else falls back to the daily wording.
     let limitKind: String?
+    /// True only the FIRST time the cover is shown for a given cap. The cover re-appears every time the user returns to the Talk tab while still capped; speaking the line on every appear was the bug, so the one-shot lives on the controller and the view speaks only when told to.
+    let shouldAnnounce: Bool
+    /// Called right after the line is spoken so the controller can clear its one-shot flag.
+    let onAnnounced: () -> Void
     /// nil when there's no paid tier to upgrade to (subscriptions gated off): the cover then just celebrates + states the reset, with no upgrade button or upgrade copy. Non-nil wires the "Upgrade" button.
     let onUpgrade: (() -> Void)?
     let onDismiss: () -> Void
@@ -72,6 +76,10 @@ struct FreeCapLimitView: View {
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.ultraThinMaterial)
-        .onAppear { Self.announce(isWeekly: isWeekly) }
+        .onAppear {
+            guard shouldAnnounce else { return }
+            Self.announce(isWeekly: isWeekly)
+            onAnnounced()
+        }
     }
 }
