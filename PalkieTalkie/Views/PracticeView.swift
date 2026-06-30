@@ -75,24 +75,21 @@ struct PracticeView: View {
                 Text("What you're working toward. The AI uses this to steer conversation topics.")
             }
             Section {
-                Button {
-                    Task { await model.save(api: api) }
-                } label: {
-                    HStack {
-                        if model.saving { ProgressView().controlSize(.small) }
-                        Text(model.saving ? "Saving…" : "Save changes")
-                        Spacer()
-                        if let savedAt = model.savedAt, Date().timeIntervalSince(savedAt) < 3 {
-                            Label("Saved", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                                .labelStyle(.iconOnly)
-                                .transition(.opacity)
-                        }
+                // No Save button — edits auto-save (the button sat off-screen at the bottom and users forgot it). Passive status only.
+                HStack {
+                    if model.saving {
+                        ProgressView().controlSize(.small)
+                        Text("Saving…").font(.footnote).foregroundStyle(.secondary)
+                    } else if let savedAt = model.savedAt, Date().timeIntervalSince(savedAt) < 3 {
+                        Label("Saved", systemImage: "checkmark.circle.fill")
+                            .font(.footnote).foregroundStyle(.green)
+                    } else {
+                        Text("Changes save automatically").font(.footnote).foregroundStyle(.secondary)
                     }
-                    // View-side animation so the VM stays SwiftUI-agnostic and safe to unit-test outside a render context.
-                    .animation(.default, value: model.savedAt)
+                    Spacer()
                 }
-                .disabled(!model.loaded || model.saving)
+                // View-side animation so the VM stays SwiftUI-agnostic and safe to unit-test outside a render context.
+                .animation(.default, value: model.savedAt)
                 if let saveError = model.saveError {
                     Text(saveError).font(.footnote).foregroundStyle(.red).textSelection(.enabled)
                 }
@@ -105,5 +102,9 @@ struct PracticeView: View {
             await model.load(api: api)
         }
         .refreshable { await model.load(api: api) }
+        // Auto-save: any edit changes the snapshot; the model debounces + guards so only real edits persist.
+        .onChange(of: model.formSnapshot) { _, _ in
+            model.scheduleAutoSave(api: api)
+        }
     }
 }

@@ -24,6 +24,26 @@ final class PracticeViewModel {
     var saveError: String?
     var didInitialLoad: Bool = false
 
+    /// Snapshot of the editable fields. Equatable so the view `.onChange`s on it and the model tells a real edit from a programmatic load/re-load (see scheduleAutoSave).
+    struct FormSnapshot: Equatable {
+        let targetLanguage: String
+        let targetAccents: Set<String>
+        let proficiency: String
+        let tutorSpeakingSpeed: String
+        let selectedGoals: Set<String>
+        let otherGoal: String
+    }
+
+    var formSnapshot: FormSnapshot {
+        FormSnapshot(
+            targetLanguage: targetLanguage, targetAccents: targetAccents,
+            proficiency: proficiency, tutorSpeakingSpeed: tutorSpeakingSpeed,
+            selectedGoals: selectedGoals, otherGoal: otherGoal,
+        )
+    }
+
+    private let autoSaver = AutoSaver<FormSnapshot>()
+
     init() {
         languages = JSONCache.load([LanguageDTO].self, key: Self.languagesKey) ?? []
         practiceOptions = JSONCache.load(PracticeOptionsDTO.self, key: Self.practiceOptionsKey)
@@ -35,6 +55,7 @@ final class PracticeViewModel {
             applyGoals(cached.goals ?? "")
             loaded = true
         }
+        autoSaver.markSaved(formSnapshot)
     }
 
     var accentsForTargetLanguage: [String] {
@@ -82,6 +103,7 @@ final class PracticeViewModel {
             JSONCache.save(profile, key: Self.profileKey)
             loaded = true
             saveError = nil
+            autoSaver.markSaved(formSnapshot)
         } catch {
             saveError = error.localizedDescription
         }
@@ -106,9 +128,17 @@ final class PracticeViewModel {
             _ = try await api.updateProfile(update)
             saveError = nil
             savedAt = Date()
+            autoSaver.markSaved(formSnapshot)
             await load(api: api)
         } catch {
             saveError = error.localizedDescription
+        }
+    }
+
+    /// Auto-save on edit (replaces the off-screen Save button). Debounced + guarded so only a real user change persists; a programmatic load and save's own re-load leave snapshot == lastSavedSnapshot and no-op, so there's no save loop. Call from the view's `.onChange(of: model.formSnapshot)`.
+    func scheduleAutoSave(api: BackendAPI, debounce: Duration = .seconds(1)) {
+        autoSaver.schedule(current: formSnapshot, loaded: loaded, debounce: debounce) { [weak self] in
+            await self?.save(api: api)
         }
     }
 

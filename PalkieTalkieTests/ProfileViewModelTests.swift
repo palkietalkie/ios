@@ -163,6 +163,45 @@ final class ProfileViewModelTests: XCTestCase {
         XCTAssertNil(vm.saveError)
     }
 
+    private func enqueueProfileLoad(_ transport: FakeTransport) throws {
+        try transport.enqueue(path: "/profile", data: BackendAPI.encoder.encode(Self.sampleProfile))
+        try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode([] as [LanguageDTO]))
+        try transport.enqueue(
+            path: "/practice/options",
+            data: BackendAPI.encoder.encode(PracticeOptionsDTO(
+                proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:], goals: [],
+            )),
+        )
+        try transport.enqueue(path: "/kg", data: BackendAPI.encoder.encode(KGGraphDTO(nodes: [], edges: [])))
+    }
+
+    func testAutoSaveNoOpsWhenNothingChanged() async throws {
+        let transport = FakeTransport()
+        try enqueueProfileLoad(transport)
+        let api = makeAPI(transport)
+        let vm = ProfileViewModel()
+        await vm.load(api: api)
+        let countAfterLoad = transport.requests.count
+        // No edit → snapshot == lastSavedSnapshot → must NOT PATCH. This is the guard that stops the load → onChange → save → re-load loop.
+        vm.scheduleAutoSave(api: api, debounce: .zero)
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(transport.requests.count, countAfterLoad)
+        XCTAssertFalse(transport.requests.contains { $0.httpMethod == "PATCH" })
+    }
+
+    func testAutoSavePersistsAfterAnEdit() async throws {
+        let transport = FakeTransport()
+        try enqueueProfileLoad(transport)
+        let api = makeAPI(transport)
+        let vm = ProfileViewModel()
+        await vm.load(api: api)
+        vm.preferredName = "Edited Name"
+        vm.scheduleAutoSave(api: api, debounce: .zero)
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertTrue(transport.requests.contains { $0.httpMethod == "PATCH" })
+        XCTAssertNotNil(vm.savedAt)
+    }
+
     func testSaveFailureSetsErrorMessage() async {
         let transport = FakeTransport()
         transport.responseStatus = 500

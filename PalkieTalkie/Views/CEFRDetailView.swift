@@ -16,7 +16,7 @@ struct CEFRDetailView: View {
 
             if let loadError {
                 Text("Couldn't load words: \(loadError)")
-                    .font(.footnote).foregroundStyle(.red).padding(.horizontal)
+                    .font(.footnote).foregroundStyle(.red).padding(.horizontal).textSelection(.enabled)
             }
             List(words) { word in
                 HStack {

@@ -38,7 +38,7 @@ struct MainTabView: View {
             // Leaving Talk makes ConversationView disappear, which ends the session.
             selectedTab = tabBeforeTalk
         }
-        // Swipe left/right to move between tabs (a plain TabView gives the bottom bar but no swipe). simultaneousGesture so a tab's own vertical scroll, a NavigationStack edge-back, and the Topics carousel still work — we only act on a clearly-horizontal drag past a wide threshold.
+        // Swipe left/right to move between tabs (a plain TabView gives the bottom bar but no swipe). We only act on a clearly-horizontal drag past a wide threshold so a tab's own vertical scroll and a NavigationStack edge-back still work. On the Topics tab the gesture is disabled (`including: .subviews`): that tab has its own horizontal carousel, and a simultaneous tab-swipe stole the carousel's horizontal drags and flipped to Persona mid-browse. Other tabs have no horizontal scroller, so the swipe is safe there.
         .simultaneousGesture(
             DragGesture(minimumDistance: 30).onEnded { value in
                 guard abs(value.translation.width) > abs(value.translation.height),
@@ -46,7 +46,13 @@ struct MainTabView: View {
                 else { return }
                 switchTab(by: value.translation.width < 0 ? 1 : -1)
             },
+            including: Self.crossTabSwipeMask(for: selectedTab),
         )
+    }
+
+    /// Cross-tab swipe is disabled on tabs that own a horizontal scroller (Topics' carousel), so the carousel's drags aren't stolen into a tab change. `.subviews` = let the subview (carousel) handle the drag, this gesture off; `.all` = both, swipe-to-change-tab enabled.
+    static func crossTabSwipeMask(for tab: AppTab) -> GestureMask {
+        tab == .today ? .subviews : .all
     }
 
     /// Visual left-to-right order of the tabs (matches the tabItem order above, which differs from the AppTab enum's declaration order). Swiping steps through this, clamped at the ends.

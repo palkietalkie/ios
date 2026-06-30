@@ -151,7 +151,7 @@ struct ConversationView: View {
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
-                    // Long-press to select + copy so the user can paste the error when reporting a bug.
+                    // Selectable so the user can copy / translate / look up the error when it's blocking them, not just stare at it.
                     .textSelection(.enabled)
                 Button("Try again") {
                     Task { await session.start() }

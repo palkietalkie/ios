@@ -57,7 +57,7 @@ struct ProfileView: View {
                 Section("Knowledge Graph (read-only)") {
                     if let kgError = model.kgError {
                         Text("Couldn't load your knowledge graph: \(kgError)")
-                            .font(.footnote)
+                            .font(.footnote).textSelection(.enabled)
                             .foregroundStyle(.red)
                             .textSelection(.enabled)
                     }
@@ -80,26 +80,21 @@ struct ProfileView: View {
                     }
                 }
                 Section {
-                    Button {
-                        Task { await model.save(api: api) }
-                    } label: {
-                        HStack {
-                            if model.saving {
-                                ProgressView().controlSize(.small)
-                            }
-                            Text(model.saving ? "Saving…" : "Save changes")
-                            Spacer()
-                            if let savedAt = model.savedAt, Date().timeIntervalSince(savedAt) < 3 {
-                                Label("Saved", systemImage: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
-                                    .labelStyle(.iconOnly)
-                                    .transition(.opacity)
-                            }
+                    // No Save button — edits auto-save (the button sat off-screen at the bottom and users forgot it). This row is passive status only.
+                    HStack {
+                        if model.saving {
+                            ProgressView().controlSize(.small)
+                            Text("Saving…").font(.footnote).foregroundStyle(.secondary)
+                        } else if let savedAt = model.savedAt, Date().timeIntervalSince(savedAt) < 3 {
+                            Label("Saved", systemImage: "checkmark.circle.fill")
+                                .font(.footnote).foregroundStyle(.green)
+                        } else {
+                            Text("Changes save automatically").font(.footnote).foregroundStyle(.secondary)
                         }
-                        // View-side animation. The VM stays SwiftUI-agnostic (no withAnimation call) so it's safe to instantiate + drive from XCTest without going through SwiftUI's animation runtime — that runtime crashes when invoked outside a real render context.
-                        .animation(.default, value: model.savedAt)
+                        Spacer()
                     }
-                    .disabled(!model.loaded || model.saving)
+                    // View-side animation. The VM stays SwiftUI-agnostic (no withAnimation call) so it's safe to drive from XCTest without the animation runtime, which crashes outside a real render context.
+                    .animation(.default, value: model.savedAt)
                     if let saveError = model.saveError {
                         Text(saveError).font(.footnote).foregroundStyle(.red).textSelection(.enabled)
                     }
@@ -112,6 +107,10 @@ struct ProfileView: View {
                 await model.load(api: api)
             }
             .refreshable { await model.load(api: api) }
+            // Auto-save: any edit to an editable field changes the snapshot; the model debounces + guards so only real edits persist.
+            .onChange(of: model.formSnapshot) { _, _ in
+                model.scheduleAutoSave(api: api)
+            }
         }
     }
 }

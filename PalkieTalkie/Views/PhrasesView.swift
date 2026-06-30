@@ -10,7 +10,7 @@ struct PhrasesView: View {
         List {
             if let loadError {
                 Text("Couldn't refresh phrases: \(loadError)")
-                    .font(.footnote).foregroundStyle(.red)
+                    .font(.footnote).foregroundStyle(.red).textSelection(.enabled)
             }
             ForEach(phrases) { phrase in
                 VStack(alignment: .leading, spacing: 4) {
