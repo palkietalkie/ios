@@ -159,27 +159,24 @@ final class BackendAPITests: XCTestCase {
         let context = ConversationContext(
             localISOTime: "2025-01-01T00:00:00Z",
             timezone: "UTC",
-            lat: 37.7,
-            lon: -122.4,
-            city: nil,
-            weatherDescription: nil,
-            temperatureC: nil,
-            calendarEvents: [],
+            lat: 37.7, lon: -122.4, city: "San Francisco", calendarEvents: [],
         )
 
         _ = try await api.startConversation(
             personaId: "p1",
             context: context,
-            topicOverride: "weather",
+            topicOverride: "travel plans",
         )
 
         let body = try XCTUnwrap(transport.lastRequest?.httpBody)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
         // Camel→snake conversion is the load-bearing invariant for backend compatibility.
         XCTAssertEqual(json["persona_id"] as? String, "p1")
-        XCTAssertEqual(json["topic_override"] as? String, "weather")
+        XCTAssertEqual(json["topic_override"] as? String, "travel plans")
+        // The device's live lat/lon are forwarded; the gathered city is not sent yet (no backend consumer).
         XCTAssertEqual(json["lat"] as? Double, 37.7)
         XCTAssertEqual(json["lon"] as? Double, -122.4)
+        XCTAssertNil(json["city"])
         XCTAssertNil(json["personaId"])
     }
 

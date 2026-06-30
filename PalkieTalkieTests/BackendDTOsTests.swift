@@ -112,6 +112,15 @@ final class BackendDTOsTests: XCTestCase {
         XCTAssertEqual(BackendError.decoding("oops").errorDescription, "Couldn't decode response: oops")
     }
 
+    /// Render-then-refresh classifier: ONLY a decode failure (the API's JSON shape drifted) is a contract failure worth replacing a screen's cached content with an error. A slow/offline/timeout/HTTP-error refresh is not — it's kept and logged.
+    func testIsContractFailureOnlyTrueForDecoding() {
+        XCTAssertTrue(BackendError.decoding("shape drift").isContractFailure)
+        XCTAssertFalse(BackendError.http(500, "server down").isContractFailure)
+        XCTAssertFalse(BackendError.http(0, "no response").isContractFailure)
+        XCTAssertFalse(BackendError.notAuthenticated(reason: "no jwt").isContractFailure)
+        XCTAssertFalse(BackendError.invalidURL.isContractFailure)
+    }
+
     /// The profile DTOs carry the user's name as `preferred_name` on the wire (renamed from display_name). Pin the snake_case mapping so a regression back to displayName/display_name is caught here, not as a field the backend silently drops.
     func testProfilePreferredNameUsesSnakeCaseWire() throws {
         let update = ProfileUpdate(

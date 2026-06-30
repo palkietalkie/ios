@@ -120,14 +120,25 @@ final class PracticeViewModelTests: XCTestCase {
         XCTAssertNil(vm.saveError)
     }
 
-    func testLoadFailureSetsErrorMessage() async {
+    /// Render-then-refresh: an HTTP-error (slow/offline/timeout/500) refresh must NOT surface an error — it keeps the cached/empty fields and just logs. Only a contract drift surfaces (see testLoadDecodeFailureSurfacesError).
+    func testLoadHttpFailureKeepsCachedContentSilently() async {
         let transport = FakeTransport()
         transport.responseStatus = 500
         transport.responseData = Data("boom".utf8)
         let api = makeAPI(transport)
         let vm = PracticeViewModel()
         await vm.load(api: api)
-        XCTAssertNotNil(vm.saveError)
+        XCTAssertNil(vm.saveError, "an HTTP-error refresh must not replace cached content with an error")
+    }
+
+    /// A decode/contract failure (the /profile JSON shape drifted) IS a real bug and must surface, even under render-then-refresh.
+    func testLoadDecodeFailureSurfacesError() async {
+        let transport = FakeTransport()
+        transport.responseData = Data("not the profile shape".utf8)
+        let api = makeAPI(transport)
+        let vm = PracticeViewModel()
+        await vm.load(api: api)
+        XCTAssertNotNil(vm.saveError, "a profile contract/decode drift must surface")
     }
 
     func testSaveSuccessSetsSavedAtAndReloads() async throws {

@@ -92,11 +92,29 @@ final class TalkAboutTodayViewTests: XCTestCase {
         )
     }
 
-    /// Hosts with a backend error — covers the catch branch that sets loadError.
-    func testHostsWithLoadErrorSurfacesMessage() async throws {
+    /// Render-then-refresh: a backend HTTP error keeps the cached sections and logs (catch's else branch); loadError is NOT set.
+    func testHostsWithHttpErrorKeepsContent() async throws {
         let transport = FakeTransport()
         transport.responseStatus = 500
         transport.responseData = Data("boom".utf8)
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        let session = SessionController(backend: api)
+        await TestHosting.host(
+            TalkAboutTodayView()
+                .environment(\.backendAPI, api)
+                .environment(session),
+            settleMs: 500,
+        )
+    }
+
+    /// A decode/contract drift (200 + a non-DailyContent shape) IS surfaced — covers the catch's contract-failure branch that sets loadError.
+    func testHostsWithDecodeFailureSurfacesMessage() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data("not the daily-content shape".utf8)
         let api = try BackendAPI(
             baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
             transport: transport,

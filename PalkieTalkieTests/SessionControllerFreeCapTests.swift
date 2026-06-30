@@ -8,8 +8,7 @@ final class SessionControllerFreeCapTests: XCTestCase {
         SessionController(
             context: FakeContextGatherer(context: ConversationContext(
                 localISOTime: "2026-01-01T00:00:00Z", timezone: "UTC",
-                lat: nil, lon: nil, city: nil, weatherDescription: nil,
-                temperatureC: nil, calendarEvents: [],
+                lat: nil, lon: nil, city: nil, calendarEvents: [],
             )),
             backend: backend,
             micPermission: StubMicPermission(shouldThrow: false),

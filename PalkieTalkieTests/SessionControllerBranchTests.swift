@@ -12,9 +12,8 @@ final class SessionControllerBranchTests: XCTestCase {
     private func makeContext() -> ConversationContext {
         ConversationContext(
             localISOTime: "2026-01-01T00:00:00Z",
-            timezone: "UTC", lat: 0, lon: 0,
-            city: nil, weatherDescription: nil, temperatureC: nil,
-            calendarEvents: [],
+            timezone: "UTC",
+            lat: nil, lon: nil, city: nil, calendarEvents: [],
         )
     }
 

@@ -1,5 +1,8 @@
 import Charts
+import OSLog
 import SwiftUI
+
+private let logger = Logger(subsystem: "com.palkietalkie", category: "stats")
 
 struct StatsView: View {
     private static let cacheKey = "cache.stats"
@@ -187,7 +190,7 @@ struct StatsView: View {
             JSONCache.save(fresh, key: Self.cacheKey)
             loadError = nil
         } catch {
-            loadError = error.localizedDescription
+            loadError = contentRefreshError(error, refreshing: "stats", log: logger)
         }
     }
 }

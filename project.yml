@@ -101,8 +101,8 @@ targets:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
         NSMicrophoneUsageDescription: "Palkie Talkie needs microphone access for voice conversations."
-        NSLocationWhenInUseUsageDescription: "Palkie Talkie uses your location so the AI shares the same place and weather as you."
         NSCalendarsUsageDescription: "Palkie Talkie reads today's events so the AI can ask about them naturally."
+        NSLocationWhenInUseUsageDescription: "Palkie Talkie uses your location so the AI shares the same place as you."
         UIBackgroundModes:
           - audio
         # We use only Apple's OS-provided standard encryption (TLS via URLSession + WebSocket). Declares export-compliance EXEMPT so App Store Connect doesn't block submission on "Encryption documentation required".

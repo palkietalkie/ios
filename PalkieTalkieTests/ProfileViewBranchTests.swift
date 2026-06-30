@@ -75,15 +75,15 @@ final class ProfileViewBranchTests: XCTestCase {
         await TestHosting.host(NavigationStack { ProfileView() }.environment(\.backendAPI, api), settleMs: 800)
     }
 
-    /// Backend errors out — covers the error-surfacing branch (saveError gets the localizedDescription). Equivalent VM-direct test in ProfileViewModelTests.testLoadFailureSetsErrorMessage; the hosted version of this scenario has been flaky under full-suite runs (SIGSEGV under concurrent UserDefaults writes from prior test teardown), so it's not hosted here.
-    func testLoadFailureAtVMLevelCoversCatchBranch() async {
+    /// Render-then-refresh: a backend HTTP error on profile load must NOT surface — it keeps cached/empty fields and logs (the catch branch's else/log path). A contract drift is the only surfacing case (covered in ProfileViewModelTests.testLoadDecodeFailureSurfacesError). Hosting this scenario has been flaky under full-suite runs (SIGSEGV under concurrent UserDefaults writes from prior test teardown), so it's VM-direct here.
+    func testLoadHttpFailureKeepsCachedContentSilently() async {
         let transport = FakeTransport()
         transport.responseStatus = 500
         transport.responseData = "boom".data(using: .utf8)!
         let api = makeAPI(transport: transport)
         let vm = ProfileViewModel()
         await vm.load(api: api)
-        XCTAssertNotNil(vm.saveError)
+        XCTAssertNil(vm.saveError, "an HTTP-error refresh must not replace cached content with an error")
     }
 
     /// Pronunciation suggestion non-empty AND user pronunciation empty — covers the suggestion-button row.

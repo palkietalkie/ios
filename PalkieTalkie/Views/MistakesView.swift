@@ -1,4 +1,7 @@
+import OSLog
 import SwiftUI
+
+private let logger = Logger(subsystem: "com.palkietalkie", category: "mistakes")
 
 struct MistakesView: View {
     private static let cacheKey = "cache.mistakes"
@@ -21,7 +24,7 @@ struct MistakesView: View {
                 mistakes = fresh
                 JSONCache.save(fresh, key: Self.cacheKey)
             } catch {
-                loadError = error.localizedDescription
+                loadError = contentRefreshError(error, refreshing: "mistakes", log: logger)
             }
         }
         .overlay {

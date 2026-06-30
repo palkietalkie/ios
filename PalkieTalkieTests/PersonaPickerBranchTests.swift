@@ -64,10 +64,25 @@ final class PersonaPickerBranchTests: XCTestCase {
         )
     }
 
-    func testRendersLoadErrorAsAlert() async {
+    /// Render-then-refresh: an HTTP-error refresh keeps the cached list and logs — the "Couldn't load personas" alert must NOT fire (catch's else branch).
+    func testHttpErrorRefreshKeepsListNoAlert() async {
         let transport = FakeTransport()
         transport.responseStatus = 500
         transport.responseData = Data("nope".utf8)
+        let api = makeAPI(transport)
+        let session = makeSessionController(api)
+        await TestHosting.host(
+            NavigationStack { PersonaPickerView() }
+                .environment(\.backendAPI, api)
+                .environment(session),
+            settleMs: 600,
+        )
+    }
+
+    /// A decode/contract drift (200 + a non-personas shape) DOES pop the alert — covers the contract-failure branch in refresh().
+    func testDecodeFailureRendersAlert() async {
+        let transport = FakeTransport()
+        transport.responseData = Data("not the personas shape".utf8)
         let api = makeAPI(transport)
         let session = makeSessionController(api)
         await TestHosting.host(

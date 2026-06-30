@@ -54,9 +54,8 @@ iOS-side behavior + state machine. Cross-cutting protocol (WS framing, provider 
 2. `ContextGatherer` collects the user's here-and-now in parallel:
    - Local date / time / day-of-week (device clock)
    - Location + city (Core Location, permission-gated)
-   - Weather + temperature (open-meteo, keyed by location)
    - Today's calendar events (Integrations → Google Calendar)
-   The persona inhabits the same moment as the user. Same time, same city, same weather. The AI shares the moment ("cold one this morning"), not observes from outside ("chilly out there in SF"). Backend's `prompt_assembler` frames these as the persona's here-and-now.
+   The persona inhabits the same moment as the user (same time, same place). The AI shares the moment, not observes from outside. Backend's `prompt_assembler` frames these as the persona's here-and-now. (Weather was removed: it read unnatural in conversation. Device location stays, and `lat`/`lon` are sent on `/conversation/start`: GPS is the only real source of where the user is right now, since users move and won't hand-edit a profile city. The prompt today still falls back to the profile city; wiring the live GPS city into it is a planned follow-up.)
 3. `POST /conversation/start` to Fly with Clerk JWT (~50-100ms RTT + ~200-400ms backend context assembly). Backend assembles the system prompt (persona + situational context + KG + profile + last-session recall + instruction to OPEN the conversation in character) and returns `{provider, wsUrl, voiceId, ephemeralToken, textPrompt, sessionId}`.
 4. iOS opens the WS using `response.wsUrl` (~50-100ms TLS + upgrade). Wires the right `RealtimeClient` based on `response.provider` (PersonaPlex or OpenAI).
 5. Wait for server-ready signal (`\x00` byte for PersonaPlex; `session.created` event for OpenAI). Until then, "Loading your tutor..." `LoadingTipsView` flippable tips screen — also hides cold-start latency on PersonaPlex's Modal scale-to-zero path.

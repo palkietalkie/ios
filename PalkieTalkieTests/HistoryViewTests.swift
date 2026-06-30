@@ -68,11 +68,23 @@ final class HistoryViewTests: XCTestCase {
         await TestHosting.host(HistoryView().environment(\.backendAPI, api), settleMs: 500)
     }
 
-    /// Backend errors on /sessions — covers the catch branch + the alert binding.
-    func testHostsWithLoadErrorTriggersAlertBranch() async throws {
+    /// Render-then-refresh: a backend HTTP error on /sessions keeps the cached sessions and logs — the blocking "Couldn't load history" alert must NOT fire (catch's else branch).
+    func testHostsWithHttpErrorKeepsContentNoAlert() async throws {
         let transport = FakeTransport()
         transport.responseStatus = 500
         transport.responseData = Data("boom".utf8)
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        await TestHosting.host(HistoryView().environment(\.backendAPI, api), settleMs: 500)
+    }
+
+    /// A decode/contract drift (200 + a non-sessions shape) DOES pop the alert — covers the contract-failure branch that sets loadError + the alert binding.
+    func testHostsWithDecodeFailureTriggersAlertBranch() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data("not the sessions shape".utf8)
         let api = try BackendAPI(
             baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
             transport: transport,

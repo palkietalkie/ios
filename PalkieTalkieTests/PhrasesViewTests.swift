@@ -61,10 +61,25 @@ final class PhrasesViewTests: XCTestCase {
         XCTAssertFalse(texts.contains { $0.hasPrefix("Try:") }, "actual: \(texts)")
     }
 
-    /// A failed refresh must hit the catch branch (loadError) instead of `try?`-swallowing it. Cache stays; error surfaces. Hosting drives the `.task`.
-    func testRefreshFailureHitsCatchBranch() async throws {
+    /// Render-then-refresh: an HTTP-error refresh keeps the cached list and logs (catch's else branch) — loadError is NOT set. Hosting drives the `.task`.
+    func testHttpErrorRefreshKeepsCachedList() async throws {
         let transport = FakeTransport()
         transport.responseStatus = 500
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        await TestHosting.host(
+            NavigationStack { PhrasesView() }.environment(\.backendAPI, api),
+            settleMs: 500,
+        )
+    }
+
+    /// A decode/contract drift (200 + a non-phrases shape) DOES surface — covers the contract-failure branch that sets loadError + the footnote Text rendering it.
+    func testDecodeFailureSurfacesLoadError() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data("not the phrases shape".utf8)
         let api = try BackendAPI(
             baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
             transport: transport,

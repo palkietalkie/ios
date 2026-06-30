@@ -8,7 +8,7 @@ extension BackendAPI {
         topicOverride: String? = nil,
     ) async throws -> StartResponse {
         // Backend's StartRequest accepts persona_id, lat, lon, topic_override.
-        // Other ConversationContext fields (timezone, city, weather, calendar) are re-derived server-side from the user's stored profile + integrations.
+        // Other ConversationContext fields (timezone, calendar) are re-derived server-side from the user's stored profile + integrations. lat/lon are the device's live location (weather was removed; the backend keeps accepting them for the live-city feature).
         struct Body: Codable {
             let personaId: String
             let lat: Double?

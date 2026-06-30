@@ -112,11 +112,23 @@ final class StatsViewHelpersTests: XCTestCase {
         await TestHosting.host(StatsView().environment(\.backendAPI, api), settleMs: 400)
     }
 
-    /// Load fails — covers the catch branch that sets loadError + the Text view rendering it.
-    func testHostsStatsViewWithLoadErrorSurfacesMessage() async throws {
+    /// Render-then-refresh: an HTTP-error refresh hits the catch's log branch and keeps the cached/placeholder layout (no loadError surfaced).
+    func testHostsStatsViewWithHttpErrorKeepsContent() async throws {
         let transport = FakeTransport()
         transport.responseStatus = 500
         transport.responseData = Data("boom".utf8)
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        await TestHosting.host(StatsView().environment(\.backendAPI, api), settleMs: 400)
+    }
+
+    /// A decode/contract failure (200 + a shape that isn't Stats) IS surfaced — covers the catch's contract-failure branch that sets loadError + the Text rendering it.
+    func testHostsStatsViewWithDecodeFailureSurfacesMessage() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data("not the stats shape".utf8)
         let api = try BackendAPI(
             baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
             transport: transport,

@@ -1,5 +1,8 @@
 import Foundation
 import Observation
+import OSLog
+
+private let logger = Logger(subsystem: "com.palkietalkie", category: "practice")
 
 /// View-model for `PracticeView`. Owns target / level / goals state + load/save business logic so each can be unit-tested without rendering SwiftUI.
 @MainActor
@@ -105,7 +108,8 @@ final class PracticeViewModel {
             saveError = nil
             autoSaver.markSaved(formSnapshot)
         } catch {
-            saveError = error.localizedDescription
+            // Only the LOAD/refresh is render-then-refresh; the save path below still surfaces its errors (it's an action, not a read).
+            saveError = contentRefreshError(error, refreshing: "practice", log: logger)
         }
     }
 

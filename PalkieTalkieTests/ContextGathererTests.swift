@@ -1,14 +1,13 @@
 @testable import PalkieTalkie
 import XCTest
 
-/// The ContextGatherer fans out four async calls (location, weather, reverse-geocode, calendar) and packages them as
+/// The ContextGatherer fans out async calls (location, reverse-geocode, calendar) and packages them as
 /// `ConversationContext`. We can't easily inject the location stub today (LocationContext is a concrete actor) but we
 /// CAN exercise the path where location returns nil — the gatherer must still produce a valid context with default fields.
 final class ContextGathererTests: XCTestCase {
     func testGatherProducesNonEmptyTimezoneAndTimeWhenNoLocation() async {
         let gatherer = ContextGatherer(
             location: LocationContext(),
-            weather: WeatherContext(fetcher: FakeWeatherFetcher(responseData: Data())),
             calendar: FakeCalendarStore(grantAccess: false, events: []),
         )
         let ctx = await gatherer.gather()
@@ -19,8 +18,6 @@ final class ContextGathererTests: XCTestCase {
         XCTAssertNil(ctx.lat)
         XCTAssertNil(ctx.lon)
         XCTAssertNil(ctx.city)
-        XCTAssertNil(ctx.weatherDescription)
-        XCTAssertNil(ctx.temperatureC)
         // No calendar permission → empty events list.
         XCTAssertTrue(ctx.calendarEvents.isEmpty)
     }
@@ -34,7 +31,6 @@ final class ContextGathererTests: XCTestCase {
         )
         let gatherer = ContextGatherer(
             location: LocationContext(),
-            weather: WeatherContext(fetcher: FakeWeatherFetcher(responseData: Data())),
             calendar: FakeCalendarStore(grantAccess: true, events: [event]),
         )
         let ctx = await gatherer.gather()

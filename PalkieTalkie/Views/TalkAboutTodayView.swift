@@ -1,4 +1,7 @@
+import OSLog
 import SwiftUI
+
+private let logger = Logger(subsystem: "com.palkietalkie", category: "talk-about-today")
 
 struct TalkAboutTodayView: View {
     @Environment(SessionController.self) private var session
@@ -152,7 +155,7 @@ struct TalkAboutTodayView: View {
             JSONCache.save(fresh, key: Self.cacheKey)
             loadError = nil
         } catch {
-            loadError = error.localizedDescription
+            loadError = contentRefreshError(error, refreshing: "today", log: logger)
         }
     }
 }

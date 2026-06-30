@@ -1,4 +1,7 @@
 import Foundation
+import OSLog
+
+private let logger = Logger(subsystem: "com.palkietalkie", category: "knowledge-graph")
 
 /// Backing model for the standalone Knowledge Graph screen. The post-session pipeline builds the graph; the user can't edit it beyond soft-deleting a wrong item (swipe-to-remove).
 ///
@@ -29,14 +32,14 @@ final class KnowledgeGraphViewModel {
         loading = true
         error = nil
         defer { loading = false }
-        // Surface load/decode failures instead of swallowing — a silently-failed decode (the nodes/edges contract drift) is exactly how a populated KG showed up empty for real users.
+        // A slow wake (cold AuraDB) or offline/timeout keeps the cached graph; only a nodes/edges contract drift surfaces — silently swallowing that is how a populated KG once showed up empty for every user.
         do {
             let fresh = try await api.getKG()
             entities = fresh.nodes
             edges = fresh.edges
             JSONCache.save(fresh, key: Self.cacheKey)
         } catch {
-            self.error = error.localizedDescription
+            self.error = contentRefreshError(error, refreshing: "knowledge graph", log: logger)
         }
     }
 

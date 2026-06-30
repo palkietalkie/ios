@@ -1,6 +1,9 @@
 import ClerkKit
 import Foundation
 import Observation
+import OSLog
+
+private let logger = Logger(subsystem: "com.palkietalkie", category: "profile")
 
 /// View-model for `ProfileView`. Owns editable identity + practice state plus the load / save / cache business logic so each can be unit-tested without rendering SwiftUI.
 @MainActor
@@ -102,7 +105,8 @@ final class ProfileViewModel {
             saveError = nil
             autoSaver.markSaved(formSnapshot)
         } catch {
-            saveError = error.localizedDescription
+            // Only the LOAD/refresh is render-then-refresh; the save path below still surfaces its errors (it's an action, not a read).
+            saveError = contentRefreshError(error, refreshing: "profile", log: logger)
         }
     }
 

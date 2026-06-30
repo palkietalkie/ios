@@ -449,12 +449,7 @@ final class SessionControllerTests: XCTestCase {
         ConversationContext(
             localISOTime: "2025-01-01T00:00:00Z",
             timezone: "UTC",
-            lat: 0,
-            lon: 0,
-            city: nil,
-            weatherDescription: nil,
-            temperatureC: nil,
-            calendarEvents: [],
+            lat: nil, lon: nil, city: nil, calendarEvents: [],
         )
     }
 

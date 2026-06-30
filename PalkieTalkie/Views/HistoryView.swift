@@ -1,4 +1,7 @@
+import OSLog
 import SwiftUI
+
+private let logger = Logger(subsystem: "com.palkietalkie", category: "history")
 
 @MainActor
 struct HistoryView: View {
@@ -47,7 +50,8 @@ struct HistoryView: View {
             sessions = fresh
             JSONCache.save(fresh, key: Self.cacheKey)
         } catch {
-            loadError = error.localizedDescription
+            // A failed refresh keeps the cached sessions silently; only a contract drift pops the alert (see contentRefreshError).
+            loadError = contentRefreshError(error, refreshing: "history", log: logger)
         }
     }
 }
