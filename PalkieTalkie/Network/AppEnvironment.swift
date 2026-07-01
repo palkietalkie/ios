@@ -10,9 +10,10 @@ enum AppEnvironment {
     static func makeProductionTransport() -> any Transport {
         let config = URLSessionConfiguration.default
         config.waitsForConnectivity = false
-        // 15s tolerates cold Clerk JWKS fetch + Neon warmup on endpoints like /stats that aren't on the conversation-start hot path. Conversation-start latency budget (1.5s) is enforced via cold_start_complete telemetry, not by failing the request — failing here would just show the user a misleading "timed out" instead of letting the warmup tips UI run.
-        config.timeoutIntervalForRequest = 15
-        config.timeoutIntervalForResource = 30
+        // Per-request STALL timeout: max time with zero bytes moving before the request errors. Raised to 30s because weak/congested networks (hotel wifi being the canonical case) can go quiet longer than 15s mid-request without being dead, and failing then shows a misleading "timed out" instead of completing. It doesn't slow the happy path (a healthy request never sits silent this long); the conversation-start latency budget is enforced via cold_start_complete telemetry + the warmup-tips UI, not by failing fast here.
+        config.timeoutIntervalForRequest = 30
+        // Resource timeout is the TOTAL wall-clock a single transfer may take (unlike the stall timeout above, and the only one a per-request `timeoutInterval` can NOT override). A multi-MB session-audio upload on a weak uplink legitimately runs minutes, so this ceiling is minutes; the old 30s guillotined long uploads mid-flight (the "model present, mic absent" sessions). Hot-path JSON is unaffected: it finishes in well under a second and never approaches this ceiling.
+        config.timeoutIntervalForResource = 300
         return URLSession(configuration: config)
     }
 

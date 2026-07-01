@@ -173,10 +173,10 @@ final class BackendAPITests: XCTestCase {
         // Camel→snake conversion is the load-bearing invariant for backend compatibility.
         XCTAssertEqual(json["persona_id"] as? String, "p1")
         XCTAssertEqual(json["topic_override"] as? String, "travel plans")
-        // The device's live lat/lon are forwarded; the gathered city is not sent yet (no backend consumer).
+        // The device's live location is forwarded: lat/lon + the reverse-geocoded city (the backend prefers this city over the stale profile one).
         XCTAssertEqual(json["lat"] as? Double, 37.7)
         XCTAssertEqual(json["lon"] as? Double, -122.4)
-        XCTAssertNil(json["city"])
+        XCTAssertEqual(json["city"] as? String, "San Francisco")
         XCTAssertNil(json["personaId"])
     }
 

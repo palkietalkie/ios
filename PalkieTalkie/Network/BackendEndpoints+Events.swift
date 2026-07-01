@@ -165,6 +165,27 @@ extension BackendAPI {
             ),
         )
     }
+
+    /// Record a failed session-audio upload so the loss is visible server-side (in the `events` table) instead of only in a device-local `os_log` line the way the original silent losses were. The payload stays queued in the outbox and is retried, so this is a diagnostic breadcrumb, not a terminal error. Fully swallows its own failure (async, non-throwing) since telemetry must never disturb the retry loop.
+    func reportAudioUploadFailed(sessionId: String, source: String, bytes: Int, reason: String) async {
+        struct Props: Codable {
+            let sessionId: String
+            let source: String
+            let bytes: Int
+            let reason: String
+        }
+        struct Body: Codable {
+            let eventType: String
+            let props: Props
+        }
+        let _: EmptyResponse? = try? await post(
+            "/events",
+            body: Body(
+                eventType: "audio_upload_failed",
+                props: Props(sessionId: sessionId, source: source, bytes: bytes, reason: reason),
+            ),
+        )
+    }
 }
 
 /// Per-phase milliseconds for one cold-start. Sums roughly to total minus parallelism gaps. Backend stores these in

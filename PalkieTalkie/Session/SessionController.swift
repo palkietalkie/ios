@@ -51,6 +51,7 @@ final class SessionController {
 
     private let context: ContextGathering
     let backend: ConversationBackend
+    let outbox: AudioUploadOutbox
     private let micPermission: MicrophonePermissionRequesting
     private let streamerFactory: AudioStreamerFactory
     private let sessionFactory: PersonaPlexSessionFactory
@@ -98,9 +99,11 @@ final class SessionController {
         openAIFactory: OpenAIRealtimeClientFactory = DefaultOpenAIRealtimeClientFactory(),
         serverReadyTimeoutOverride: Double? = nil,
         pathMonitor: NetworkPathMonitoring = DefaultNetworkPathMonitor(),
+        outbox: AudioUploadOutbox = .default,
     ) {
         self.context = context
         self.backend = backend
+        self.outbox = outbox
         self.micPermission = micPermission
         self.streamerFactory = streamerFactory
         self.sessionFactory = sessionFactory
@@ -332,7 +335,7 @@ final class SessionController {
         await teardown()
         // Audio upload AFTER teardown so the wav file is closed/finalized. Best-effort: a failed upload doesn't reopen the session — we just lose retention for that session. File is deleted whether upload succeeded or not so we don't accumulate local copies.
         if let id, let streamer {
-            await uploadMicAudioIfAny(sessionId: id, streamer: streamer)
+            await uploadSessionAudio(sessionId: id, streamer: streamer)
         }
         phase = .idle
     }

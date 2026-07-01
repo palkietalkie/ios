@@ -11,11 +11,11 @@ final class AppEnvironmentTests: XCTestCase {
         XCTAssertFalse(session?.configuration.waitsForConnectivity ?? true)
     }
 
-    /// 15s/30s timeout budget is documented as deliberate (cold Clerk JWKS + Neon warmup tolerance vs. user-perceived hang). A regression to the URLSession defaults (60s / 7 days) would make "request taking forever" feel even worse. Pin both.
+    /// Two deliberately-different budgets. The 30s per-request (stall) timeout tolerates weak/congested networks (hotel wifi) that go quiet for a stretch mid-request without being dead. The 300s resource timeout is the TOTAL wall-clock a single transfer may take, and must be minutes because a multi-MB session-audio upload legitimately runs that long on a weak uplink; a 30s cap here guillotined long uploads (the "model present, mic absent" sessions). Regressing either (URLSession defaults are 60s / 7 days) would re-break one of the two. Pin both.
     func testProductionTransportTimeoutsMatchPolicy() {
         let session = AppEnvironment.makeProductionTransport() as? URLSession
-        XCTAssertEqual(session?.configuration.timeoutIntervalForRequest, 15)
-        XCTAssertEqual(session?.configuration.timeoutIntervalForResource, 30)
+        XCTAssertEqual(session?.configuration.timeoutIntervalForRequest, 30)
+        XCTAssertEqual(session?.configuration.timeoutIntervalForResource, 300)
     }
 
     /// Factory builds a BackendAPI without throwing — catches the case where wiring up the Clerk adapter starts panicking at construction time. Skips when Info.plist's BACKEND_URL isn't reachable from the test bundle (intermittent in full-suite runs where Bundle.main loads ahead of the test host wiring).

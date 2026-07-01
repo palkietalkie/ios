@@ -28,6 +28,7 @@ protocol ConversationBackend: Sendable {
     func recordSessionError(sessionId: String?, provider: String, reason: String) async throws
     func recordToolCall(sessionId: String?, name: String, query: String?) async throws
     func recordSessionEnd(sessionId: String, reason: String) async throws
+    func reportAudioUploadFailed(sessionId: String, source: String, bytes: Int, reason: String) async
     func uploadMicAudio(sessionId: String, deflatedWav: Data) async throws
     func uploadModelAudio(sessionId: String, deflatedWav: Data) async throws
     func getPersonas(search: String?, sort: String) async throws -> [PersonaDTO]

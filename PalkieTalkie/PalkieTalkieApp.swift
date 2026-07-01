@@ -42,6 +42,8 @@ struct PalkieTalkieApp: App {
                     await CrashReporter.reportPending { record in
                         await (try? backendAPI.recordCrash(record)) != nil
                     }
+                    // Deliver any session-audio the last run couldn't finish (upload failed, app was killed, or the phone was offline at session end). Same capture-now-deliver-on-next-launch model as the crash reporter above.
+                    await sessionController.flushAudioOutbox()
                     await pushNotifications.bootstrap()
                 }
         }

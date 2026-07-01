@@ -151,6 +151,12 @@ actor FakeConversationBackend: ConversationBackend {
         sessionEndCalls.append((sessionId, reason))
     }
 
+    nonisolated(unsafe) var audioUploadFailedReports: [(sessionId: String, source: String, bytes: Int)] = []
+
+    func reportAudioUploadFailed(sessionId: String, source: String, bytes: Int, reason _: String) async {
+        audioUploadFailedReports.append((sessionId, source, bytes))
+    }
+
     func uploadMicAudio(sessionId: String, deflatedWav: Data) async throws {
         micUploads.append((sessionId, deflatedWav.count))
         if let err = micUploadError { throw err }

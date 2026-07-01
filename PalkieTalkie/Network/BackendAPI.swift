@@ -72,10 +72,12 @@ final class BackendAPI: @unchecked Sendable {
     }
 
     /// Raw-bytes POST. Used by session-audio upload: the body is a gzipped wav, not JSON. Caller sets Content-Type (e.g. "audio/wav+gzip") so the backend can record the format for later decode.
-    func postRaw(_ path: String, body: Data, contentType: String) async throws {
+    func postRaw(_ path: String, body: Data, contentType: String, timeout: TimeInterval? = nil) async throws {
         var request = URLRequest(url: urlForPath(path))
         request.httpMethod = "POST"
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        // Raises this request's STALL timeout (max gap between bytes) above the 15s hot-path default so a brief pause on a flaky uplink doesn't kill a long audio upload. The TOTAL-duration ceiling is a separate session-level setting (timeoutIntervalForResource in AppEnvironment) that can't be overridden per request — that's the one that actually has to clear a multi-MB upload.
+        if let timeout { request.timeoutInterval = timeout }
         try await attachAuth(&request)
         request.httpBody = body
         _ = try await executeRaw(request)
