@@ -108,21 +108,9 @@ struct ConversationView: View {
     }
 
     private var micIndicator: some View {
-        Image(systemName: "mic.fill")
-            .font(.system(size: 32))
-            .frame(width: 80, height: 80)
-            .background(micBackground)
-            .foregroundStyle(.white)
-            .clipShape(Circle())
-            // React specifically to the tutor talking — swell + glow while the AI speaks, settle when it's the user's turn. Tied to `isAISpeaking` (driven by inbound AI transcript), not the generic `.live` phase, which stayed true for the whole session and so never actually animated to the conversation.
-            .scaleEffect(session.isAISpeaking ? 1.12 : 1.0)
-            .shadow(
-                color: session.isAISpeaking ? Color.green.opacity(0.7) : .clear,
-                radius: session.isAISpeaking ? 18 : 0,
-            )
-            .symbolEffect(.pulse, isActive: session.isAISpeaking)
-            .animation(.spring(response: 0.35, dampingFraction: 0.5), value: session.isAISpeaking)
-            // Report the mic's rendered frame so ConversationMicPositionTests can assert toggling CC never moves it. The reporter is nil in production; a clear GeometryReader in the background doesn't affect layout.
+        // Not a mic and not a button — Ayumi read the mic glyph as tappable push-to-talk, but Talk is a two-way conversation and this is purely a state readout. A state-colored waveform: color = connection state, bar height = the tutor's live output amplitude (read per frame inside the indicator).
+        CenterIndicator(color: micBackground) { CGFloat(session.aiOutputLevel) }
+            // Report the rendered frame so ConversationMicPositionTests can assert toggling CC never moves it. The reporter is nil in production; a clear GeometryReader in the background doesn't affect layout.
             .background(GeometryReader { proxy in
                 Color.clear.onAppear { micFrameReporter?(proxy.frame(in: .global)) }
             })

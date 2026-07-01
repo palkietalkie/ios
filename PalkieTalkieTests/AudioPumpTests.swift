@@ -131,6 +131,10 @@ private final class ReplayStreamer: AudioStreamerType, @unchecked Sendable {
         false
     }
 
+    nonisolated var outputLevel: Float {
+        0
+    }
+
     func emotionCounts() async -> [String: Int] {
         [:]
     }

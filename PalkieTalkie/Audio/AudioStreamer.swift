@@ -20,6 +20,8 @@ enum AudioStreamerError: Error {
 actor AudioStreamer {
     static let sampleRate: Double = 24000
     static let frameSamples: AVAudioFrameCount = 480 // 20ms @ 24kHz
+    /// Per-buffer release coefficient for the output-level peak meter that drives the Talk-view waveform: attack is instant (jump to a louder peak), release multiplies the held level by this each buffer so the bars fall smoothly instead of flickering. Hand-tuned for a pleasant fall (~150ms at OpenAI's typical ~20-40ms chunks); empirical, and rate-dependent (faster chunk cadence = faster fall), which is acceptable for a visual meter.
+    private static let outputLevelRelease: Float = 0.82
 
     private let engine: AudioEngineProtocol
     private let playerNode: AudioPlayerNodeProtocol
@@ -65,8 +67,10 @@ actor AudioStreamer {
     private var pcm16InputContinuation: AsyncStream<Data>.Continuation?
     private var pcm16InputStreamCache: AsyncStream<Data>?
     private var pendingMicSamples: [Float] = []
-    // Tutor-audio buffers scheduled but not yet played out. Decremented from each buffer's completion, which fires off-actor on the audio thread, hence a lock rather than actor-isolated state. isOutputPlaying reads it so end() can let a goodbye finish instead of cutting it off.
+    /// Tutor-audio buffers scheduled but not yet played out. Decremented from each buffer's completion, which fires off-actor on the audio thread, hence a lock rather than actor-isolated state. isOutputPlaying reads it so end() can let a goodbye finish instead of cutting it off.
     private let pendingOutputLock = OSAllocatedUnfairLock(initialState: 0)
+    // Smoothed peak of the tutor's OUTPUT audio (0…1), written per playback buffer, read nonisolated by the Talk-view waveform indicator each frame. A lock (not actor-isolated state) so the view can read it synchronously without awaiting the actor, same reason as pendingOutputLock.
+    private let outputLevelLock = OSAllocatedUnfairLock(initialState: Float(0))
     nonisolated let pitchTracker = PitchTracker()
     /// Live emotion counter on the AI's OUTPUT audio. Per-session (created in start(), released in stop()) because the classifier carries a running frame cursor that must reset each conversation.
     private var emotionDetector: EmotionDetector?
@@ -226,11 +230,13 @@ actor AudioStreamer {
         }
         playPCM16Count += 1
         let n = playPCM16Count
+        // Fast attack, slow release so the Talk-view waveform tracks the tutor's voice envelope smoothly. Computed every buffer (not just when logging) so `outputLevel` stays current for the indicator.
+        let peak = AudioMath.peakAmplitude(of: buffer)
+        outputLevelLock.withLock { $0 = max(peak, $0 * Self.outputLevelRelease) }
         if n <= 3 || n % 50 == 0 {
-            let p = AudioMath.peakAmplitude(of: buffer)
             logger
                 .error(
-                    "playPCM16 sched #\(n, privacy: .public): \(pcm16Bytes.count, privacy: .public)B → frames=\(samples.count, privacy: .public) peak=\(p, privacy: .public) engineRunning=\(self.engine.isRunning, privacy: .public) playerPlaying=\(self.playerNode.isPlaying, privacy: .public)",
+                    "playPCM16 sched #\(n, privacy: .public): \(pcm16Bytes.count, privacy: .public)B → frames=\(samples.count, privacy: .public) peak=\(peak, privacy: .public) engineRunning=\(self.engine.isRunning, privacy: .public) playerPlaying=\(self.playerNode.isPlaying, privacy: .public)",
                 )
         }
         pendingOutputLock.withLock { $0 += 1 }
@@ -241,6 +247,11 @@ actor AudioStreamer {
 
     nonisolated func isOutputPlaying() -> Bool {
         pendingOutputLock.withLock { $0 > 0 }
+    }
+
+    /// Latest smoothed peak of the tutor's output audio (0…1), for the Talk-view waveform indicator. Nonisolated + lock-backed so the view reads it per frame without awaiting the actor.
+    nonisolated var outputLevel: Float {
+        outputLevelLock.withLock { $0 }
     }
 
     /// Drop everything queued and resume — caller (AudioPump) hooks this to the realtime client's `bargeIn` stream so user-speech-detected stops AI audio mid-sentence. `playerNode.stop()` cancels scheduled buffers; immediately `play()` again so the next AI turn's audio plays without re-entering the start() bring-up.

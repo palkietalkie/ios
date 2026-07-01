@@ -15,6 +15,8 @@ protocol AudioStreamerType: AnyObject, Sendable {
     func stop() async
     /// True while the player still has tutor audio scheduled-but-not-yet-played. Lets end() hold off teardown so a goodbye finishes out loud instead of being cut off. The transcript arrives well ahead of the audio, so the transcript-based "AI speaking" flag goes quiet too early to gate on.
     func isOutputPlaying() async -> Bool
+    /// Latest smoothed peak of the tutor's output audio (0…1) for the Talk-view waveform. Nonisolated so the view can read it synchronously per frame (like `pitchTracker`).
+    nonisolated var outputLevel: Float { get }
 }
 
 extension AudioStreamer: AudioStreamerType {}

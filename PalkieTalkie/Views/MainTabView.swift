@@ -21,7 +21,7 @@ struct MainTabView: View {
                 .tabItem { Label("Persona", systemImage: "person.crop.circle") }
             ConversationView()
                 .tag(AppTab.talk)
-                .tabItem { Label("Talk", systemImage: "mic.fill") }
+                .tabItem { Label("Talk", systemImage: "bubble.left.and.bubble.right.fill") }
             StatsView()
                 .tag(AppTab.stats)
                 .tabItem { Label("Stats", systemImage: "chart.bar.fill") }

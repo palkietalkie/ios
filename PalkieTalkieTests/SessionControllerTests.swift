@@ -234,6 +234,7 @@ final class FakeAudioStreamer: AudioStreamerType, PCM16AudioStreamerType, @unche
     nonisolated(unsafe) var playedPCM16: [Data] = []
     nonisolated(unsafe) var interruptCount = 0
     nonisolated(unsafe) var outputPlaying = false
+    nonisolated(unsafe) var outputLevelValue: Float = 0
     private let (stream, continuation) = AsyncStream.makeStream(of: Data.self)
     private let (pcm16Stream, pcm16Continuation) = AsyncStream.makeStream(of: Data.self)
     nonisolated let pitchTracker = PitchTracker()
@@ -281,6 +282,10 @@ final class FakeAudioStreamer: AudioStreamerType, PCM16AudioStreamerType, @unche
 
     func isOutputPlaying() async -> Bool {
         outputPlaying
+    }
+
+    nonisolated var outputLevel: Float {
+        outputLevelValue
     }
 
     deinit {
@@ -418,6 +423,29 @@ struct SessionControllerRig {
 
 @MainActor
 final class SessionControllerTests: XCTestCase {
+    /// aiOutputLevel drives the Talk-view waveform. It must gate on isAISpeaking so the bars fall to their resting line the instant the turn ends, rather than holding the last buffer's level through the audio-drain tail; and while speaking it must reflect the streamer's live output level.
+    func testAIOutputLevelGatesOnSpeaking() {
+        let rig = makeController()
+        rig.streamer.outputLevelValue = 0.7
+        // audioStreamer is normally set inside start(); set it directly to test the gating in isolation.
+        rig.controller.audioStreamer = rig.streamer
+
+        rig.controller.isAISpeaking = false
+        XCTAssertEqual(
+            rig.controller.aiOutputLevel,
+            0,
+            "no bars while the tutor isn't speaking, even if a stale level lingers",
+        )
+
+        rig.controller.isAISpeaking = true
+        XCTAssertEqual(
+            rig.controller.aiOutputLevel,
+            0.7,
+            accuracy: 0.0001,
+            "reflects the streamer's live output level while speaking",
+        )
+    }
+
     private func makeController(
         backend: FakeConversationBackend? = nil,
         session: FakePersonaPlexSession = FakePersonaPlexSession(),
