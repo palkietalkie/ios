@@ -32,6 +32,7 @@ final class PracticeViewTests: XCTestCase {
             targetAccents: ["US General"],
             proficiency: "advanced",
             tutorSpeakingSpeed: "fast",
+            correctionFrequency: "sometimes",
             goals: nil, locationCity: nil, timezone: nil,
         )
         JSONCache.save(cached, key: PracticeViewModel.profileKey)

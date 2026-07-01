@@ -201,6 +201,9 @@ struct PracticeOptionsOut: Codable {
     let proficiency: [String]
     let tutorSpeakingSpeed: [String]
     let tutorSpeakingSpeedRates: [String: Double]
+    let correctionFrequency: [String]
+    let correctionFrequencyPercent: [String: Int]
+    let correctionFrequencyDefaultByProficiency: [String: String]
     let goals: [String]
 }
 
@@ -214,6 +217,7 @@ struct ProfileOut: Codable {
     let targetAccents: [String]
     let proficiency: String
     let tutorSpeakingSpeed: String
+    let correctionFrequency: String
     let goals: String?
     let locationCity: String?
     let timezone: String?
@@ -227,6 +231,7 @@ struct ProfileUpdate: Codable {
     let targetAccents: [String]?
     let proficiency: String?
     let tutorSpeakingSpeed: String?
+    let correctionFrequency: String?
     let goals: String?
     let locationCity: String?
     let timezone: String?
@@ -265,6 +270,7 @@ struct StartRequest: Codable {
     let personaId: String
     let lat: Double?
     let lon: Double?
+    let city: String?
     let topicOverride: String?
 }
 

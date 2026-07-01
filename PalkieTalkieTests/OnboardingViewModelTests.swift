@@ -98,7 +98,8 @@ final class OnboardingViewModelTests: XCTestCase {
                 email: nil, preferredName: "Wes", namePronunciation: nil,
                 namePronunciationSuggestion: nil, nativeLanguages: ["Japanese"],
                 targetLanguage: "English", targetAccents: ["US"], proficiency: "intermediate",
-                tutorSpeakingSpeed: "normal", goals: nil, locationCity: nil, timezone: nil,
+                tutorSpeakingSpeed: "normal", correctionFrequency: "sometimes", goals: nil, locationCity: nil,
+                timezone: nil,
             ),
         )
         let api = makeAPI(transport)
@@ -137,7 +138,8 @@ final class OnboardingViewModelTests: XCTestCase {
                 email: nil, preferredName: "Wes", namePronunciation: nil,
                 namePronunciationSuggestion: nil, nativeLanguages: ["Japanese"],
                 targetLanguage: "English", targetAccents: ["US"], proficiency: "advanced",
-                tutorSpeakingSpeed: "fast", goals: "travel", locationCity: nil, timezone: nil,
+                tutorSpeakingSpeed: "fast", correctionFrequency: "sometimes", goals: "travel", locationCity: nil,
+                timezone: nil,
             ),
         )
         let api = makeAPI(transport)
@@ -151,6 +153,9 @@ final class OnboardingViewModelTests: XCTestCase {
             proficiency: [],
             tutorSpeakingSpeed: [],
             tutorSpeakingSpeedRates: [:],
+            correctionFrequency: [],
+            correctionFrequencyPercent: [:],
+            correctionFrequencyDefaultByProficiency: [:],
             goals: ["travel"],
         )
         vm.toggleGoal("travel")
@@ -187,6 +192,7 @@ final class OnboardingViewModelTests: XCTestCase {
             targetAccents: ["US"],
             proficiency: "intermediate",
             tutorSpeakingSpeed: "normal",
+            correctionFrequency: "sometimes",
             goals: nil,
             locationCity: nil,
             timezone: nil,
@@ -213,6 +219,7 @@ final class OnboardingViewModelTests: XCTestCase {
             targetAccents: ["US"],
             proficiency: "advanced",
             tutorSpeakingSpeed: "fast",
+            correctionFrequency: "sometimes",
             goals: "work",
             locationCity: nil,
             timezone: nil,
@@ -229,6 +236,9 @@ final class OnboardingViewModelTests: XCTestCase {
             proficiency: [],
             tutorSpeakingSpeed: [],
             tutorSpeakingSpeedRates: [:],
+            correctionFrequency: [],
+            correctionFrequencyPercent: [:],
+            correctionFrequencyDefaultByProficiency: [:],
             goals: ["job_interview"],
         )
         vm.toggleGoal("job_interview")
@@ -252,6 +262,7 @@ final class OnboardingViewModelTests: XCTestCase {
             targetAccents: ["US"],
             proficiency: "intermediate",
             tutorSpeakingSpeed: "normal",
+            correctionFrequency: "sometimes",
             goals: nil,
             locationCity: nil,
             timezone: nil,
@@ -424,6 +435,7 @@ final class OnboardingWizardLogicTests: XCTestCase {
         let vm = loadedModel()
         vm.practiceOptions = PracticeOptionsDTO(
             proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:],
+            correctionFrequency: [], correctionFrequencyPercent: [:], correctionFrequencyDefaultByProficiency: [:],
             goals: ["everyday_conversation", "dating_relationships", "travel"],
         )
         vm.toggleGoal("travel")

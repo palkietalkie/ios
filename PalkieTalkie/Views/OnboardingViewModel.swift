@@ -208,6 +208,8 @@ final class OnboardingViewModel {
             targetAccents: targetAccents.isEmpty ? nil : Array(targetAccents),
             proficiency: proficiency,
             tutorSpeakingSpeed: tutorSpeakingSpeed,
+            // Pre-select the correction density from the chosen proficiency (backend map); nil when proficiency is unset or options didn't load, letting the column default stand.
+            correctionFrequency: proficiency.flatMap { practiceOptions?.correctionFrequencyDefaultByProficiency[$0] },
             goals: goalsForSave.isEmpty ? nil : goalsForSave,
             locationCity: nil,
             timezone: TimeZone.current.identifier,

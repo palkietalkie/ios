@@ -51,6 +51,16 @@ struct PracticeView: View {
                         }
                     }
                 }
+                Picker("Correction frequency", selection: $model.correctionFrequency) {
+                    ForEach(model.practiceOptions?.correctionFrequency ?? [], id: \.self) { slug in
+                        // Append the backend-sourced % ("Sometimes · 50%") so the level's density is concrete. The % is a pure value (verbatim).
+                        if let pct = model.practiceOptions?.correctionFrequencyPercent[slug] {
+                            (Text(formatSlugLabel(slug)) + Text(verbatim: " · \(pct)%")).tag(slug)
+                        } else {
+                            Text(formatSlugLabel(slug)).tag(slug)
+                        }
+                    }
+                }
             }
             Section {
                 ForEach(model.goalPresets, id: \.self) { slug in

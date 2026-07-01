@@ -39,7 +39,8 @@ final class OnboardingViewBranchTests: XCTestCase {
             namePronunciationSuggestion: nil,
             nativeLanguages: ["Japanese"], targetLanguage: "English",
             targetAccents: ["US"], proficiency: "intermediate",
-            tutorSpeakingSpeed: "normal", goals: nil, locationCity: nil, timezone: nil,
+            tutorSpeakingSpeed: "normal", correctionFrequency: "sometimes", goals: nil, locationCity: nil,
+            timezone: nil,
         )
         try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode(languages))
         try transport.enqueue(path: "/profile", data: BackendAPI.encoder.encode(profile))
@@ -142,6 +143,9 @@ final class OnboardingViewBranchTests: XCTestCase {
                 proficiency: ["beginner", "intermediate", "advanced"],
                 tutorSpeakingSpeed: ["slow", "normal", "fast"],
                 tutorSpeakingSpeedRates: [:],
+                correctionFrequency: [],
+                correctionFrequencyPercent: [:],
+                correctionFrequencyDefaultByProficiency: [:],
                 goals: ["travel"],
             )
             model.proficiency = "intermediate"
@@ -159,7 +163,8 @@ final class OnboardingViewBranchTests: XCTestCase {
         for step in [OnboardingViewModel.Step.goals, .getStarted] {
             let model = OnboardingViewModel()
             model.practiceOptions = PracticeOptionsDTO(
-                proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:], goals: [
+                proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:], correctionFrequency: [],
+                correctionFrequencyPercent: [:], correctionFrequencyDefaultByProficiency: [:], goals: [
                     "job_interview",
                     "travel",
                 ],

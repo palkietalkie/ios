@@ -16,6 +16,7 @@ final class PracticeViewModel {
     var targetAccents: Set<String> = []
     var proficiency: String = "intermediate"
     var tutorSpeakingSpeed: String = "normal"
+    var correctionFrequency: String = "sometimes"
     // Goals: multi-select preset slugs + free-text "Other", same shape as onboarding (see GoalsCodec). Parsed from / joined into the single `users.goals` TEXT.
     var selectedGoals: Set<String> = []
     var otherGoal: String = ""
@@ -33,6 +34,7 @@ final class PracticeViewModel {
         let targetAccents: Set<String>
         let proficiency: String
         let tutorSpeakingSpeed: String
+        let correctionFrequency: String
         let selectedGoals: Set<String>
         let otherGoal: String
     }
@@ -41,6 +43,7 @@ final class PracticeViewModel {
         FormSnapshot(
             targetLanguage: targetLanguage, targetAccents: targetAccents,
             proficiency: proficiency, tutorSpeakingSpeed: tutorSpeakingSpeed,
+            correctionFrequency: correctionFrequency,
             selectedGoals: selectedGoals, otherGoal: otherGoal,
         )
     }
@@ -55,6 +58,7 @@ final class PracticeViewModel {
             targetAccents = Set(cached.targetAccents)
             proficiency = cached.proficiency
             tutorSpeakingSpeed = cached.tutorSpeakingSpeed
+            correctionFrequency = cached.correctionFrequency
             applyGoals(cached.goals ?? "")
             loaded = true
         }
@@ -102,6 +106,7 @@ final class PracticeViewModel {
             targetAccents = Set(profile.targetAccents)
             proficiency = profile.proficiency
             tutorSpeakingSpeed = profile.tutorSpeakingSpeed
+            correctionFrequency = profile.correctionFrequency
             applyGoals(profile.goals ?? "")
             JSONCache.save(profile, key: Self.profileKey)
             loaded = true
@@ -124,6 +129,7 @@ final class PracticeViewModel {
             targetAccents: targetAccents.isEmpty ? nil : Array(targetAccents),
             proficiency: proficiency,
             tutorSpeakingSpeed: tutorSpeakingSpeed,
+            correctionFrequency: correctionFrequency,
             goals: joinGoals(presets: goalPresets, selected: selectedGoals, other: otherGoal),
             locationCity: nil,
             timezone: TimeZone.current.identifier,

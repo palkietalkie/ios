@@ -365,6 +365,7 @@ final class BackendEndpointsTests: XCTestCase {
             targetAccents: ["American"],
             proficiency: "intermediate",
             tutorSpeakingSpeed: "normal",
+            correctionFrequency: "sometimes",
             goals: nil,
             locationCity: nil,
             timezone: nil,
@@ -379,7 +380,7 @@ final class BackendEndpointsTests: XCTestCase {
             preferredName: "Wes", namePronunciation: nil,
             nativeLanguages: ["Japanese"], targetLanguage: "English",
             targetAccents: ["American", "British"], proficiency: nil, tutorSpeakingSpeed: nil,
-            goals: nil, locationCity: nil, timezone: nil,
+            correctionFrequency: nil, goals: nil, locationCity: nil, timezone: nil,
         )
         _ = try await api.updateProfile(update)
         XCTAssertEqual(transport.lastRequest?.httpMethod, "PATCH")

@@ -34,6 +34,7 @@ final class ProfileViewModelTests: XCTestCase {
         targetAccents: ["US General"],
         proficiency: "intermediate",
         tutorSpeakingSpeed: "normal",
+        correctionFrequency: "sometimes",
         goals: "interview prep",
         locationCity: "SF",
         timezone: "America/Los_Angeles",
@@ -87,6 +88,9 @@ final class ProfileViewModelTests: XCTestCase {
                 proficiency: ["beginner"],
                 tutorSpeakingSpeed: ["normal"],
                 tutorSpeakingSpeedRates: [:],
+                correctionFrequency: [],
+                correctionFrequencyPercent: [:],
+                correctionFrequencyDefaultByProficiency: [:],
                 goals: ["travel"],
             )),
         )
@@ -131,6 +135,9 @@ final class ProfileViewModelTests: XCTestCase {
                 proficiency: [],
                 tutorSpeakingSpeed: [],
                 tutorSpeakingSpeedRates: [:],
+                correctionFrequency: [],
+                correctionFrequencyPercent: [:],
+                correctionFrequencyDefaultByProficiency: [:],
                 goals: [],
             )),
         )
@@ -148,7 +155,8 @@ final class ProfileViewModelTests: XCTestCase {
         try transport.enqueue(
             path: "/practice/options",
             data: BackendAPI.encoder.encode(PracticeOptionsDTO(
-                proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:], goals: [],
+                proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:], correctionFrequency: [],
+                correctionFrequencyPercent: [:], correctionFrequencyDefaultByProficiency: [:], goals: [],
             )),
         )
     }
@@ -201,6 +209,9 @@ final class ProfileViewModelTests: XCTestCase {
                 proficiency: [],
                 tutorSpeakingSpeed: [],
                 tutorSpeakingSpeedRates: [:],
+                correctionFrequency: [],
+                correctionFrequencyPercent: [:],
+                correctionFrequencyDefaultByProficiency: [:],
                 goals: [],
             )),
         )

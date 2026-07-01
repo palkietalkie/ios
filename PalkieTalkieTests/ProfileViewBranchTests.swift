@@ -40,6 +40,9 @@ final class ProfileViewBranchTests: XCTestCase {
             proficiency: ["beginner", "intermediate", "advanced"],
             tutorSpeakingSpeed: ["slow", "normal", "fast"],
             tutorSpeakingSpeedRates: ["slow": 0.85, "normal": 1.0, "fast": 1.15],
+            correctionFrequency: [],
+            correctionFrequencyPercent: [:],
+            correctionFrequencyDefaultByProficiency: [:],
             goals: ["travel"],
         )))
         try transport.enqueue(path: "/kg", data: Self.encode(KGGraphDTO(
@@ -67,6 +70,9 @@ final class ProfileViewBranchTests: XCTestCase {
                 proficiency: [],
                 tutorSpeakingSpeed: [],
                 tutorSpeakingSpeedRates: [:],
+                correctionFrequency: [],
+                correctionFrequencyPercent: [:],
+                correctionFrequencyDefaultByProficiency: [:],
                 goals: [],
             )),
         )
@@ -100,6 +106,7 @@ final class ProfileViewBranchTests: XCTestCase {
             targetAccents: p.targetAccents,
             proficiency: p.proficiency,
             tutorSpeakingSpeed: p.tutorSpeakingSpeed,
+            correctionFrequency: p.correctionFrequency,
             goals: p.goals,
             locationCity: p.locationCity,
             timezone: p.timezone,
@@ -112,6 +119,9 @@ final class ProfileViewBranchTests: XCTestCase {
                 proficiency: [],
                 tutorSpeakingSpeed: [],
                 tutorSpeakingSpeedRates: [:],
+                correctionFrequency: [],
+                correctionFrequencyPercent: [:],
+                correctionFrequencyDefaultByProficiency: [:],
                 goals: [],
             )),
         )
@@ -140,6 +150,7 @@ final class ProfileViewBranchTests: XCTestCase {
             targetAccents: ["US General"],
             proficiency: "intermediate",
             tutorSpeakingSpeed: "normal",
+            correctionFrequency: "sometimes",
             goals: "Job interview prep",
             locationCity: "San Francisco",
             timezone: TimeZone.current.identifier,

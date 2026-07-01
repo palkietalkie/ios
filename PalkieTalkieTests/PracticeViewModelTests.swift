@@ -31,6 +31,7 @@ final class PracticeViewModelTests: XCTestCase {
         targetAccents: ["US General"],
         proficiency: "advanced",
         tutorSpeakingSpeed: "fast",
+        correctionFrequency: "sometimes",
         goals: "freeform", locationCity: nil, timezone: nil,
     )
 
@@ -57,7 +58,11 @@ final class PracticeViewModelTests: XCTestCase {
     func testApplyGoalsSplitsPresetsFromOtherWhenOptionsKnown() {
         let vm = PracticeViewModel()
         vm.practiceOptions = PracticeOptionsDTO(
-            proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:], goals: ["travel", "job_interview"],
+            proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:], correctionFrequency: [],
+            correctionFrequencyPercent: [:], correctionFrequencyDefaultByProficiency: [:], goals: [
+                "travel",
+                "job_interview",
+            ],
         )
         vm.applyGoals("travel, chatting with my barista")
         XCTAssertEqual(vm.selectedGoals, ["travel"])
@@ -108,6 +113,9 @@ final class PracticeViewModelTests: XCTestCase {
                 proficiency: ["beginner"],
                 tutorSpeakingSpeed: ["normal"],
                 tutorSpeakingSpeedRates: [:],
+                correctionFrequency: [],
+                correctionFrequencyPercent: [:],
+                correctionFrequencyDefaultByProficiency: [:],
                 goals: ["travel"],
             )),
         )
@@ -151,6 +159,9 @@ final class PracticeViewModelTests: XCTestCase {
                 proficiency: [],
                 tutorSpeakingSpeed: [],
                 tutorSpeakingSpeedRates: [:],
+                correctionFrequency: [],
+                correctionFrequencyPercent: [:],
+                correctionFrequencyDefaultByProficiency: [:],
                 goals: [],
             )),
         )

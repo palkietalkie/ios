@@ -126,7 +126,7 @@ final class BackendDTOsTests: XCTestCase {
         let update = ProfileUpdate(
             preferredName: "Wes", namePronunciation: nil, nativeLanguages: nil,
             targetLanguage: nil, targetAccents: nil, proficiency: nil,
-            tutorSpeakingSpeed: nil, goals: nil, locationCity: nil, timezone: nil,
+            tutorSpeakingSpeed: nil, correctionFrequency: nil, goals: nil, locationCity: nil, timezone: nil,
         )
         let json = try String(data: BackendAPI.encoder.encode(update), encoding: .utf8) ?? ""
         XCTAssertTrue(json.contains("preferred_name"))

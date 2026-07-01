@@ -211,6 +211,7 @@ final class ViewSuccessPathTests: XCTestCase {
             targetAccents: ["US"],
             proficiency: "intermediate",
             tutorSpeakingSpeed: "normal",
+            correctionFrequency: "sometimes",
             goals: "casual fluency",
             locationCity: "SF",
             timezone: "America/Los_Angeles",
@@ -220,6 +221,9 @@ final class ViewSuccessPathTests: XCTestCase {
             proficiency: ["beginner", "intermediate", "advanced"],
             tutorSpeakingSpeed: ["slow", "normal", "fast"],
             tutorSpeakingSpeedRates: [:],
+            correctionFrequency: [],
+            correctionFrequencyPercent: [:],
+            correctionFrequencyDefaultByProficiency: [:],
             goals: ["travel", "job_interview"],
         )
         let kg = KGGraphDTO(
@@ -347,6 +351,7 @@ final class ViewSuccessPathTests: XCTestCase {
             targetAccents: ["US"],
             proficiency: "intermediate",
             tutorSpeakingSpeed: "normal",
+            correctionFrequency: "sometimes",
             goals: nil,
             locationCity: nil,
             timezone: nil,
@@ -384,6 +389,7 @@ final class ViewSuccessPathTests: XCTestCase {
             targetAccents: [],
             proficiency: "intermediate",
             tutorSpeakingSpeed: "normal",
+            correctionFrequency: "sometimes",
             goals: nil,
             locationCity: nil,
             timezone: nil,

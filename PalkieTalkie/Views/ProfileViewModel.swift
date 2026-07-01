@@ -122,6 +122,8 @@ final class ProfileViewModel {
             targetAccents: targetAccents.isEmpty ? nil : Array(targetAccents),
             proficiency: proficiency,
             tutorSpeakingSpeed: tutorSpeakingSpeed,
+            // Profile view doesn't edit correction density (that's the Practice view); nil leaves it untouched via COALESCE.
+            correctionFrequency: nil,
             goals: goals.isEmpty ? nil : goals,
             locationCity: nil,
             timezone: TimeZone.current.identifier,
