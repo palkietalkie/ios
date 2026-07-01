@@ -88,6 +88,22 @@ final class OnboardingViewBranchTests: XCTestCase {
         )
     }
 
+    /// Render the .getStarted primer WITH trial info set, so the first-month welcome card (trialWelcomeCard: gift label + free-until line + post-trial caps) renders.
+    func testHostsAtGetStartedWithTrialCard() async throws {
+        let model = OnboardingViewModel()
+        model.step = .getStarted
+        model.trialEndsAt = Date(timeIntervalSince1970: 1_800_000_000)
+        model.postTrialDailyMinutes = 10
+        model.postTrialWeeklyMinutes = 30
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode([LanguageDTO(name: "English", accents: ["US"])])
+        await host(
+            OnboardingView(onContinue: {}, model: model)
+                .environment(\.backendAPI, makeAPI(transport))
+                .environment(\.authing, StubAuthing()),
+        )
+    }
+
     /// Render the view at the .target step (injected model) so the second step's StepScaffold + single-select ChoiceList branch renders.
     func testHostsAtTargetStep() async throws {
         let model = OnboardingViewModel()
