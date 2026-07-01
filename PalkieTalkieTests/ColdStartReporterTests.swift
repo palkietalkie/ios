@@ -61,6 +61,8 @@ private actor RecordingColdStartBackend: ConversationBackend {
     func getEntitlement() async throws -> Entitlement {
         Entitlement(
             isPremium: true,
+            trialActive: false,
+            trialEndsAt: nil,
             freeMinutesRemainingToday: 10,
             freeMinutesRemainingThisWeek: 30,
             freeMinutesPerDayCap: 10,

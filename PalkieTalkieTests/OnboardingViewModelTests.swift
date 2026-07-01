@@ -286,6 +286,38 @@ final class OnboardingViewModelTests: XCTestCase {
         XCTAssertFalse(vm.didSaveSuccessfully)
         XCTAssertNotNil(vm.saveError)
     }
+
+    func testLoadTrialInfoPopulatesCardFromEntitlement() async throws {
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode(
+            EntitlementResponse(
+                isPremium: false, trialActive: true,
+                trialEndsAt: Date(timeIntervalSince1970: 1_800_000_000),
+                freeMinutesRemainingToday: 10, freeMinutesRemainingThisWeek: 30,
+                freeMinutesPerDayCap: 10, freeMinutesPerWeekCap: 30, premiumEndsAt: nil,
+            ),
+        )
+        let vm = OnboardingViewModel()
+        await vm.loadTrialInfo(api: makeAPI(transport))
+        XCTAssertNotNil(vm.trialEndsAt, "a trial user gets the card's end date")
+        XCTAssertEqual(vm.postTrialDailyMinutes, 10)
+        XCTAssertEqual(vm.postTrialWeeklyMinutes, 30)
+    }
+
+    func testLoadTrialInfoSkipsNonTrialUser() async throws {
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode(
+            EntitlementResponse(
+                isPremium: true, trialActive: false, trialEndsAt: nil,
+                freeMinutesRemainingToday: 10, freeMinutesRemainingThisWeek: 30,
+                freeMinutesPerDayCap: 10, freeMinutesPerWeekCap: 30, premiumEndsAt: nil,
+            ),
+        )
+        let vm = OnboardingViewModel()
+        await vm.loadTrialInfo(api: makeAPI(transport))
+        XCTAssertNil(vm.trialEndsAt, "no card for a non-trial user")
+        XCTAssertNil(vm.postTrialDailyMinutes)
+    }
 }
 
 @MainActor

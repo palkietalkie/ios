@@ -33916,6 +33916,216 @@
           }
         }
       }
+    },
+    "Your first month is on us": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "初月無料"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "首月免费"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "首月免費"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "첫 달 무료"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu primer mes es gratis"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu primeiro mês é grátis"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre premier mois est offert"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein erster Monat geht auf uns"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tháng đầu tiên miễn phí"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bulan pertama gratis"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पहला महीना मुफ़्त"
+          }
+        }
+      }
+    },
+    "Talk as much as you want, with every feature, free until %@.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@まで話し放題。全機能が使えます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尽情畅聊，所有功能免费开放，有效期至%@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "盡情暢聊，所有功能免費開放，有效期至%@。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@까지 모든 기능을 무료로, 마음껏 대화하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Habla sin límites, con todas las funciones, gratis hasta el %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Converse à vontade, com todos os recursos, grátis até %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parlez sans limite, avec toutes les fonctionnalités, gratuit jusqu'au %@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprich so viel du willst, mit allen Funktionen, kostenlos bis %@."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trò chuyện thoải mái với đầy đủ tính năng, miễn phí đến %@."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngobrol sepuasnya dengan semua fitur, gratis sampai %@."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जितनी चाहें बात करें, सभी फ़ीचर्स के साथ, %@ तक मुफ़्त।"
+          }
+        }
+      }
+    },
+    "After that, the free plan is %lld minutes a day, %lld a week.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "その後は無料プランで、1日%lld分、週%lld分です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "之后为免费方案：每天%lld分钟，每周%lld分钟。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "之後為免費方案：每天%lld分鐘，每週%lld分鐘。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이후 무료 플랜은 하루 %lld분, 주 %lld분이에요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Después, el plan gratis es de %lld minutos al día y %lld a la semana."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depois, o plano grátis é de %lld minutos por dia e %lld por semana."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ensuite, le forfait gratuit est de %lld minutes par jour et %lld par semaine."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Danach gilt der Gratis-Tarif: %lld Minuten pro Tag, %lld pro Woche."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sau đó, gói miễn phí là %lld phút mỗi ngày, %lld phút mỗi tuần."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Setelah itu, paket gratis %lld menit per hari, %lld menit per minggu."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "उसके बाद फ्री प्लान में हर दिन %lld मिनट, हर हफ़्ते %lld मिनट।"
+          }
+        }
+      }
     }
   }
 }

@@ -74,6 +74,8 @@ struct EndResponse: Codable {
 
 struct EntitlementResponse: Codable {
     let isPremium: Bool
+    let trialActive: Bool
+    let trialEndsAt: Date?
     let freeMinutesRemainingToday: Int
     let freeMinutesRemainingThisWeek: Int
     let freeMinutesPerDayCap: Int

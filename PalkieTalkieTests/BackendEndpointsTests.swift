@@ -245,7 +245,7 @@ final class BackendEndpointsTests: XCTestCase {
     func testGetEntitlement() async throws {
         let transport = FakeTransport()
         let raw = """
-        {"is_premium":false,"free_minutes_remaining_today":7,"free_minutes_remaining_this_week":18,"free_minutes_per_day_cap":10,"free_minutes_per_week_cap":30,"premium_ends_at":null}
+        {"is_premium":false,"trial_active":true,"trial_ends_at":"2026-07-30T00:00:00Z","free_minutes_remaining_today":7,"free_minutes_remaining_this_week":18,"free_minutes_per_day_cap":10,"free_minutes_per_week_cap":30,"premium_ends_at":null}
         """
         transport.responseData = Data(raw.utf8)
         let api = makeAPI(transport: transport)

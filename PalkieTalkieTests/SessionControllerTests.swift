@@ -17,6 +17,8 @@ actor FakeConversationBackend: ConversationBackend {
     var personas: [PersonaDTO]
     var entitlementResult: Result<Entitlement, Error> = .success(Entitlement(
         isPremium: true,
+        trialActive: false,
+        trialEndsAt: nil,
         freeMinutesRemainingToday: 10,
         freeMinutesRemainingThisWeek: 30,
         freeMinutesPerDayCap: 10,

@@ -51,6 +51,10 @@ final class OnboardingViewModel {
     var step: Step = .intro
     /// Slide direction for the view's transition: true = forward, false = back. Set by advance/goBack.
     var advancing: Bool = true
+    /// First-month free-trial end date + the post-trial daily/weekly caps, fetched from /entitlement when the getStarted primer appears, so the card can say "free until <date>" and name the caps the user moves to, without iOS duplicating the backend's trial length or caps. nil when the user isn't on a trial or the fetch failed (the card is then simply hidden).
+    var trialEndsAt: Date?
+    var postTrialDailyMinutes: Int?
+    var postTrialWeeklyMinutes: Int?
 
     var accentsForTargetLanguage: [String] {
         languages.first(where: { $0.name == targetLanguage })?.accents ?? []
@@ -214,5 +218,13 @@ final class OnboardingViewModel {
         } catch {
             saveError = error.localizedDescription
         }
+    }
+
+    /// Pull the first-month trial's end date + post-trial caps from /entitlement (the backend owns them) so the getStarted card can celebrate "free until <date>" and name the caps the user switches to afterward. Best-effort: a non-trial user or a failed fetch just hides the card, it never blocks onboarding.
+    func loadTrialInfo(api: BackendAPI) async {
+        guard let entitlement = try? await api.getEntitlement(), entitlement.trialActive else { return }
+        trialEndsAt = entitlement.trialEndsAt
+        postTrialDailyMinutes = entitlement.freeMinutesPerDayCap
+        postTrialWeeklyMinutes = entitlement.freeMinutesPerWeekCap
     }
 }
