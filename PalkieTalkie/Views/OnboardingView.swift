@@ -201,37 +201,44 @@ struct OnboardingView: View {
                 }
             }
         case .proficiency:
-            StepScaffold(
-                title: "What's your level?",
+            refinementStep(
+                "What's your level?",
                 why: "So your tutor pitches the conversation to the right level.",
-            ) {
-                ChoiceList(
-                    options: model.practiceOptions?.proficiency ?? [],
-                    isSelected: { model.proficiency == $0 },
-                    display: formatSlugLabel,
-                ) {
-                    model.pickProficiency($0)
-                }
-            }
+                options: model.practiceOptions?.proficiency ?? [],
+                isSelected: { model.proficiency == $0 },
+                display: formatSlugLabel,
+                onPick: model.pickProficiency,
+            )
         case .speed:
-            StepScaffold(
-                title: "How fast should your tutor speak?",
+            refinementStep(
+                "How fast should your tutor speak?",
                 why: "Slower is easier to follow; faster pushes you.",
-            ) {
-                ChoiceList(
-                    options: model.practiceOptions?.tutorSpeakingSpeed ?? [],
-                    isSelected: { model.tutorSpeakingSpeed == $0 },
-                    // Append the backend-sourced rate ("Slow · 0.85×") so the concrete number disambiguates slow vs very slow.
-                    display: { slug in
-                        guard let rate = model.practiceOptions?.tutorSpeakingSpeedRates[slug] else {
-                            return formatSlugLabel(slug)
-                        }
-                        return "\(formatSlugLabel(slug)) · \(formatSpeedRate(rate))"
-                    },
-                ) {
-                    model.pickSpeed($0)
-                }
-            }
+                options: model.practiceOptions?.tutorSpeakingSpeed ?? [],
+                isSelected: { model.tutorSpeakingSpeed == $0 },
+                // Append the backend-sourced rate ("Slow · 0.85×") so the concrete number disambiguates slow vs very slow.
+                display: { slug in
+                    guard let rate = model.practiceOptions?.tutorSpeakingSpeedRates[slug] else {
+                        return formatSlugLabel(slug)
+                    }
+                    return "\(formatSlugLabel(slug)) · \(formatSpeedRate(rate))"
+                },
+                onPick: model.pickSpeed,
+            )
+        case .correction:
+            refinementStep(
+                "How often should your tutor correct you?",
+                why: "More correction sharpens accuracy; less keeps the conversation flowing.",
+                options: model.practiceOptions?.correctionFrequency ?? [],
+                isSelected: { model.correctionFrequency == $0 },
+                // Append the backend-sourced % ("Sometimes · 50%") so the level's density is concrete.
+                display: { slug in
+                    guard let pct = model.practiceOptions?.correctionFrequencyPercent[slug] else {
+                        return formatSlugLabel(slug)
+                    }
+                    return "\(formatSlugLabel(slug)) · \(pct)%"
+                },
+                onPick: model.pickCorrection,
+            )
         case .goals:
             StepScaffold(
                 title: "What are you practicing for?",
@@ -277,6 +284,20 @@ struct OnboardingView: View {
                     .padding(.top, 8)
                 }
             }
+        }
+    }
+
+    /// A single-select refinement step (proficiency / speed / correction): each is a StepScaffold wrapping a ChoiceList over a practiceOptions list, differing only in copy, the option list, the per-row display formatter, and the pick handler.
+    private func refinementStep(
+        _ title: LocalizedStringKey,
+        why: LocalizedStringKey,
+        options: [String],
+        isSelected: @escaping (String) -> Bool,
+        display: @escaping (String) -> String,
+        onPick: @escaping (String) -> Void,
+    ) -> some View {
+        StepScaffold(title: title, why: why) {
+            ChoiceList(options: options, isSelected: isSelected, display: display) { onPick($0) }
         }
     }
 

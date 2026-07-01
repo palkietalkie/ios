@@ -34132,7 +34132,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "訂正の頻度"
+            "value": "間違いを直す頻度"
           }
         },
         "zh-Hans": {
@@ -34193,6 +34193,146 @@
           "stringUnit": {
             "state": "translated",
             "value": "सुधार कितनी बार"
+          }
+        }
+      }
+    },
+    "How often should your tutor correct you?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "間違いをどのくらい直してほしい？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你希望老师多久帮你纠错一次？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你希望老師多常糾正你？"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "튜터가 얼마나 자주 교정해 드릴까요?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Con qué frecuencia quieres que tu tutor te corrija?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Com que frequência o tutor deve te corrigir?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "À quelle fréquence ton tuteur doit-il te corriger ?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wie oft soll dich dein Tutor korrigieren?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn muốn gia sư sửa lỗi thường xuyên đến mức nào?"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seberapa sering tutor perlu mengoreksimu?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपका ट्यूटर आपको कितनी बार करेक्शन दे?"
+          }
+        }
+      }
+    },
+    "More correction sharpens accuracy; less keeps the conversation flowing.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "たくさん直すほど正確に、少なめだと会話がスムーズに。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "纠错越多，口语越准确；纠错越少，对话越流畅。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "多糾正能提升準確度，少糾正則讓對話更流暢。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "교정이 많을수록 정확도가 올라가고, 적을수록 대화가 자연스럽게 이어져요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corregir más mejora la precisión; corregir menos mantiene la conversación fluida."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mais correções melhoram a precisão; menos deixam a conversa fluir."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus de corrections, plus de précision ; moins de corrections, une conversation plus fluide."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mehr Korrekturen bringen mehr Genauigkeit, weniger halten das Gespräch im Fluss."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sửa nhiều giúp bạn nói chính xác hơn; sửa ít giúp cuộc trò chuyện trôi chảy tự nhiên."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Makin banyak koreksi, makin akurat; makin sedikit, percakapan tetap mengalir."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ज़्यादा करेक्शन से बोलना बेहतर होगा, कम से बातचीत का फ्लो बना रहेगा।"
           }
         }
       }

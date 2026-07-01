@@ -14,6 +14,7 @@ final class OnboardingViewModel {
     // Onboarding refinements the user sets before the primer, then persisted on save. nil/empty until picked.
     var proficiency: String?
     var tutorSpeakingSpeed: String?
+    var correctionFrequency: String?
     // Goals are multi-select preset slugs + an optional free-text "Other"; both fold into the single `users.goals` TEXT (comma-joined) at save time.
     var selectedGoals: Set<String> = []
     var otherGoal: String = ""
@@ -28,8 +29,8 @@ final class OnboardingViewModel {
 
     /// Which wizard step is on screen. Lives here (not as view @State) so the navigation logic is unit-testable without rendering. Order is load-bearing: `displayLanguage` is first so the rest of onboarding renders in the user's chosen UI language; `proficiency`/`speed`/`goals` are mandatory refinements; `getStarted` is a no-input primer shown after the profile saves, warning the user the tutor opens the conversation first so the AI talking unprompted doesn't startle them (a real first-tester reaction).
     enum Step: Int, CaseIterable {
-        case intro, displayLanguage, name, native, target, accents, proficiency, speed, goals,
-             getStarted
+        case intro, displayLanguage, name, native, target, accents, proficiency, speed, correction,
+             goals, getStarted
 
         /// Stable wire name for the onboarding drop-off feed (sent to /onboarding/announce). Decoupled from the Int rawValue so reordering steps doesn't relabel the funnel.
         var slug: String {
@@ -42,6 +43,7 @@ final class OnboardingViewModel {
             case .accents: "accents"
             case .proficiency: "proficiency"
             case .speed: "speed"
+            case .correction: "correction"
             case .goals: "goals"
             case .getStarted: "getStarted"
             }
@@ -74,6 +76,7 @@ final class OnboardingViewModel {
         case .accents: !targetAccents.isEmpty
         case .proficiency: proficiency != nil
         case .speed: tutorSpeakingSpeed != nil
+        case .correction: correctionFrequency != nil
         case .goals: !selectedGoals.isEmpty || !trimmedOtherGoal.isEmpty
         case .getStarted: true
         }
@@ -119,10 +122,18 @@ final class OnboardingViewModel {
     /// Required single-select: a tap sets the choice (picking another replaces it). No clear-to-nil, since the step can't be skipped.
     func pickProficiency(_ slug: String) {
         proficiency = slug
+        // Seed the later correction step to this proficiency's default (backend map), so it opens pre-selected and the user can accept or adjust. Re-picking proficiency re-seeds until they touch the correction step themselves.
+        if let seeded = practiceOptions?.correctionFrequencyDefaultByProficiency[slug] {
+            correctionFrequency = seeded
+        }
     }
 
     func pickSpeed(_ slug: String) {
         tutorSpeakingSpeed = slug
+    }
+
+    func pickCorrection(_ slug: String) {
+        correctionFrequency = slug
     }
 
     /// Preset goal slugs served by the backend (SSoT); empty until practice options load.
@@ -208,8 +219,9 @@ final class OnboardingViewModel {
             targetAccents: targetAccents.isEmpty ? nil : Array(targetAccents),
             proficiency: proficiency,
             tutorSpeakingSpeed: tutorSpeakingSpeed,
-            // Pre-select the correction density from the chosen proficiency (backend map); nil when proficiency is unset or options didn't load, letting the column default stand.
-            correctionFrequency: proficiency.flatMap { practiceOptions?.correctionFrequencyDefaultByProficiency[$0] },
+            // The correction step's explicit choice (pre-seeded from proficiency); falls back to the proficiency default, then the column default, if the step was somehow bypassed.
+            correctionFrequency: correctionFrequency ?? proficiency
+                .flatMap { practiceOptions?.correctionFrequencyDefaultByProficiency[$0] },
             goals: goalsForSave.isEmpty ? nil : goalsForSave,
             locationCity: nil,
             timezone: TimeZone.current.identifier,

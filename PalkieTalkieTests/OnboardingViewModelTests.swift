@@ -420,6 +420,12 @@ final class OnboardingWizardLogicTests: XCTestCase {
         vm.pickSpeed("normal")
         XCTAssertTrue(vm.stepValid)
 
+        vm.step = .correction
+        // practiceOptions is nil in loadedModel, so pickProficiency above seeded nothing — the step starts empty and must enforce a choice.
+        XCTAssertFalse(vm.stepValid, "must pick a correction level to advance")
+        vm.pickCorrection("sometimes")
+        XCTAssertTrue(vm.stepValid)
+
         vm.step = .goals
         XCTAssertFalse(vm.stepValid, "must pick or type a goal to advance")
         vm.otherGoal = "   "
@@ -429,6 +435,24 @@ final class OnboardingWizardLogicTests: XCTestCase {
         vm.toggleGoal("travel")
         vm.otherGoal = "rapping"
         XCTAssertTrue(vm.stepValid, "free-text Other alone satisfies it")
+    }
+
+    func testCorrectionPreSeededFromProficiencyDefault() {
+        let vm = loadedModel()
+        vm.practiceOptions = PracticeOptionsDTO(
+            proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:],
+            correctionFrequency: [], correctionFrequencyPercent: [:],
+            correctionFrequencyDefaultByProficiency: ["beginner": "rarely", "advanced": "always"],
+            goals: [],
+        )
+        vm.pickProficiency("beginner")
+        XCTAssertEqual(
+            vm.correctionFrequency,
+            "rarely",
+            "correction seeds from the proficiency default so its step opens pre-selected",
+        )
+        vm.pickProficiency("advanced")
+        XCTAssertEqual(vm.correctionFrequency, "always", "re-picking proficiency re-seeds the correction default")
     }
 
     func testGoalsForSaveJoinsSelectedPresetsInOrderThenOther() {
