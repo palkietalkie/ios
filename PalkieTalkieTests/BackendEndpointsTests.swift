@@ -144,7 +144,7 @@ final class BackendEndpointsTests: XCTestCase {
     func testGetPracticeOptions() async throws {
         let transport = FakeTransport()
         let raw = """
-        {"proficiency":["beginner","intermediate","advanced"],"tutor_speaking_speed":["slow","normal","fast"],"tutor_speaking_speed_rates":{"slow":0.85,"normal":1.0,"fast":1.15},"goals":["everyday_conversation","work_meetings"]}
+        {"proficiency":["beginner","intermediate","advanced"],"tutor_speaking_speed":["slow","normal","fast"],"tutor_speaking_speed_rates":{"slow":0.85,"normal":1.0,"fast":1.15},"correction_frequency":["never","rarely","sometimes","often","always"],"correction_frequency_percent":{"never":0,"rarely":25,"sometimes":50,"often":75,"always":100},"correction_frequency_default_by_proficiency":{"intermediate":"sometimes"},"goals":["everyday_conversation","work_meetings"]}
         """
         transport.responseData = Data(raw.utf8)
         let api = makeAPI(transport: transport)

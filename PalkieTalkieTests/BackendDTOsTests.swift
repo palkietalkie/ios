@@ -133,7 +133,7 @@ final class BackendDTOsTests: XCTestCase {
         XCTAssertFalse(json.contains("display_name"))
         // ProfileDTO has required (non-optional) fields; include them so the decode exercises preferred_name without throwing on missing keys.
         let dtoJSON =
-            #"{"preferred_name": "Wes", "native_languages": [], "target_language": "English", "target_accents": [], "proficiency": "intermediate", "tutor_speaking_speed": "normal"}"#
+            #"{"preferred_name": "Wes", "native_languages": [], "target_language": "English", "target_accents": [], "proficiency": "intermediate", "tutor_speaking_speed": "normal", "correction_frequency": "sometimes"}"#
         let decoded = try BackendAPI.decoder.decode(
             ProfileDTO.self,
             from: XCTUnwrap(dtoJSON.data(using: .utf8)),
