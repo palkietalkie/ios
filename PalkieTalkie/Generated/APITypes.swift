@@ -74,6 +74,8 @@ struct EndResponse: Codable {
 
 struct EntitlementResponse: Codable {
     let isPremium: Bool
+    let trialActive: Bool
+    let trialEndsAt: Date?
     let freeMinutesRemainingToday: Int
     let freeMinutesRemainingThisWeek: Int
     let freeMinutesPerDayCap: Int
@@ -115,6 +117,16 @@ struct MistakeOut: Codable {
     let original: String
     let correction: String
     let count: Int
+}
+
+struct NotificationPrefsOut: Codable {
+    let remindersEnabled: Bool
+    let reminderHourLocal: Int
+}
+
+struct NotificationPrefsUpdate: Codable {
+    let remindersEnabled: Bool
+    let reminderHourLocal: Int
 }
 
 struct OnboardingAnnounceIn: Codable {
@@ -188,6 +200,10 @@ struct PlanLimitsResponse: Codable {
 struct PracticeOptionsOut: Codable {
     let proficiency: [String]
     let tutorSpeakingSpeed: [String]
+    let tutorSpeakingSpeedRates: [String: Double]
+    let correctionFrequency: [String]
+    let correctionFrequencyPercent: [String: Int]
+    let correctionFrequencyDefaultByProficiency: [String: String]
     let goals: [String]
 }
 
@@ -201,6 +217,7 @@ struct ProfileOut: Codable {
     let targetAccents: [String]
     let proficiency: String
     let tutorSpeakingSpeed: String
+    let correctionFrequency: String
     let goals: String?
     let locationCity: String?
     let timezone: String?
@@ -214,6 +231,7 @@ struct ProfileUpdate: Codable {
     let targetAccents: [String]?
     let proficiency: String?
     let tutorSpeakingSpeed: String?
+    let correctionFrequency: String?
     let goals: String?
     let locationCity: String?
     let timezone: String?
@@ -223,6 +241,11 @@ struct ProviderStatus: Codable {
     let provider: String
     let connected: Bool
     let expiresAt: Date?
+}
+
+struct RatingIn: Codable {
+    let rating: Int
+    let comment: String?
 }
 
 struct ReportPersonaIn: Codable {
@@ -247,6 +270,7 @@ struct StartRequest: Codable {
     let personaId: String
     let lat: Double?
     let lon: Double?
+    let city: String?
     let topicOverride: String?
 }
 

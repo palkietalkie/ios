@@ -19,6 +19,7 @@ extension SessionController {
             for await message in errorStream {
                 logger.error("realtime stream error: \(message, privacy: .public)")
                 await self?.reportSessionError(reason: message)
+                await self?.markServerSessionEnded()
                 await MainActor.run {
                     self?.phase = .error(message)
                 }
@@ -31,7 +32,15 @@ extension SessionController {
                 await self?.handleToolCall(call, client: client)
             }
         }
-        observerTasks = [transcriptTask, errorTask, toolTask]
+        // Transport death (socket/network error in the recv loop) is the failure NWPathMonitor misses — the wifi→cellular handoff that drops the WS while the OS path stays "online". Route it into the same drop→reconnect path so a mid-call socket death recovers instead of going silent.
+        let disconnectedStream = await client.disconnected
+        let disconnectTask = Task { [weak self] in
+            for await reason in disconnectedStream {
+                // Detach the handling: teardown() inside handleTransportDisconnect cancels THIS observer task, and a cancelled task would abort the subsequent reconnect start(). A fresh unstructured task doesn't inherit that cancellation.
+                Task { [weak self] in await self?.handleTransportDisconnect(reason: reason) }
+            }
+        }
+        observerTasks = [transcriptTask, errorTask, toolTask, disconnectTask]
     }
 
     /// Fire-and-forget report of a realtime-session failure to the backend. The OpenAI audio WS runs iOS↔OpenAI directly, so this is the only server-side signal we get when a remote tester's session fails; a failed report must never disrupt the (already-failing) session, so errors are swallowed.
@@ -39,5 +48,11 @@ extension SessionController {
         try? await backend.recordSessionError(
             sessionId: serverSessionId, provider: serverProvider ?? "unknown", reason: reason,
         )
+    }
+
+    /// Stamp `ended_at` on a session row we're abandoning without a graceful end — a failed start, an app error, or a drop right before we open a new row on reconnect. Without this the row created at /start is orphaned with a NULL ended_at forever. Best-effort; nil tokens because a dead session has no final usage to report.
+    func markServerSessionEnded() async {
+        guard let id = serverSessionId else { return }
+        _ = try? await backend.endConversation(sessionId: id, inputTokens: nil, outputTokens: nil)
     }
 }

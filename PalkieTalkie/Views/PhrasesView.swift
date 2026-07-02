@@ -1,4 +1,7 @@
+import OSLog
 import SwiftUI
+
+private let logger = Logger(subsystem: "com.palkietalkie", category: "phrases")
 
 struct PhrasesView: View {
     private static let cacheKey = "cache.phrases"
@@ -10,7 +13,7 @@ struct PhrasesView: View {
         List {
             if let loadError {
                 Text("Couldn't refresh phrases: \(loadError)")
-                    .font(.footnote).foregroundStyle(.red)
+                    .font(.footnote).foregroundStyle(.red).textSelection(.enabled)
             }
             ForEach(phrases) { phrase in
                 VStack(alignment: .leading, spacing: 4) {
@@ -26,14 +29,14 @@ struct PhrasesView: View {
         }
         .navigationTitle("Frequent phrases")
         .task {
-            // Keep the cached list on failure, but surface the error instead of `try?`-swallowing it silently.
+            // Render-then-refresh: keep the cached list on a slow/offline/HTTP-error refresh and just log; only a contract drift (the phrases JSON shape changing) surfaces as a real bug.
             do {
                 let fresh = try await api.getPhrases()
                 phrases = fresh
                 JSONCache.save(fresh, key: Self.cacheKey)
                 loadError = nil
             } catch {
-                loadError = error.localizedDescription
+                loadError = contentRefreshError(error, refreshing: "phrases", log: logger)
             }
         }
     }

@@ -112,19 +112,28 @@ final class BackendDTOsTests: XCTestCase {
         XCTAssertEqual(BackendError.decoding("oops").errorDescription, "Couldn't decode response: oops")
     }
 
+    /// Render-then-refresh classifier: ONLY a decode failure (the API's JSON shape drifted) is a contract failure worth replacing a screen's cached content with an error. A slow/offline/timeout/HTTP-error refresh is not — it's kept and logged.
+    func testIsContractFailureOnlyTrueForDecoding() {
+        XCTAssertTrue(BackendError.decoding("shape drift").isContractFailure)
+        XCTAssertFalse(BackendError.http(500, "server down").isContractFailure)
+        XCTAssertFalse(BackendError.http(0, "no response").isContractFailure)
+        XCTAssertFalse(BackendError.notAuthenticated(reason: "no jwt").isContractFailure)
+        XCTAssertFalse(BackendError.invalidURL.isContractFailure)
+    }
+
     /// The profile DTOs carry the user's name as `preferred_name` on the wire (renamed from display_name). Pin the snake_case mapping so a regression back to displayName/display_name is caught here, not as a field the backend silently drops.
     func testProfilePreferredNameUsesSnakeCaseWire() throws {
         let update = ProfileUpdate(
             preferredName: "Wes", namePronunciation: nil, nativeLanguages: nil,
             targetLanguage: nil, targetAccents: nil, proficiency: nil,
-            tutorSpeakingSpeed: nil, goals: nil, locationCity: nil, timezone: nil,
+            tutorSpeakingSpeed: nil, correctionFrequency: nil, goals: nil, locationCity: nil, timezone: nil,
         )
         let json = try String(data: BackendAPI.encoder.encode(update), encoding: .utf8) ?? ""
         XCTAssertTrue(json.contains("preferred_name"))
         XCTAssertFalse(json.contains("display_name"))
         // ProfileDTO has required (non-optional) fields; include them so the decode exercises preferred_name without throwing on missing keys.
         let dtoJSON =
-            #"{"preferred_name": "Wes", "native_languages": [], "target_language": "English", "target_accents": [], "proficiency": "intermediate", "tutor_speaking_speed": "normal"}"#
+            #"{"preferred_name": "Wes", "native_languages": [], "target_language": "English", "target_accents": [], "proficiency": "intermediate", "tutor_speaking_speed": "normal", "correction_frequency": "sometimes"}"#
         let decoded = try BackendAPI.decoder.decode(
             ProfileDTO.self,
             from: XCTUnwrap(dtoJSON.data(using: .utf8)),

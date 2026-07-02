@@ -34,4 +34,37 @@ final class MistakesViewTests: XCTestCase {
         XCTAssertTrue(texts.contains("I'm wondering about the backhand grip"))
         XCTAssertTrue(texts.contains("Seen 3×"))
     }
+
+    /// Render-then-refresh: an HTTP-error refresh keeps the cached/empty list and logs (catch's else branch). Hosting drives the `.task`.
+    func testHttpErrorRefreshKeepsContent() async throws {
+        UserDefaults.standard.removeObject(forKey: "cache.mistakes")
+        let transport = FakeTransport()
+        transport.responseStatus = 500
+        transport.responseData = Data("boom".utf8)
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        await TestHosting.host(
+            NavigationStack { MistakesView() }.environment(\.backendAPI, api),
+            settleMs: 500,
+        )
+    }
+
+    /// A decode/contract drift (200 + a non-mistakes shape) hits the contract-failure branch that sets loadError.
+    func testDecodeFailureHitsContractBranch() async throws {
+        UserDefaults.standard.removeObject(forKey: "cache.mistakes")
+        let transport = FakeTransport()
+        transport.responseData = Data("not the mistakes shape".utf8)
+        let api = try BackendAPI(
+            baseURL: XCTUnwrap(URL(string: "https://test.example.com")),
+            transport: transport,
+            auth: StubAuthing(),
+        )
+        await TestHosting.host(
+            NavigationStack { MistakesView() }.environment(\.backendAPI, api),
+            settleMs: 500,
+        )
+    }
 }

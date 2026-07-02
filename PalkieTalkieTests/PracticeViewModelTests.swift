@@ -31,6 +31,7 @@ final class PracticeViewModelTests: XCTestCase {
         targetAccents: ["US General"],
         proficiency: "advanced",
         tutorSpeakingSpeed: "fast",
+        correctionFrequency: "sometimes",
         goals: "freeform", locationCity: nil, timezone: nil,
     )
 
@@ -57,7 +58,11 @@ final class PracticeViewModelTests: XCTestCase {
     func testApplyGoalsSplitsPresetsFromOtherWhenOptionsKnown() {
         let vm = PracticeViewModel()
         vm.practiceOptions = PracticeOptionsDTO(
-            proficiency: [], tutorSpeakingSpeed: [], goals: ["travel", "job_interview"],
+            proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:], correctionFrequency: [],
+            correctionFrequencyPercent: [:], correctionFrequencyDefaultByProficiency: [:], goals: [
+                "travel",
+                "job_interview",
+            ],
         )
         vm.applyGoals("travel, chatting with my barista")
         XCTAssertEqual(vm.selectedGoals, ["travel"])
@@ -107,6 +112,10 @@ final class PracticeViewModelTests: XCTestCase {
             data: BackendAPI.encoder.encode(PracticeOptionsDTO(
                 proficiency: ["beginner"],
                 tutorSpeakingSpeed: ["normal"],
+                tutorSpeakingSpeedRates: [:],
+                correctionFrequency: [],
+                correctionFrequencyPercent: [:],
+                correctionFrequencyDefaultByProficiency: [:],
                 goals: ["travel"],
             )),
         )
@@ -119,14 +128,25 @@ final class PracticeViewModelTests: XCTestCase {
         XCTAssertNil(vm.saveError)
     }
 
-    func testLoadFailureSetsErrorMessage() async {
+    /// Render-then-refresh: an HTTP-error (slow/offline/timeout/500) refresh must NOT surface an error — it keeps the cached/empty fields and just logs. Only a contract drift surfaces (see testLoadDecodeFailureSurfacesError).
+    func testLoadHttpFailureKeepsCachedContentSilently() async {
         let transport = FakeTransport()
         transport.responseStatus = 500
         transport.responseData = Data("boom".utf8)
         let api = makeAPI(transport)
         let vm = PracticeViewModel()
         await vm.load(api: api)
-        XCTAssertNotNil(vm.saveError)
+        XCTAssertNil(vm.saveError, "an HTTP-error refresh must not replace cached content with an error")
+    }
+
+    /// A decode/contract failure (the /profile JSON shape drifted) IS a real bug and must surface, even under render-then-refresh.
+    func testLoadDecodeFailureSurfacesError() async {
+        let transport = FakeTransport()
+        transport.responseData = Data("not the profile shape".utf8)
+        let api = makeAPI(transport)
+        let vm = PracticeViewModel()
+        await vm.load(api: api)
+        XCTAssertNotNil(vm.saveError, "a profile contract/decode drift must surface")
     }
 
     func testSaveSuccessSetsSavedAtAndReloads() async throws {
@@ -135,7 +155,15 @@ final class PracticeViewModelTests: XCTestCase {
         try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode([] as [LanguageDTO]))
         try transport.enqueue(
             path: "/practice/options",
-            data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: [])),
+            data: BackendAPI.encoder.encode(PracticeOptionsDTO(
+                proficiency: [],
+                tutorSpeakingSpeed: [],
+                tutorSpeakingSpeedRates: [:],
+                correctionFrequency: [],
+                correctionFrequencyPercent: [:],
+                correctionFrequencyDefaultByProficiency: [:],
+                goals: [],
+            )),
         )
         let api = makeAPI(transport)
         let vm = PracticeViewModel()

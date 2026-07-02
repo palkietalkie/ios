@@ -96,7 +96,12 @@ final class RealInputNode: AudioInputNodeProtocol {
     }
 
     func setVoiceProcessingEnabled(_ enabled: Bool) throws {
-        try node.setVoiceProcessingEnabled(enabled)
+        // AVFAudio raises an Objective-C NSException (not a Swift error) when it can't reconnect the IO graph for voice processing, e.g. on an inactive or mis-categorized audio session. Swift's do/catch can't catch an NSException, so without this shim the throw aborts the process (the build-28 Talk-screen crash). Route it through ObjCException so the caller's catch degrades to AEC-off instead of crashing.
+        var swiftError: Error?
+        try ObjCException.catching {
+            do { try self.node.setVoiceProcessingEnabled(enabled) } catch { swiftError = error }
+        }
+        if let swiftError { throw swiftError }
     }
 
     var isVoiceProcessingAGCEnabled: Bool {

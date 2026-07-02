@@ -9,7 +9,6 @@ final class ProfileViewModelTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: ProfileViewModel.profileKey)
         UserDefaults.standard.removeObject(forKey: ProfileViewModel.languagesKey)
         UserDefaults.standard.removeObject(forKey: ProfileViewModel.practiceOptionsKey)
-        UserDefaults.standard.removeObject(forKey: ProfileViewModel.kgKey)
     }
 
     override func tearDown() async throws {
@@ -18,7 +17,6 @@ final class ProfileViewModelTests: XCTestCase {
         UserDefaults.standard.removeObject(forKey: ProfileViewModel.profileKey)
         UserDefaults.standard.removeObject(forKey: ProfileViewModel.languagesKey)
         UserDefaults.standard.removeObject(forKey: ProfileViewModel.practiceOptionsKey)
-        UserDefaults.standard.removeObject(forKey: ProfileViewModel.kgKey)
         try await super.tearDown()
     }
 
@@ -36,6 +34,7 @@ final class ProfileViewModelTests: XCTestCase {
         targetAccents: ["US General"],
         proficiency: "intermediate",
         tutorSpeakingSpeed: "normal",
+        correctionFrequency: "sometimes",
         goals: "interview prep",
         locationCity: "SF",
         timezone: "America/Los_Angeles",
@@ -88,14 +87,11 @@ final class ProfileViewModelTests: XCTestCase {
             data: BackendAPI.encoder.encode(PracticeOptionsDTO(
                 proficiency: ["beginner"],
                 tutorSpeakingSpeed: ["normal"],
+                tutorSpeakingSpeedRates: [:],
+                correctionFrequency: [],
+                correctionFrequencyPercent: [:],
+                correctionFrequencyDefaultByProficiency: [:],
                 goals: ["travel"],
-            )),
-        )
-        try transport.enqueue(
-            path: "/kg",
-            data: BackendAPI.encoder.encode(KGGraphDTO(
-                nodes: [KGEntityDTO(id: "e1", type: "person", name: "Naoto", attrs: [:])],
-                edges: [],
             )),
         )
         let api = makeAPI(transport)
@@ -103,36 +99,30 @@ final class ProfileViewModelTests: XCTestCase {
         await vm.load(api: api)
         XCTAssertEqual(vm.email, "wes@example.com")
         XCTAssertEqual(vm.preferredName, "Wes")
-        XCTAssertEqual(vm.knowledgeGraph.count, 1)
         XCTAssertTrue(vm.loaded)
         XCTAssertNil(vm.saveError)
     }
 
-    /// Regression: getKG() used to be `try?`, so a contract mismatch (backend `{nodes,edges}` vs an iOS bare-array decode) silently swallowed the error and showed every user an empty KG. Now a decode failure must surface in `kgError`. The bare `[]` here is exactly the pre-fix shape that no longer matches KGGraphDTO.
-    func testKGDecodeFailureSurfacesError() async throws {
-        let transport = FakeTransport()
-        try transport.enqueue(path: "/profile", data: BackendAPI.encoder.encode(Self.sampleProfile))
-        try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode([] as [LanguageDTO]))
-        try transport.enqueue(
-            path: "/practice/options",
-            data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: [])),
-        )
-        transport.enqueue(path: "/kg", data: Data("[]".utf8))
-        let api = makeAPI(transport)
-        let vm = ProfileViewModel()
-        await vm.load(api: api)
-        XCTAssertNotNil(vm.kgError, "a KG decode failure must surface, not silently show an empty graph")
-    }
-
-    func testLoadFailureSetsErrorMessage() async {
+    /// Render-then-refresh: an HTTP-error (slow/offline/timeout/500) profile refresh must NOT surface an error — it keeps the cached/empty fields and just logs. Only a contract drift surfaces (see testLoadDecodeFailureSurfacesError).
+    func testLoadHttpFailureKeepsCachedContentSilently() async {
         let transport = FakeTransport()
         transport.responseStatus = 500
         transport.responseData = Data("boom".utf8)
         let api = makeAPI(transport)
         let vm = ProfileViewModel()
         await vm.load(api: api)
-        XCTAssertNotNil(vm.saveError)
+        XCTAssertNil(vm.saveError, "an HTTP-error refresh must not replace cached content with an error")
         XCTAssertFalse(vm.loaded)
+    }
+
+    /// A decode/contract failure (the /profile JSON shape drifted) IS a real bug and must surface, even under render-then-refresh.
+    func testLoadDecodeFailureSurfacesError() async {
+        let transport = FakeTransport()
+        transport.responseData = Data("not the profile shape".utf8)
+        let api = makeAPI(transport)
+        let vm = ProfileViewModel()
+        await vm.load(api: api)
+        XCTAssertNotNil(vm.saveError, "a profile contract/decode drift must surface")
     }
 
     func testSaveSuccessSetsSavedAtAndReloads() async throws {
@@ -141,15 +131,61 @@ final class ProfileViewModelTests: XCTestCase {
         try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode([] as [LanguageDTO]))
         try transport.enqueue(
             path: "/practice/options",
-            data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: [])),
+            data: BackendAPI.encoder.encode(PracticeOptionsDTO(
+                proficiency: [],
+                tutorSpeakingSpeed: [],
+                tutorSpeakingSpeedRates: [:],
+                correctionFrequency: [],
+                correctionFrequencyPercent: [:],
+                correctionFrequencyDefaultByProficiency: [:],
+                goals: [],
+            )),
         )
-        try transport.enqueue(path: "/kg", data: BackendAPI.encoder.encode(KGGraphDTO(nodes: [], edges: [])))
         let api = makeAPI(transport)
         let vm = ProfileViewModel()
         vm.preferredName = "New Name"
         await vm.save(api: api)
         XCTAssertNotNil(vm.savedAt)
         XCTAssertNil(vm.saveError)
+    }
+
+    private func enqueueProfileLoad(_ transport: FakeTransport) throws {
+        try transport.enqueue(path: "/profile", data: BackendAPI.encoder.encode(Self.sampleProfile))
+        try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode([] as [LanguageDTO]))
+        try transport.enqueue(
+            path: "/practice/options",
+            data: BackendAPI.encoder.encode(PracticeOptionsDTO(
+                proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:], correctionFrequency: [],
+                correctionFrequencyPercent: [:], correctionFrequencyDefaultByProficiency: [:], goals: [],
+            )),
+        )
+    }
+
+    func testAutoSaveNoOpsWhenNothingChanged() async throws {
+        let transport = FakeTransport()
+        try enqueueProfileLoad(transport)
+        let api = makeAPI(transport)
+        let vm = ProfileViewModel()
+        await vm.load(api: api)
+        let countAfterLoad = transport.requests.count
+        // No edit → snapshot == lastSavedSnapshot → must NOT PATCH. This is the guard that stops the load → onChange → save → re-load loop.
+        vm.scheduleAutoSave(api: api, debounce: .zero)
+        try await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(transport.requests.count, countAfterLoad)
+        XCTAssertFalse(transport.requests.contains { $0.httpMethod == "PATCH" })
+    }
+
+    func testAutoSavePersistsAfterAnEdit() async throws {
+        let transport = FakeTransport()
+        try enqueueProfileLoad(transport)
+        let api = makeAPI(transport)
+        let vm = ProfileViewModel()
+        await vm.load(api: api)
+        vm.preferredName = "Edited Name"
+        vm.scheduleAutoSave(api: api, debounce: .zero)
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertTrue(transport.requests.contains { $0.httpMethod == "PATCH" })
+        XCTAssertNotNil(vm.savedAt)
     }
 
     func testSaveFailureSetsErrorMessage() async {
@@ -169,9 +205,16 @@ final class ProfileViewModelTests: XCTestCase {
         try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode([] as [LanguageDTO]))
         try transport.enqueue(
             path: "/practice/options",
-            data: BackendAPI.encoder.encode(PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: [])),
+            data: BackendAPI.encoder.encode(PracticeOptionsDTO(
+                proficiency: [],
+                tutorSpeakingSpeed: [],
+                tutorSpeakingSpeedRates: [:],
+                correctionFrequency: [],
+                correctionFrequencyPercent: [:],
+                correctionFrequencyDefaultByProficiency: [:],
+                goals: [],
+            )),
         )
-        try transport.enqueue(path: "/kg", data: BackendAPI.encoder.encode(KGGraphDTO(nodes: [], edges: [])))
         let api = makeAPI(transport)
         let vm = ProfileViewModel()
         // Leave preferredName / nativeLanguages / targetAccents / goals empty so they all serialize as nil.

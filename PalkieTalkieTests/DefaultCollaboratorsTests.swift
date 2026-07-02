@@ -9,11 +9,5 @@ final class DefaultCollaboratorsTests: XCTestCase {
         _ = factory.makeSession()
     }
 
-    func testDefaultOpenAIRealtimeClientFactoryMakesClient() {
-        let factory = DefaultOpenAIRealtimeClientFactory()
-        _ = factory.makeClient(instructions: nil)
-        _ = factory.makeClient(instructions: "test")
-    }
-
     // `DefaultMicrophonePermission.requestMicrophonePermission` and `DefaultAudioStreamerFactory.makeStreamer` both call into AVAudio APIs that fail on the simulator without microphone hardware. They're covered by host-app launches; unit tests would crash on the engine precondition.
 }

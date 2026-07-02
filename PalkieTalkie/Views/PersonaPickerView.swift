@@ -1,4 +1,7 @@
+import OSLog
 import SwiftUI
+
+private let logger = Logger(subsystem: "com.palkietalkie", category: "personas")
 
 @MainActor
 struct PersonaPickerView: View {
@@ -189,7 +192,8 @@ struct PersonaPickerView: View {
                 JSONCache.save(fresh, key: Self.cacheKey)
             }
         } catch {
-            loadError = error.localizedDescription
+            // The like/report actions below set loadError directly, so they still surface; this read path stays silent unless the shape drifts.
+            loadError = contentRefreshError(error, refreshing: "personas", log: logger)
         }
     }
 

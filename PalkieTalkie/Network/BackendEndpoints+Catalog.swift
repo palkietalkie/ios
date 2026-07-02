@@ -1,6 +1,6 @@
 import Foundation
 
-/// Standalone lookups + small singletons that don't warrant their own file: code-defined catalogs (voices, languages), consent, entitlement, daily content, KG, and APNs token registration.
+/// Standalone lookups + small singletons that don't warrant their own file: code-defined catalogs (voices, languages), consent, entitlement, daily content, and APNs token registration.
 extension BackendAPI {
     func getVoices() async throws -> [VoiceDTO] {
         try await get("/voices")
@@ -16,6 +16,14 @@ extension BackendAPI {
 
     func setConsent(_ payload: ConsentUpdatePayload) async throws -> ConsentDTO {
         try await put("/consent", body: payload)
+    }
+
+    func getNotificationPrefs() async throws -> NotificationPrefsOut {
+        try await get("/notification-prefs")
+    }
+
+    func setNotificationPrefs(_ payload: NotificationPrefsUpdate) async throws -> NotificationPrefsOut {
+        try await put("/notification-prefs", body: payload)
     }
 
     func getEntitlement() async throws -> Entitlement {
@@ -38,10 +46,6 @@ extension BackendAPI {
             }
             return TalkSection(topic: raw.topic, items: items)
         }
-    }
-
-    func getKG() async throws -> KGGraphDTO {
-        try await get("/kg")
     }
 
     func registerPushToken(_ apnsToken: String) async throws {

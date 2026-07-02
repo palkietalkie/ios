@@ -1,21 +1,17 @@
 import Foundation
 
-/// Thin assembler. The actual permission / geocoding / weather / EventKit work lives in `LocationContext`,
-/// `WeatherContext`, `CalendarContext`. This type only fans out the four concurrent requests and packages the result into the wire-shape `ConversationContext` the backend expects.
+/// Thin assembler. The actual permission / geocoding / EventKit work lives in `LocationContext` and `CalendarContext`. This type fans out the concurrent requests (device location + reverse-geocode + today's calendar), adds the device clock, and packages them into the wire-shape `ConversationContext` the backend expects.
 actor ContextGatherer {
     static let shared = ContextGatherer()
 
     private let location: LocationContext
-    private let weather: WeatherContext
     private let calendar: CalendarStoreType
 
     init(
         location: LocationContext = LocationContext(),
-        weather: WeatherContext = WeatherContext(),
         calendar: CalendarStoreType = CalendarContext(),
     ) {
         self.location = location
-        self.weather = weather
         self.calendar = calendar
     }
 
@@ -28,16 +24,10 @@ actor ContextGatherer {
         isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
         let fix = await resolvedLocation
-        let weatherReading: WeatherReading?
-        let city: String?
-        if let fix {
-            async let reading = weather.current(lat: fix.latitude, lon: fix.longitude)
-            async let cityName = location.reverseGeocode(fix)
-            weatherReading = await reading
-            city = await cityName
+        let city: String? = if let fix {
+            await location.reverseGeocode(fix)
         } else {
-            weatherReading = nil
-            city = nil
+            nil
         }
         let events = await calendarEvents
 
@@ -47,8 +37,6 @@ actor ContextGatherer {
             lat: fix?.latitude,
             lon: fix?.longitude,
             city: city,
-            weatherDescription: weatherReading?.description,
-            temperatureC: weatherReading?.temperatureC,
             calendarEvents: events,
         )
     }

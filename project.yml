@@ -44,6 +44,10 @@ packages:
   ViewInspector:
     url: https://github.com/nalexn/ViewInspector
     from: "0.10.3"
+  # stasel/WebRTC — Google's libwebrtc as a prebuilt SPM binary target. Powers the OpenAI Realtime WebRTC transport (Opus over SRTP/UDP): ~15x less bandwidth than base64-PCM16 and graceful under packet loss vs the TCP WebSocket path. App-target only.
+  WebRTC:
+    url: https://github.com/stasel/WebRTC
+    from: "149.0.0"
 
 targets:
   PalkieTalkie:
@@ -54,7 +58,10 @@ targets:
     settings:
       base:
         SWIFT_VERSION: "6.2"
-        TARGETED_DEVICE_FAMILY: "1"
+        # Bridges the Objective-C NSException catcher (ObjCExceptionCatcher) into Swift. Only Objective-C can @try/@catch an NSException, which AVFAudio raises on voice-processing setup failure and which would otherwise SIGABRT the app.
+        SWIFT_OBJC_BRIDGING_HEADER: PalkieTalkie/PalkieTalkie-Bridging-Header.h
+        # 1,2 = iPhone + iPad (universal). iPhone-only ("1") was a deliberate beta narrowing, but it's the only thing keeping the app off iPad, and an iPad is the only iOS device some testers (e.g. Haruna) own. SwiftUI adapts the layout; iPad-specific polish can follow.
+        TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
         SUPPORTS_MACCATALYST: false
         # Auto-extract every SwiftUI LocalizedStringKey usage (Text("…"), Label("…"), navigationTitle("…"), etc.) into Localizable.xcstrings at build time. Translators fill in non-English entries; missing translations fall back to the English source.
@@ -98,8 +105,8 @@ targets:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
         NSMicrophoneUsageDescription: "Palkie Talkie needs microphone access for voice conversations."
-        NSLocationWhenInUseUsageDescription: "Palkie Talkie uses your location so the AI shares the same place and weather as you."
         NSCalendarsUsageDescription: "Palkie Talkie reads today's events so the AI can ask about them naturally."
+        NSLocationWhenInUseUsageDescription: "Palkie Talkie uses your location so the AI shares the same place as you."
         UIBackgroundModes:
           - audio
         # We use only Apple's OS-provided standard encryption (TLS via URLSession + WebSocket). Declares export-compliance EXEMPT so App Store Connect doesn't block submission on "Encryption documentation required".
@@ -119,6 +126,8 @@ targets:
         product: ClerkKit
       - package: Opus
         product: Opus
+      - package: WebRTC
+        product: WebRTC
 
   PalkieTalkieTests:
     type: bundle.unit-test

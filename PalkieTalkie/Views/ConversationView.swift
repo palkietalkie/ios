@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 extension EnvironmentValues {
@@ -12,7 +13,15 @@ struct ConversationView: View {
     @Environment(\.micFrameReporter) private var micFrameReporter
     /// Captions = on-screen text of what the AI is saying, in the same language as the audio. Off by default — the product is voice-first. User can toggle on per-session via the CC button below the mic. Persisted across sessions in UserDefaults.
     @AppStorage("captionsEnabled") private var captionsEnabled: Bool = false
+    /// Render captions transliterated to Latin (romaji / pinyin) for learners who can't read the target's script yet. Persisted across sessions like captionsEnabled.
+    @AppStorage("captionsRomanized") private var captionsRomanized: Bool = false
     @State private var showUpgrade = false
+    @Environment(\.requestReview) private var requestReview
+    @Environment(\.backendAPI) private var backendAPI
+    /// One-time "rate your experience" prompt, shown once after a few meaningful sessions (see RatingPolicy).
+    /// When we last showed the rating prompt (timeIntervalSince1970; 0 = never). We re-ask every RatingPolicy.reAskAfterDays so we use up to Apple's 3 prompts per rolling 365 days.
+    @AppStorage("ratingLastPromptedAt") private var ratingLastPromptedAt: Double = 0
+    @State private var showRatingPrompt = false
 
     var body: some View {
         NavigationStack {
@@ -32,7 +41,7 @@ struct ConversationView: View {
                     Color.clear
                     // Keep the transcript visible after a cap (even with captions off) so dismissing the limit cover reveals the conversation the user just finished.
                     if captionsEnabled || session.reviewLastTranscript {
-                        CaptionsScroll(transcript: session.transcript)
+                        CaptionsScroll(transcript: session.transcript, romanized: captionsRomanized)
                     }
                 }
                 .frame(maxHeight: .infinity)
@@ -40,14 +49,38 @@ struct ConversationView: View {
             .padding()
             // CC toggle sits top-right (YouTube-style), out of the center column so it never crowds or moves the mic. Placed as an overlay rather than a `.toolbar` item so it doesn't get the iOS 26 Liquid-Glass capsule the toolbar draws behind items — we want only CaptionsToggle's own rect fill, no circular ring.
             .overlay(alignment: .topTrailing) {
-                CaptionsToggle(enabled: $captionsEnabled)
-                    .padding()
+                HStack(spacing: 12) {
+                    // Romanize toggle appears only when captions are showing AND actually contain a non-Latin script — a Spanish learner never sees a control that would do nothing.
+                    if captionsEnabled || session.reviewLastTranscript,
+                       session.transcript.contains(where: { hasNonLatinScript($0.text) })
+                    {
+                        CaptionsRomanizeToggle(romanized: $captionsRomanized)
+                    }
+                    CaptionsToggle(enabled: $captionsEnabled)
+                }
+                .padding()
             }
             .task {
+                // After a few meaningful sessions, ask for a rating ONCE before opening the next one, so the prompt isn't talked over by the AI starting up. The deferred session starts when the prompt is dismissed.
+                let totalMinutes = UserDefaults.standard.integer(forKey: "totalConversationSeconds") / 60
+                let lastPrompted = ratingLastPromptedAt == 0 ? nil : Date(timeIntervalSince1970: ratingLastPromptedAt)
+                if RatingPolicy.shouldPrompt(totalMinutes: totalMinutes, lastPromptedAt: lastPrompted, now: Date()) {
+                    showRatingPrompt = true
+                    return
+                }
                 // AI starts the conversation the moment the screen appears — no button. If we land here mid-session, leave it alone. And don't restart into an instant 402 after the user hit their cap (even once they've dismissed the cover) — the window is spent until it resets.
                 if session.phase == .idle, !session.reviewLastTranscript {
                     await session.start()
+                } else if session.phase == .idle, session.reviewLastTranscript {
+                    // Returning to Talk while the free-cap window is still spent: re-show the limit screen so the user always sees WHY a session won't start, instead of a silent idle mic with no explanation (they'd dismissed the cover, switched tabs, and come back to a dead screen). The spoken line does NOT replay — its one-shot was consumed on the first show.
+                    session.endedOnFreeCapLimit = true
                 }
+            }
+            .sheet(isPresented: $showRatingPrompt, onDismiss: { onRatingSheetClosed() }) {
+                RatingPromptView(
+                    onRate: { rating, comment in submitRating(rating, comment: comment) },
+                    onDismiss: { showRatingPrompt = false },
+                )
             }
             .onDisappear {
                 // Leaving the Talk tab (switching tabs or backgrounding) ends the session — no explicit end button. Fire end() whenever there could be an in-flight server session, not just on .live/.connecting: fast tab-switches caught the previous version in .startingSession (after POST /start landed but before WS upgrade completed), which left the session dangling — no /end posted, no post-session pipelines, no word_freq/phrase_freq rows.
@@ -63,7 +96,9 @@ struct ConversationView: View {
                 if session.endedOnFreeCapLimit {
                     FreeCapLimitView(
                         limitKind: session.freeCapLimitKind,
-                        onUpgrade: { showUpgrade = true },
+                        shouldAnnounce: session.freeCapAnnouncementPending,
+                        onAnnounced: { session.freeCapAnnouncementPending = false },
+                        onUpgrade: FeatureFlags.subscriptionsEnabled ? { showUpgrade = true } : nil,
                         onDismiss: { session.endedOnFreeCapLimit = false },
                     )
                 }
@@ -73,21 +108,9 @@ struct ConversationView: View {
     }
 
     private var micIndicator: some View {
-        Image(systemName: "mic.fill")
-            .font(.system(size: 32))
-            .frame(width: 80, height: 80)
-            .background(micBackground)
-            .foregroundStyle(.white)
-            .clipShape(Circle())
-            // React specifically to the tutor talking — swell + glow while the AI speaks, settle when it's the user's turn. Tied to `isAISpeaking` (driven by inbound AI transcript), not the generic `.live` phase, which stayed true for the whole session and so never actually animated to the conversation.
-            .scaleEffect(session.isAISpeaking ? 1.12 : 1.0)
-            .shadow(
-                color: session.isAISpeaking ? Color.green.opacity(0.7) : .clear,
-                radius: session.isAISpeaking ? 18 : 0,
-            )
-            .symbolEffect(.pulse, isActive: session.isAISpeaking)
-            .animation(.spring(response: 0.35, dampingFraction: 0.5), value: session.isAISpeaking)
-            // Report the mic's rendered frame so ConversationMicPositionTests can assert toggling CC never moves it. The reporter is nil in production; a clear GeometryReader in the background doesn't affect layout.
+        // Not a mic and not a button — Ayumi read the mic glyph as tappable push-to-talk, but Talk is a two-way conversation and this is purely a state readout. A state-colored waveform: color = connection state, bar height = the tutor's live output amplitude (read per frame inside the indicator).
+        CenterIndicator(color: micBackground) { CGFloat(session.aiOutputLevel) }
+            // Report the rendered frame so ConversationMicPositionTests can assert toggling CC never moves it. The reporter is nil in production; a clear GeometryReader in the background doesn't affect layout.
             .background(GeometryReader { proxy in
                 Color.clear.onAppear { micFrameReporter?(proxy.frame(in: .global)) }
             })
@@ -121,6 +144,8 @@ struct ConversationView: View {
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
                     .padding(.horizontal)
+                    // Selectable so the user can copy / translate / look up the error when it's blocking them, not just stare at it.
+                    .textSelection(.enabled)
                 Button("Try again") {
                     Task { await session.start() }
                 }
@@ -129,6 +154,31 @@ struct ConversationView: View {
             .transition(.opacity)
         default:
             EmptyView()
+        }
+    }
+
+    private func submitRating(_ rating: Int, comment: String?) {
+        let backend = backendAPI
+        commitRating(
+            rating: rating,
+            comment: comment,
+            record: { r, c in Task { try? await backend.recordExperienceRating(rating: r, comment: c) } },
+            // 4-5 stars also surface Apple's native App Store review prompt (iOS decides whether to actually show it).
+            requestStoreReview: { requestReview() },
+        )
+        showRatingPrompt = false
+    }
+
+    /// Runs on ANY sheet dismissal (rated, "Maybe later", or swipe-down): stamp that we asked now, so the next ask is ≥ reAskAfterDays later, then start the conversation the prompt deferred.
+    private func onRatingSheetClosed() {
+        ratingLastPromptedAt = Date().timeIntervalSince1970
+        startDeferredSession()
+    }
+
+    /// Start the conversation the rating prompt deferred when it appeared on this view's first .task.
+    private func startDeferredSession() {
+        if session.phase == .idle, !session.reviewLastTranscript {
+            Task { await session.start() }
         }
     }
 }

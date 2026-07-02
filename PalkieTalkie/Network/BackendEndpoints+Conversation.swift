@@ -7,12 +7,13 @@ extension BackendAPI {
         context: ConversationContext,
         topicOverride: String? = nil,
     ) async throws -> StartResponse {
-        // Backend's StartRequest accepts persona_id, lat, lon, topic_override.
-        // Other ConversationContext fields (timezone, city, weather, calendar) are re-derived server-side from the user's stored profile + integrations.
+        // Backend's StartRequest accepts persona_id, lat, lon, city, topic_override.
+        // Other ConversationContext fields (timezone, calendar) are re-derived server-side from the user's stored profile + integrations. lat/lon/city are the device's live location; the backend prefers `city` over the stale profile city so the persona knows where the user actually is now.
         struct Body: Codable {
             let personaId: String
             let lat: Double?
             let lon: Double?
+            let city: String?
             let topicOverride: String?
         }
         return try await post(
@@ -21,6 +22,7 @@ extension BackendAPI {
                 personaId: personaId,
                 lat: context.lat,
                 lon: context.lon,
+                city: context.city,
                 topicOverride: topicOverride,
             ),
         )
@@ -63,6 +65,7 @@ extension BackendAPI {
             "/conversation/\(sessionId)/audio/mic",
             body: deflatedWav,
             contentType: "audio/wav+deflate",
+            timeout: 120,
         )
     }
 
@@ -72,6 +75,7 @@ extension BackendAPI {
             "/conversation/\(sessionId)/audio/model",
             body: deflatedWav,
             contentType: "audio/wav+deflate",
+            timeout: 120,
         )
     }
 }

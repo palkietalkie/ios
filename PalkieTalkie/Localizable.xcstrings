@@ -20372,6 +20372,146 @@
         }
       }
     },
+    "Show captions in Latin letters": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "字幕をローマ字で表示"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用拉丁字母显示字幕"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用拉丁字母顯示字幕"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "자막을 로마자로 표시"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar subtítulos en alfabeto latino"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar legendas em letras latinas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher les sous-titres en lettres latines"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Untertitel in lateinischer Schrift anzeigen"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiển thị phụ đề bằng chữ Latinh"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tampilkan teks dalam huruf Latin"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कैप्शन को रोमन लिपि में दिखाएं"
+          }
+        }
+      }
+    },
+    "Show captions in the original script": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "字幕を元の文字で表示"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用原文字显示字幕"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用原文字顯示字幕"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "자막을 원래 문자로 표시"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar subtítulos en la escritura original"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar legendas na escrita original"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher les sous-titres dans l'écriture d'origine"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Untertitel in der Originalschrift anzeigen"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiển thị phụ đề bằng chữ viết gốc"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tampilkan teks dalam aksara asli"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कैप्शन को मूल लिपि में दिखाएं"
+          }
+        }
+      }
+    },
     "Shown in your persona library and used as the character's name in conversation.": {
       "localizations": {
         "ja": {
@@ -29122,146 +29262,6 @@
         }
       }
     },
-    "You've made the most of this week's free practice. It refreshes Monday, or upgrade for unlimited anytime.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "今週の無料練習をしっかり活用しましたね。月曜日にまた使えるようになります。アップグレードすれば、もっと好きなだけ練習できます。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你充分利用了本周的免费练习。周一会刷新，升级就能想练多久就练多久。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你充分利用了本週的免費練習。週一會刷新，升級就能想練多久就練多久。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "이번 주 무료 연습을 알차게 활용했어요. 월요일에 다시 채워져요. 업그레이드하면 원하는 만큼 마음껏 연습할 수 있어요."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aprovechaste al máximo tu práctica gratis de esta semana. Se renueva el lunes, o mejora tu plan y practica todo lo que quieras."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você aproveitou ao máximo sua prática grátis desta semana. Ela renova na segunda-feira, ou faça upgrade e pratique o quanto quiser."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vous avez profité à fond de votre pratique gratuite de cette semaine. Elle se renouvelle lundi, ou passez à la version supérieure et pratiquez autant que vous voulez."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Du hast deine kostenlose Übungszeit diese Woche voll genutzt. Sie wird am Montag erneuert, oder hol dir ein Upgrade und übe so viel du willst."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bạn đã tận dụng tối đa phần luyện tập miễn phí tuần này. Nó làm mới vào thứ Hai, hoặc nâng cấp để luyện tập thỏa thích."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kamu sudah memanfaatkan latihan gratis minggu ini sepenuhnya. Akan diperbarui Senin, atau tingkatkan dan berlatih sepuasnya."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपने इस हफ़्ते की मुफ़्त प्रैक्टिस का पूरा फ़ायदा उठाया। यह सोमवार को फिर मिलेगी, या अपग्रेड करें और जितना चाहें उतना अभ्यास करें।"
-          }
-        }
-      }
-    },
-    "You've made the most of today's free practice. It refreshes tomorrow, or upgrade for unlimited anytime.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "今日の無料練習をしっかり活用しましたね。明日また使えるようになります。アップグレードすれば、もっと好きなだけ練習できます。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你充分利用了今天的免费练习。明天会刷新，升级就能想练多久就练多久。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你充分利用了今天的免費練習。明天會刷新，升級就能想練多久就練多久。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "오늘의 무료 연습을 알차게 활용했어요. 내일 다시 채워져요. 업그레이드하면 원하는 만큼 마음껏 연습할 수 있어요."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aprovechaste al máximo tu práctica gratis de hoy. Se renueva mañana, o mejora tu plan y practica todo lo que quieras."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Você aproveitou ao máximo sua prática grátis de hoje. Ela renova amanhã, ou faça upgrade e pratique o quanto quiser."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vous avez profité à fond de votre pratique gratuite d'aujourd'hui. Elle se renouvelle demain, ou passez à la version supérieure et pratiquez autant que vous voulez."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Du hast deine kostenlose Übungszeit heute voll genutzt. Sie wird morgen erneuert, oder hol dir ein Upgrade und übe so viel du willst."
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bạn đã tận dụng tối đa phần luyện tập miễn phí hôm nay. Nó làm mới vào ngày mai, hoặc nâng cấp để luyện tập thỏa thích."
-          }
-        },
-        "id": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kamu sudah memanfaatkan latihan gratis hari ini sepenuhnya. Akan diperbarui besok, atau tingkatkan dan berlatih sepuasnya."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपने आज की मुफ़्त प्रैक्टिस का पूरा फ़ायदा उठाया। यह कल फिर मिलेगी, या अपग्रेड करें और जितना चाहें उतना अभ्यास करें।"
-          }
-        }
-      }
-    },
     "Your name": {
       "localizations": {
         "ja": {
@@ -31008,6 +31008,3331 @@
           "stringUnit": {
             "state": "translated",
             "value": "wpm"
+          }
+        }
+      }
+    },
+    "Connection lost. Reconnecting.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "接続が切れました。再接続しています。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连接已断开,正在重新连接。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連線已中斷,正在重新連線。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "연결이 끊겼습니다. 다시 연결하는 중입니다."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conexión perdida. Reconectando."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conexão perdida. Reconectando."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connexion perdue. Reconnexion en cours."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbindung verloren. Verbindung wird wiederhergestellt."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mất kết nối. Đang kết nối lại."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koneksi terputus. Menyambungkan kembali."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कनेक्शन टूट गया। फिर से कनेक्ट किया जा रहा है।"
+          }
+        }
+      }
+    },
+    "That's your free practice for today. Come back tomorrow, I'll be here!": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本日の無料分はここまで！また明日も来てね。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天的免费练习就到这里啦！明天再来吧，我等你！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天的免費練習就到這裡啦！明天再來吧，我等你！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘 무료 연습은 여기까지예요! 내일 또 와요, 기다릴게요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eso es tu práctica gratis de hoy. ¡Vuelve mañana, aquí te espero!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essa foi sua prática grátis de hoje. Volte amanhã, vou estar aqui!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "C'est ta pratique gratuite pour aujourd'hui. Reviens demain, je serai là !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das war deine kostenlose Übung für heute. Komm morgen wieder, ich bin da!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phần luyện tập miễn phí hôm nay đến đây thôi! Mai quay lại nhé, mình đợi bạn!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latihan gratismu untuk hari ini sampai di sini! Sampai jumpa besok, ya!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आज की मुफ़्त प्रैक्टिस यहीं तक! कल फिर आना, मैं यहीं हूँ!"
+          }
+        }
+      }
+    },
+    "That's your free practice for this week. Come back Monday, I'll be here!": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週の無料分はここまで！また来週も来てね。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这周的免费练习就到这里啦！周一再来吧，我等你！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這週的免費練習就到這裡啦！週一再來吧，我等你！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주 무료 연습은 여기까지예요! 월요일에 또 와요, 기다릴게요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eso es tu práctica gratis de esta semana. ¡Vuelve el lunes, aquí te espero!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essa foi sua prática grátis desta semana. Volte na segunda, vou estar aqui!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "C'est ta pratique gratuite pour cette semaine. Reviens lundi, je serai là !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das war deine kostenlose Übung für diese Woche. Komm am Montag wieder, ich bin da!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phần luyện tập miễn phí tuần này đến đây thôi! Thứ Hai quay lại nhé, mình đợi bạn!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latihan gratismu untuk minggu ini sampai di sini! Sampai jumpa Senin, ya!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते की मुफ़्त प्रैक्टिस यहीं तक! सोमवार को फिर आना, मैं यहीं हूँ!"
+          }
+        }
+      }
+    },
+    "That's your free practice for today. Come back tomorrow, or go unlimited anytime.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本日の無料分はここまで！また明日も来てね。もっと話したいなら、いつでもアップグレードできるよ。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天的免费练习就到这里啦！明天再来吧，或者升级，随时畅聊。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天的免費練習就到這裡啦！明天再來吧，或者升級，隨時暢聊。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘 무료 연습은 여기까지예요! 내일 또 와요. 더 하고 싶으면 언제든 업그레이드해요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eso es tu práctica gratis de hoy. Vuelve mañana, o hazte ilimitado cuando quieras."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essa foi sua prática grátis de hoje. Volte amanhã, ou vá ilimitado quando quiser."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "C'est ta pratique gratuite pour aujourd'hui. Reviens demain, ou passe en illimité quand tu veux."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das war deine kostenlose Übung für heute. Komm morgen wieder, oder hol dir jederzeit Unbegrenzt."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phần luyện tập miễn phí hôm nay đến đây thôi! Mai quay lại nhé, hoặc nâng cấp để trò chuyện thỏa thích bất cứ lúc nào."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latihan gratismu untuk hari ini sampai di sini! Sampai jumpa besok, atau buka akses tanpa batas kapan saja."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आज की मुफ़्त प्रैक्टिस यहीं तक! कल फिर आना, या जब चाहो अनलिमिटेड पाओ।"
+          }
+        }
+      }
+    },
+    "That's your free practice for this week. Come back Monday, or go unlimited anytime.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週の無料分はここまで！また来週も来てね。もっと話したいなら、いつでもアップグレードできるよ。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这周的免费练习就到这里啦！周一再来吧，或者升级，随时畅聊。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這週的免費練習就到這裡啦！週一再來吧，或者升級，隨時暢聊。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주 무료 연습은 여기까지예요! 월요일에 또 와요. 더 하고 싶으면 언제든 업그레이드해요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eso es tu práctica gratis de esta semana. Vuelve el lunes, o hazte ilimitado cuando quieras."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Essa foi sua prática grátis desta semana. Volte na segunda, ou vá ilimitado quando quiser."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "C'est ta pratique gratuite pour cette semaine. Reviens lundi, ou passe en illimité quand tu veux."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das war deine kostenlose Übung für diese Woche. Komm am Montag wieder, oder hol dir jederzeit Unbegrenzt."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phần luyện tập miễn phí tuần này đến đây thôi! Thứ Hai quay lại nhé, hoặc nâng cấp để trò chuyện thỏa thích bất cứ lúc nào."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latihan gratismu untuk minggu ini sampai di sini! Sampai jumpa Senin, atau buka akses tanpa batas kapan saja."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते की मुफ़्त प्रैक्टिस यहीं तक! सोमवार को फिर आना, या जब चाहो अनलिमिटेड पाओ।"
+          }
+        }
+      }
+    },
+    "How's Palkie Talkie so far?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palkie Talkie の使い心地はいかがですか？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palkie Talkie 用得怎么样？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palkie Talkie 用得怎麼樣？"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Palkie Talkie 어떠세요?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Qué tal Palkie Talkie hasta ahora?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Como está sendo o Palkie Talkie até agora?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment trouvez-vous Palkie Talkie jusqu'ici ?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wie gefällt dir Palkie Talkie bisher?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn thấy Palkie Talkie thế nào?"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bagaimana Palkie Talkie sejauh ini?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अब तक Palkie Talkie कैसा लगा?"
+          }
+        }
+      }
+    },
+    "Send": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "送信"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发送"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "傳送"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "보내기"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Envoyer"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senden"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gửi"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kirim"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "भेजें"
+          }
+        }
+      }
+    },
+    "Maybe later": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あとで"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以后再说"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "稍後再說"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "나중에"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quizás más tarde"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talvez depois"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus tard"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Später vielleicht"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Để sau"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nanti saja"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बाद में"
+          }
+        }
+      }
+    },
+    "Anything you'd like to add?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "他に何かあればぜひお聞かせください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还有什么想补充的吗？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還有什麼想補充的嗎？"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "더 하고 싶은 말이 있나요?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Quieres añadir algo?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quer acrescentar algo?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vous voulez ajouter quelque chose ?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Möchtest du etwas hinzufügen?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn muốn bổ sung điều gì không?"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ada yang ingin ditambahkan?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कुछ और कहना चाहेंगे?"
+          }
+        }
+      }
+    },
+    "notif_keep_streak_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep your streak going"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連続記録をのばそう"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保持连续打卡"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保持連續紀錄"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "연속 기록을 이어가세요"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantén tu racha"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantenha sua sequência"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Garde ta série"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Halte deine Serie am Laufen"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giữ chuỗi ngày của bạn"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pertahankan rentetanmu"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अपनी लय बनाए रखें"
+          }
+        }
+      }
+    },
+    "notif_keep_streak_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ days strong. A quick chat keeps your streak alive."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@日連続中。少し話して記録をキープしよう。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已连续 %@ 天。聊几句就能保持记录。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已連續 %@ 天。聊幾句就能保持紀錄。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@일 연속 중. 잠깐 얘기하면 기록이 이어져요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ días seguidos. Una charla rápida mantiene tu racha."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ dias seguidos. Um papo rápido mantém sua sequência."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ jours d'affilée. Une petite conversation garde votre série."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Tage in Folge. Ein kurzes Gespräch hält deine Serie."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ngày liên tiếp. Trò chuyện một chút để giữ chuỗi."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hari beruntun. Ngobrol sebentar untuk menjaga rangkaianmu."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लगातार %@ दिन। थोड़ी बातचीत आपकी लय बनाए रखेगी।"
+          }
+        }
+      }
+    },
+    "notif_comeback_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We miss you"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "お久しぶりです"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好久不见"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好久不見"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오랜만이에요"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te echamos de menos"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sentimos sua falta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu nous manques"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wir vermissen dich"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chúng tôi nhớ bạn"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kami merindukanmu"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हमें आपकी याद आ रही है"
+          }
+        }
+      }
+    },
+    "notif_comeback_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your English is waiting. Even a few minutes today gets you going again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英語があなたを待っています。今日数分話すだけで再スタートできます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的英语在等你。今天哪怕几分钟，也能重新找回状态。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的英語在等你。今天哪怕幾分鐘，也能重新找回狀態。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "당신의 영어가 기다리고 있어요. 오늘 몇 분이면 다시 시작할 수 있어요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu inglés te espera. Con unos minutos hoy vuelves a tomar ritmo."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu inglês está esperando. Alguns minutos hoje já te colocam de volta no ritmo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ton anglais t'attend. Quelques minutes aujourd'hui suffisent pour repartir."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Englisch wartet. Schon ein paar Minuten heute bringen dich zurück."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiếng Anh của bạn đang chờ. Chỉ vài phút hôm nay là bạn trở lại nhịp."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bahasa Inggrismu menunggu. Beberapa menit hari ini sudah cukup untuk kembali."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी अंग्रेज़ी इंतज़ार कर रही है। आज कुछ मिनट से ही वापस लय में आ जाएँगे।"
+          }
+        }
+      }
+    },
+    "notif_practice_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Time to talk"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日も話そう〜"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聊一聊吧"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聊一聊吧"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘도 얘기해요"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hora de hablar"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hora de conversar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "C'est l'heure de parler"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zeit zu reden"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đến giờ trò chuyện"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waktunya ngobrol"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बात करने का समय"
+          }
+        }
+      }
+    },
+    "notif_practice_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A few minutes of speaking now keeps you sharp."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今、数分話すだけで感覚をキープできます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "现在开口几分钟，保持你的语感。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在開口幾分鐘，保持你的語感。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지금 몇 분만 말해도 감을 유지할 수 있어요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unos minutos de conversación ahora te mantienen en forma."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alguns minutos de conversa agora mantêm você afiado."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quelques minutes de conversation maintenant et tu restes au top."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein paar Minuten Sprechen jetzt halten dich fit."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vài phút nói chuyện bây giờ giúp bạn giữ phong độ."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beberapa menit berbicara sekarang menjaga kemampuanmu."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी कुछ मिनट बोलें और अपनी पकड़ बनाए रखें।"
+          }
+        }
+      }
+    },
+    "notif_milestone_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Milestone reached!"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイルストーン達成！"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "达成里程碑！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "達成里程碑！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마일스톤 달성!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Hito alcanzado!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marco alcançado!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Objectif atteint !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Meilenstein erreicht!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đạt cột mốc!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tonggak tercapai!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मील का पत्थर हासिल!"
+          }
+        }
+      }
+    },
+    "notif_milestone_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ days in a row 🔥 Incredible, keep it going."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@日連続達成 🔥 すごい、この調子で！"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "连续%@天 🔥 太棒了，继续保持！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連續%@天 🔥 太棒了，繼續保持！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@일 연속 🔥 대단해요, 계속 가요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ días seguidos 🔥 Increíble, sigue así."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ dias seguidos 🔥 Incrível, continue assim."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ jours d'affilée 🔥 Incroyable, continue comme ça."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Tage in Folge 🔥 Unglaublich, weiter so."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ngày liên tiếp 🔥 Tuyệt vời, cứ tiếp tục nhé."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hari berturut-turut 🔥 Luar biasa, lanjutkan."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लगातार %@ दिन 🔥 शानदार, ऐसे ही जारी रखें।"
+          }
+        }
+      }
+    },
+    "notif_streak_warning_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your streak ends tonight"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今夜で連続記録が途切れてしまいます"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的连续纪录今晚就要中断"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的連續紀錄今晚就要中斷"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "오늘 밤 연속 기록이 끊겨요"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu racha termina esta noche"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua sequência acaba hoje à noite"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ta série se termine ce soir"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Serie endet heute Nacht"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chuỗi ngày của bạn sẽ kết thúc tối nay"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rentetanmu berakhir malam ini"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी लय आज रात टूट जाएगी"
+          }
+        }
+      }
+    },
+    "notif_streak_warning_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don't lose your %@-day streak, a quick chat before midnight keeps it."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@日の連続記録を失わないで。夜までに少し話せばキープできるよ。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "别断了 %@ 天的连续记录，半夜前聊几句就能保住。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別斷了 %@ 天的連續紀錄，半夜前聊幾句就能保住。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@일 연속 기록을 잃지 마세요. 자정 전에 잠깐 얘기하면 지킬 수 있어요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pierdas tu racha de %@ días, una charla antes de medianoche la mantiene."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não perca sua sequência de %@ dias, um papo antes da meia-noite a mantém."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ne perdez pas votre série de %@ jours, une conversation avant minuit la préserve."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verliere deine %@-Tage-Serie nicht, ein kurzes Gespräch vor Mitternacht hält sie."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đừng để mất chuỗi %@ ngày, trò chuyện một chút trước nửa đêm là giữ được."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jangan putus rangkaian %@ hari, ngobrol sebentar sebelum tengah malam untuk menjaganya."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अपनी %@ दिन की लय न खोएँ, आधी रात से पहले थोड़ी बातचीत इसे बनाए रखेगी।"
+          }
+        }
+      }
+    },
+    "notif_weekly_recap_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your week in review"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週のまとめ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本周回顾"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本週回顧"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주 돌아보기"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu semana en resumen"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua semana em resumo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre semaine en résumé"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Woche im Überblick"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhìn lại tuần qua"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ringkasan mingguanmu"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपके हफ़्ते का सारांश"
+          }
+        }
+      }
+    },
+    "notif_weekly_recap_body_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ session, %@ min this week. You're on a %@-day streak, keep it going!"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週は%@回の会話、%@分。%@日連続中、この調子で！"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本周%@ 次对话，%@ 分钟。已连续 %@ 天，继续保持！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本週%@ 次對話，%@ 分鐘。已連續 %@ 天，繼續保持！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주 %@번 대화, %@분. %@일 연속 중이에요. 계속 이어가요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesión, %@ min esta semana. Estás en una racha de %@. ¡Sigue así!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessão, %@ min esta semana. Você está em uma sequência de %@. Continue assim!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ session, %@ min cette semaine. Vous êtes sur une série de %@. Continuez !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Sitzung, %@ Min. diese Woche. Du bist auf einer Serie von %@. Mach weiter so!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ buổi trò chuyện, %@ phút tuần này. Bạn đang có chuỗi %@ ngày, cứ tiếp tục nhé!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesi, %@ menit minggu ini. Kamu sedang dalam rangkaian %@ hari, terus lanjutkan!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते %@ सत्र, %@ मिनट। आप %@ दिन की स्ट्रीक पर हैं, जारी रखें!"
+          }
+        }
+      }
+    },
+    "notif_weekly_recap_body_other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessions, %@ min this week. You're on a %@-day streak, keep it going!"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週は%@回の会話、%@分。%@日連続中、この調子で！"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本周%@ 次对话，%@ 分钟。已连续 %@ 天，继续保持！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本週%@ 次對話，%@ 分鐘。已連續 %@ 天，繼續保持！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주 %@번 대화, %@분. %@일 연속 중이에요. 계속 이어가요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesiones, %@ min esta semana. Estás en una racha de %@. ¡Sigue así!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessões, %@ min esta semana. Você está em uma sequência de %@. Continue assim!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessions, %@ min cette semaine. Vous êtes sur une série de %@. Continuez !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Sitzungen, %@ Min. diese Woche. Du bist auf einer Serie von %@. Mach weiter so!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ buổi trò chuyện, %@ phút tuần này. Bạn đang có chuỗi %@ ngày, cứ tiếp tục nhé!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesi, %@ menit minggu ini. Kamu sedang dalam rangkaian %@ hari, terus lanjutkan!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते %@ सत्र, %@ मिनट। आप %@ दिन की स्ट्रीक पर हैं, जारी रखें!"
+          }
+        }
+      }
+    },
+    "notif_weekly_recap_body_one_no_streak": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ session, %@ min this week. Keep it going!"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週は%@回の会話、%@分。この調子で！"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本周%@ 次对话，%@ 分钟。继续保持！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本週%@ 次對話，%@ 分鐘。繼續保持！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주 %@번 대화, %@분. 계속 이어가요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesión, %@ min esta semana. ¡Sigue así!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessão, %@ min esta semana. Continue assim!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ session, %@ min cette semaine. Continuez !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Sitzung, %@ Min. diese Woche. Mach weiter so!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ buổi trò chuyện, %@ phút tuần này. Cứ tiếp tục nhé!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesi, %@ menit minggu ini. Terus lanjutkan!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते %@ सत्र, %@ मिनट। जारी रखें!"
+          }
+        }
+      }
+    },
+    "notif_weekly_recap_body_other_no_streak": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessions, %@ min this week. Keep it going!"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週は%@回の会話、%@分。この調子で！"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本周%@ 次对话，%@ 分钟。继续保持！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本週%@ 次對話，%@ 分鐘。繼續保持！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번 주 %@번 대화, %@분. 계속 이어가요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesiones, %@ min esta semana. ¡Sigue así!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessões, %@ min esta semana. Continue assim!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sessions, %@ min cette semaine. Continuez !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Sitzungen, %@ Min. diese Woche. Mach weiter so!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ buổi trò chuyện, %@ phút tuần này. Cứ tiếp tục nhé!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ sesi, %@ menit minggu ini. Terus lanjutkan!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते %@ सत्र, %@ मिनट। जारी रखें!"
+          }
+        }
+      }
+    },
+    "notif_daily_content_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Worth a chat?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ちょっと話さない？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聊几句？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聊幾句？"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "잠깐 얘기할까요?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Hablamos un rato?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vamos conversar?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On en parle ?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kurz reden?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trò chuyện chút nhé?"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngobrol sebentar?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "थोड़ी बात करें?"
+          }
+        }
+      }
+    },
+    "notif_daily_content_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Did you catch this? %@. Let's talk about it in English."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "これ見た？%@。英語で話してみよう。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "看到这个了吗？%@。用英语聊聊吧。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "看到這個了嗎？%@。用英語聊聊吧。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이거 봤어요? %@. 영어로 이야기해 봐요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Viste esto? %@. Hablémoslo en inglés."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viu isto? %@. Vamos falar sobre isso em inglês."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu as vu ça ? %@. Parlons-en en anglais."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schon gesehen? %@. Lass uns auf Englisch darüber reden."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn thấy tin này chưa? %@. Cùng nói về nó bằng tiếng Anh nhé."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sudah lihat ini? %@. Yuk bahas pakai bahasa Inggris."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ये देखा? %@. इस पर अंग्रेज़ी में बात करते हैं।"
+          }
+        }
+      }
+    },
+    "notif_sub_welcome_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlimited conversation, unlocked!"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会話時間が無制限になりました！"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无限畅聊已解锁！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無限暢聊已解鎖！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "무제한 대화가 열렸어요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¡Conversación ilimitada desbloqueada!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversa ilimitada liberada!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conversation illimitée débloquée !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unbegrenztes Reden freigeschaltet!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã mở khóa trò chuyện không giới hạn!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngobrol tanpa batas terbuka!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अनलिमिटेड बातचीत अनलॉक!"
+          }
+        }
+      }
+    },
+    "notif_sub_welcome_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talk as much as you want, anytime. Let's go!"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いつでも好きなだけ話そう。さっそく始めよう！"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "随时畅聊，想聊多久都行。开始吧！"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隨時暢聊，想聊多久都行。開始吧！"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "언제든 마음껏 대화해요. 시작해 볼까요!"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Habla todo lo que quieras, cuando quieras. ¡Vamos!"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Converse o quanto quiser, quando quiser. Vamos lá!"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parlez autant que vous voulez, quand vous voulez. C'est parti !"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rede so viel du willst, jederzeit. Los geht's!"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trò chuyện thỏa thích, bất cứ lúc nào. Bắt đầu thôi!"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngobrol sepuasnya, kapan saja. Ayo mulai!"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जितनी चाहें, जब चाहें बात करें। चलिए शुरू करें!"
+          }
+        }
+      }
+    },
+    "notif_sub_payment_failed_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Payment didn't go through"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "決済完了を確認できませんでした"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "支付未成功"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "付款未成功"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "결제가 완료되지 않았어요"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El pago no se procesó"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O pagamento não foi concluído"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le paiement n'a pas abouti"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zahlung fehlgeschlagen"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thanh toán chưa thành công"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pembayaran gagal"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "भुगतान पूरा नहीं हुआ"
+          }
+        }
+      }
+    },
+    "notif_sub_payment_failed_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update your payment method to keep your subscription."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プランを継続するには、決済方法を更新してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请更新支付方式以继续你的订阅。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請更新付款方式以繼續你的訂閱。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "구독을 유지하려면 결제 수단을 업데이트하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualiza tu método de pago para mantener tu suscripción."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atualize sua forma de pagamento para manter sua assinatura."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mettez à jour votre moyen de paiement pour garder votre abonnement."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktualisiere deine Zahlungsmethode, um dein Abo zu behalten."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cập nhật phương thức thanh toán để giữ gói đăng ký."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perbarui metode pembayaran untuk mempertahankan langgananmu."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अपनी सदस्यता जारी रखने के लिए भुगतान तरीका अपडेट करें।"
+          }
+        }
+      }
+    },
+    "notif_sub_expired_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your subscription ended"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在のプランが終了しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的订阅已结束"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的訂閱已結束"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "구독이 종료되었어요"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu suscripción terminó"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua assinatura terminou"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre abonnement a pris fin"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Abo ist abgelaufen"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gói đăng ký của bạn đã kết thúc"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Langgananmu sudah berakhir"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी सदस्यता समाप्त हो गई"
+          }
+        }
+      }
+    },
+    "notif_sub_expired_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Come back anytime, your progress is saved."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いつでも戻ってきてね。これまでの記録はちゃんと残ってるよ。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "随时回来，你的进度已保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隨時回來，你的進度已保存。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "언제든 돌아와요. 진행 상황은 저장돼 있어요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vuelve cuando quieras, tu progreso está guardado."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volte quando quiser, seu progresso está salvo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revenez quand vous voulez, votre progression est sauvegardée."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Komm jederzeit zurück, dein Fortschritt ist gespeichert."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quay lại bất cứ lúc nào, tiến trình của bạn vẫn được lưu."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kembali kapan saja, progresmu tersimpan."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कभी भी वापस आएं, आपकी प्रगति सुरक्षित है।"
+          }
+        }
+      }
+    },
+    "notif_sub_canceled_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your subscription is set to end"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在のプランがまもなく終了します"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的订阅即将结束"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的訂閱即將結束"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "구독이 곧 종료돼요"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu suscripción va a terminar"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sua assinatura vai terminar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre abonnement va prendre fin"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Abo endet bald"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gói đăng ký của bạn sắp kết thúc"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Langgananmu akan berakhir"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी सदस्यता जल्द ही समाप्त होगी"
+          }
+        }
+      }
+    },
+    "notif_sub_canceled_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Whenever you're ready, resubscribe for unlimited talk time."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "時間を気にせず話したくなったら、またサブスクしてね。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "想再畅聊不看时间的时候，随时重新订阅就好。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "想再暢聊不看時間的時候，隨時重新訂閱就好。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "시간 신경 쓰지 않고 다시 얘기하고 싶어지면 언제든 다시 구독해요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuando quieras volver a hablar sin mirar el reloj, vuelve a suscribirte."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quando quiser conversar sem olhar o relógio de novo, é só assinar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quand vous aurez envie de parler sans regarder l'heure, réabonnez-vous."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wann immer du ohne auf die Uhr zu schauen reden willst, abonniere einfach wieder."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi nào muốn trò chuyện thả ga trở lại, cứ đăng ký lại nhé."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kapan pun ingin ngobrol tanpa lihat jam lagi, langganan lagi aja."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब भी बिना समय देखे बात करने का मन हो, बस दोबारा सब्सक्राइब कर लेना।"
+          }
+        }
+      }
+    },
+    "Notifications": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "알림"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notificaciones"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notificações"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifications"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mitteilungen"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thông báo"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifikasi"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सूचनाएं"
+          }
+        }
+      }
+    },
+    "Daily reminders": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "毎日のリマインダー"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每日提醒"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每日提醒"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "매일 알림"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recordatorios diarios"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lembretes diários"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rappels quotidiens"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tägliche Erinnerungen"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhắc nhở hằng ngày"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pengingat harian"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रोज़ाना रिमाइंडर"
+          }
+        }
+      }
+    },
+    "Reminder time": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リマインダーの時刻"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提醒时间"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提醒時間"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "알림 시간"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hora del recordatorio"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horário do lembrete"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heure du rappel"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erinnerungszeit"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thời gian nhắc"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waktu pengingat"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रिमाइंडर का समय"
+          }
+        }
+      }
+    },
+    "A gentle nudge if you haven't talked today.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "その日まだ話していなければ、そっと声をかけます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当天还没开口的话，我们会轻轻招呼你一声。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "當天還沒開口的話，我們會輕輕招呼你一聲。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "그날 아직 말하지 않았다면, 살짝 말을 걸어 드려요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si ese día aún no has hablado, te damos un toque suave."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se você ainda não falou naquele dia, damos um toque leve."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si tu n'as pas encore parlé ce jour-là, on te fait un petit signe."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn du an dem Tag noch nicht gesprochen hast, geben wir dir einen sanften Stups."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nếu hôm đó bạn chưa trò chuyện, chúng tôi sẽ nhắc bạn một chút."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kalau hari itu kamu belum mengobrol, kami beri sapaan kecil."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अगर उस दिन आपने अभी तक बात नहीं की, तो एक हल्की-सी याद।"
+          }
+        }
+      }
+    },
+    "Knowledge Graph": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ナレッジグラフ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "知识图谱"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "知識圖譜"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "지식 그래프"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grafo de conocimiento"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grafo de conhecimento"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Graphe de connaissances"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wissensgraph"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đồ thị tri thức"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grafik pengetahuan"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नॉलेज ग्राफ़"
+          }
+        }
+      }
+    },
+    "Your first month is on us": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "初月無料"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "首月免费"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "首月免費"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "첫 달 무료"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu primer mes es gratis"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu primeiro mês é grátis"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre premier mois est offert"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein erster Monat geht auf uns"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tháng đầu tiên miễn phí"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bulan pertama gratis"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पहला महीना मुफ़्त"
+          }
+        }
+      }
+    },
+    "Talk as much as you want, with every feature, free until %@.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@まで話し放題。全機能が使えます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尽情畅聊，所有功能免费开放，有效期至%@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "盡情暢聊，所有功能免費開放，有效期至%@。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@까지 모든 기능을 무료로, 마음껏 대화하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Habla sin límites, con todas las funciones, gratis hasta el %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Converse à vontade, com todos os recursos, grátis até %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parlez sans limite, avec toutes les fonctionnalités, gratuit jusqu'au %@."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprich so viel du willst, mit allen Funktionen, kostenlos bis %@."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trò chuyện thoải mái với đầy đủ tính năng, miễn phí đến %@."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngobrol sepuasnya dengan semua fitur, gratis sampai %@."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जितनी चाहें बात करें, सभी फ़ीचर्स के साथ, %@ तक मुफ़्त।"
+          }
+        }
+      }
+    },
+    "After that, the free plan is %lld minutes a day, %lld a week.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "その後は無料プランで、1日%lld分、週%lld分です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "之后为免费方案：每天%lld分钟，每周%lld分钟。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "之後為免費方案：每天%lld分鐘，每週%lld分鐘。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이후 무료 플랜은 하루 %lld분, 주 %lld분이에요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Después, el plan gratis es de %lld minutos al día y %lld a la semana."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Depois, o plano grátis é de %lld minutos por dia e %lld por semana."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ensuite, le forfait gratuit est de %lld minutes par jour et %lld par semaine."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Danach gilt der Gratis-Tarif: %lld Minuten pro Tag, %lld pro Woche."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sau đó, gói miễn phí là %lld phút mỗi ngày, %lld phút mỗi tuần."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Setelah itu, paket gratis %lld menit per hari, %lld menit per minggu."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "उसके बाद फ्री प्लान में हर दिन %lld मिनट, हर हफ़्ते %lld मिनट।"
+          }
+        }
+      }
+    },
+    "Correction frequency": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "間違いを直す頻度"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "纠错频率"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "糾正頻率"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "교정 빈도"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frecuencia de correcciones"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frequência de correção"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fréquence des corrections"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Korrekturhäufigkeit"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tần suất sửa lỗi"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frekuensi koreksi"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सुधार कितनी बार"
+          }
+        }
+      }
+    },
+    "How often should your tutor correct you?": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "間違いをどのくらい直してほしい？"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你希望老师多久帮你纠错一次？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你希望老師多常糾正你？"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "튜터가 얼마나 자주 교정해 드릴까요?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Con qué frecuencia quieres que tu tutor te corrija?"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Com que frequência o tutor deve te corrigir?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "À quelle fréquence ton tuteur doit-il te corriger ?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wie oft soll dich dein Tutor korrigieren?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn muốn gia sư sửa lỗi thường xuyên đến mức nào?"
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seberapa sering tutor perlu mengoreksimu?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपका ट्यूटर आपको कितनी बार करेक्शन दे?"
+          }
+        }
+      }
+    },
+    "More correction sharpens accuracy; less keeps the conversation flowing.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "たくさん直すほど正確に、少なめだと会話がスムーズに。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "纠错越多，口语越准确；纠错越少，对话越流畅。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "多糾正能提升準確度，少糾正則讓對話更流暢。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "교정이 많을수록 정확도가 올라가고, 적을수록 대화가 자연스럽게 이어져요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corregir más mejora la precisión; corregir menos mantiene la conversación fluida."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mais correções melhoram a precisão; menos deixam a conversa fluir."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus de corrections, plus de précision ; moins de corrections, une conversation plus fluide."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mehr Korrekturen bringen mehr Genauigkeit, weniger halten das Gespräch im Fluss."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sửa nhiều giúp bạn nói chính xác hơn; sửa ít giúp cuộc trò chuyện trôi chảy tự nhiên."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Makin banyak koreksi, makin akurat; makin sedikit, percakapan tetap mengalir."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ज़्यादा करेक्शन से बोलना बेहतर होगा, कम से बातचीत का फ्लो बना रहेगा।"
           }
         }
       }

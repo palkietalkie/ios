@@ -46,6 +46,12 @@ private actor RecordingColdStartBackend: ConversationBackend {
 
     func recordSessionError(sessionId _: String?, provider _: String, reason _: String) async throws {}
 
+    func recordToolCall(sessionId _: String?, name _: String, query _: String?) async throws {}
+
+    func recordSessionEnd(sessionId _: String, reason _: String) async throws {}
+
+    func reportAudioUploadFailed(sessionId _: String, source _: String, bytes _: Int, reason _: String) async {}
+
     func uploadMicAudio(sessionId _: String, deflatedWav _: Data) async throws {}
 
     func uploadModelAudio(sessionId _: String, deflatedWav _: Data) async throws {}
@@ -57,6 +63,8 @@ private actor RecordingColdStartBackend: ConversationBackend {
     func getEntitlement() async throws -> Entitlement {
         Entitlement(
             isPremium: true,
+            trialActive: false,
+            trialEndsAt: nil,
             freeMinutesRemainingToday: 10,
             freeMinutesRemainingThisWeek: 30,
             freeMinutesPerDayCap: 10,

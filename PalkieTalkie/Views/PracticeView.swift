@@ -43,7 +43,22 @@ struct PracticeView: View {
                 }
                 Picker("Tutor speaking speed", selection: $model.tutorSpeakingSpeed) {
                     ForEach(model.practiceOptions?.tutorSpeakingSpeed ?? [], id: \.self) { slug in
-                        Text(formatSlugLabel(slug)).tag(slug)
+                        // Append the backend-sourced playback rate ("Slow · 0.85×") so the concrete number disambiguates slow vs very slow. The rate is a pure value (verbatim); the label keeps its existing rendering.
+                        if let rate = model.practiceOptions?.tutorSpeakingSpeedRates[slug] {
+                            (Text(formatSlugLabel(slug)) + Text(verbatim: " · \(formatSpeedRate(rate))")).tag(slug)
+                        } else {
+                            Text(formatSlugLabel(slug)).tag(slug)
+                        }
+                    }
+                }
+                Picker("Correction frequency", selection: $model.correctionFrequency) {
+                    ForEach(model.practiceOptions?.correctionFrequency ?? [], id: \.self) { slug in
+                        // Append the backend-sourced % ("Sometimes · 50%") so the level's density is concrete. The % is a pure value (verbatim).
+                        if let pct = model.practiceOptions?.correctionFrequencyPercent[slug] {
+                            (Text(formatSlugLabel(slug)) + Text(verbatim: " · \(pct)%")).tag(slug)
+                        } else {
+                            Text(formatSlugLabel(slug)).tag(slug)
+                        }
                     }
                 }
             }
@@ -69,29 +84,6 @@ struct PracticeView: View {
             } footer: {
                 Text("What you're working toward. The AI uses this to steer conversation topics.")
             }
-            Section {
-                Button {
-                    Task { await model.save(api: api) }
-                } label: {
-                    HStack {
-                        if model.saving { ProgressView().controlSize(.small) }
-                        Text(model.saving ? "Saving…" : "Save changes")
-                        Spacer()
-                        if let savedAt = model.savedAt, Date().timeIntervalSince(savedAt) < 3 {
-                            Label("Saved", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                                .labelStyle(.iconOnly)
-                                .transition(.opacity)
-                        }
-                    }
-                    // View-side animation so the VM stays SwiftUI-agnostic and safe to unit-test outside a render context.
-                    .animation(.default, value: model.savedAt)
-                }
-                .disabled(!model.loaded || model.saving)
-                if let saveError = model.saveError {
-                    Text(saveError).font(.footnote).foregroundStyle(.red).textSelection(.enabled)
-                }
-            }
         }
         .navigationTitle("Practice")
         .task {
@@ -100,5 +92,9 @@ struct PracticeView: View {
             await model.load(api: api)
         }
         .refreshable { await model.load(api: api) }
+        // Auto-save: any edit changes the snapshot; the model debounces + guards so only real edits persist.
+        .onChange(of: model.formSnapshot) { _, _ in
+            model.scheduleAutoSave(api: api)
+        }
     }
 }

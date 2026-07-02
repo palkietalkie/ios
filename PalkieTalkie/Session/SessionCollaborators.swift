@@ -26,6 +26,9 @@ protocol ConversationBackend: Sendable {
     func recordPitchRange(sessionId: String, minHz: Float, maxHz: Float) async throws
     func recordAIEmotions(sessionId: String, laugh: Int, cheer: Int, gasp: Int, sigh: Int, groan: Int) async throws
     func recordSessionError(sessionId: String?, provider: String, reason: String) async throws
+    func recordToolCall(sessionId: String?, name: String, query: String?) async throws
+    func recordSessionEnd(sessionId: String, reason: String) async throws
+    func reportAudioUploadFailed(sessionId: String, source: String, bytes: Int, reason: String) async
     func uploadMicAudio(sessionId: String, deflatedWav: Data) async throws
     func uploadModelAudio(sessionId: String, deflatedWav: Data) async throws
     func getPersonas(search: String?, sort: String) async throws -> [PersonaDTO]
@@ -58,6 +61,8 @@ protocol AudioStreamerFactory: Sendable {
 
 struct DefaultAudioStreamerFactory: AudioStreamerFactory {
     func makeStreamer() async throws -> AudioStreamerType {
+        // Re-activate the audio session at every conversation start. It's configured once at app launch, but mic permission may not have been granted yet then, and any audio interruption since (phone call, Siri, another app taking the session) can leave it inactive or in the wrong category. Enabling voice processing on such a session is what made AVFAudio raise the NSException that crashed the Talk screen, so make the session right first. Best-effort: if it fails, AudioStreamer.start() now degrades to AEC-off rather than crashing.
+        try? AudioSessionManager.configureForFullDuplexVoice()
         let streamer = AudioStreamer()
         try await streamer.start()
         return streamer
@@ -72,17 +77,6 @@ protocol PersonaPlexSessionFactory: Sendable {
 struct DefaultPersonaPlexSessionFactory: PersonaPlexSessionFactory {
     func makeSession() -> PersonaPlexSessionType {
         PersonaPlexSession()
-    }
-}
-
-/// Factory for the OpenAI Realtime client. Separate from `PersonaPlexSessionFactory` so the orchestrator wiring stays explicit per provider.
-protocol OpenAIRealtimeClientFactory: Sendable {
-    func makeClient(instructions: String?) -> RealtimeClient
-}
-
-struct DefaultOpenAIRealtimeClientFactory: OpenAIRealtimeClientFactory {
-    func makeClient(instructions: String?) -> RealtimeClient {
-        OpenAIRealtimeClient(instructions: instructions)
     }
 }
 

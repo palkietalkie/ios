@@ -13,4 +13,29 @@ extension SessionController {
             self?.isAISpeaking = false
         }
     }
+
+    /// Live tutor output amplitude (0…1) for the Talk-view waveform, gated by isAISpeaking so the bars fall to their resting line the instant the turn ends (rather than holding the last buffer's level through the audio-drain tail). Reads nonisolated `outputLevel` synchronously, so a per-frame view read is cheap.
+    var aiOutputLevel: Float {
+        Self.computeAIOutputLevel(
+            isAISpeaking: isAISpeaking,
+            streamerLevel: audioStreamer?.outputLevel,
+            clientLevel: openAIClient?.outputLevel,
+        )
+    }
+
+    /// Pure amplitude selection for the waveform: gate on isAISpeaking, then prefer the AudioStreamer's measured level (WS / PersonaPlex path), falling back to the realtime client's own level (the WebRTC path bypasses AudioStreamer, so the streamer is nil and the level comes from the client's inbound-audio stats). Static so it's unit-testable without a live session.
+    static func computeAIOutputLevel(isAISpeaking: Bool, streamerLevel: Float?, clientLevel: Float?) -> Float {
+        guard isAISpeaking else { return 0 }
+        return streamerLevel ?? clientLevel ?? 0
+    }
+
+    /// Suspend until the tutor finishes its current spoken turn (or a safety timeout), so a caller can let a goodbye play out instead of cutting it off. Gates on BOTH the transcript flag (isAISpeaking) AND the actual audio drain (player still has buffers): the transcript arrives well ahead of the audio, so isAISpeaking alone goes quiet too early.
+    func waitForAIToFinishSpeaking(timeout: TimeInterval = 8) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            let stillPlaying = await audioStreamer?.isOutputPlaying() ?? false
+            if !isAISpeaking, !stillPlaying { return }
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+    }
 }

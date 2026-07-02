@@ -17,6 +17,8 @@ actor FakeConversationBackend: ConversationBackend {
     var personas: [PersonaDTO]
     var entitlementResult: Result<Entitlement, Error> = .success(Entitlement(
         isPremium: true,
+        trialActive: false,
+        trialEndsAt: nil,
         freeMinutesRemainingToday: 10,
         freeMinutesRemainingThisWeek: 30,
         freeMinutesPerDayCap: 10,
@@ -138,6 +140,23 @@ actor FakeConversationBackend: ConversationBackend {
         sessionErrorCalls.append((sessionId, provider, reason))
     }
 
+    nonisolated(unsafe) var toolCallCalls: [(sessionId: String?, name: String, query: String?)] = []
+    nonisolated(unsafe) var sessionEndCalls: [(sessionId: String, reason: String)] = []
+
+    func recordToolCall(sessionId: String?, name: String, query: String?) async throws {
+        toolCallCalls.append((sessionId, name, query))
+    }
+
+    func recordSessionEnd(sessionId: String, reason: String) async throws {
+        sessionEndCalls.append((sessionId, reason))
+    }
+
+    nonisolated(unsafe) var audioUploadFailedReports: [(sessionId: String, source: String, bytes: Int)] = []
+
+    func reportAudioUploadFailed(sessionId: String, source: String, bytes: Int, reason _: String) async {
+        audioUploadFailedReports.append((sessionId, source, bytes))
+    }
+
     func uploadMicAudio(sessionId: String, deflatedWav: Data) async throws {
         micUploads.append((sessionId, deflatedWav.count))
         if let err = micUploadError { throw err }
@@ -214,6 +233,8 @@ final class FakeAudioStreamer: AudioStreamerType, PCM16AudioStreamerType, @unche
     nonisolated(unsafe) var played: [Data] = []
     nonisolated(unsafe) var playedPCM16: [Data] = []
     nonisolated(unsafe) var interruptCount = 0
+    nonisolated(unsafe) var outputPlaying = false
+    nonisolated(unsafe) var outputLevelValue: Float = 0
     private let (stream, continuation) = AsyncStream.makeStream(of: Data.self)
     private let (pcm16Stream, pcm16Continuation) = AsyncStream.makeStream(of: Data.self)
     nonisolated let pitchTracker = PitchTracker()
@@ -259,6 +280,14 @@ final class FakeAudioStreamer: AudioStreamerType, PCM16AudioStreamerType, @unche
         stopCount += 1
     }
 
+    func isOutputPlaying() async -> Bool {
+        outputPlaying
+    }
+
+    nonisolated var outputLevel: Float {
+        outputLevelValue
+    }
+
     deinit {
         continuation.finish()
         pcm16Continuation.finish()
@@ -277,6 +306,7 @@ actor FakePersonaPlexSession: PersonaPlexSessionType {
     private let (transcriptStream, transcriptCont) = AsyncStream.makeStream(of: TranscriptChunk.self)
     private let (errorStream, errorCont) = AsyncStream.makeStream(of: String.self)
     private let (toolStream, toolCont) = AsyncStream.makeStream(of: ToolCall.self)
+    private let (disconnectedStream, disconnectedCont) = AsyncStream.makeStream(of: String.self)
     var submittedOutputs: [(callId: String, output: String)] = []
 
     var openCount = 0
@@ -360,6 +390,17 @@ actor FakePersonaPlexSession: PersonaPlexSessionType {
     func emit(error: String) {
         errorCont.yield(error)
     }
+
+    nonisolated var disconnected: AsyncStream<String> {
+        get async { disconnectedStream }
+    }
+
+    /// Simulate the transport dying mid-call (recv loop caught a socket error), WITHOUT any NWPathMonitor offline event — the wifi→cellular handoff case. Yields the recoverable disconnect signal and finishes the inbound streams like the real recv loop does.
+    func dropConnection(reason: String = "Socket is not connected") {
+        disconnectedCont.yield(reason)
+        audioCont.finish()
+        transcriptCont.finish()
+    }
 }
 
 struct StubSessionFactory: PersonaPlexSessionFactory {
@@ -382,6 +423,49 @@ struct SessionControllerRig {
 
 @MainActor
 final class SessionControllerTests: XCTestCase {
+    /// aiOutputLevel drives the Talk-view waveform. It must gate on isAISpeaking so the bars fall to their resting line the instant the turn ends, rather than holding the last buffer's level through the audio-drain tail; and while speaking it must reflect the streamer's live output level.
+    func testAIOutputLevelGatesOnSpeaking() {
+        let rig = makeController()
+        rig.streamer.outputLevelValue = 0.7
+        // audioStreamer is normally set inside start(); set it directly to test the gating in isolation.
+        rig.controller.audioStreamer = rig.streamer
+
+        rig.controller.isAISpeaking = false
+        XCTAssertEqual(
+            rig.controller.aiOutputLevel,
+            0,
+            "no bars while the tutor isn't speaking, even if a stale level lingers",
+        )
+
+        rig.controller.isAISpeaking = true
+        XCTAssertEqual(
+            rig.controller.aiOutputLevel,
+            0.7,
+            accuracy: 0.0001,
+            "reflects the streamer's live output level while speaking",
+        )
+    }
+
+    func testComputeAIOutputLevelFallsBackToClientLevelOnWebRTC() {
+        XCTAssertEqual(
+            SessionController.computeAIOutputLevel(isAISpeaking: false, streamerLevel: 0.9, clientLevel: 0.9),
+            0, "not speaking → no bars",
+        )
+        XCTAssertEqual(
+            SessionController.computeAIOutputLevel(isAISpeaking: true, streamerLevel: 0.7, clientLevel: nil),
+            0.7, accuracy: 0.0001, "WS/PersonaPlex: use the streamer's measured level",
+        )
+        // WebRTC bug repro: WebRTC bypasses AudioStreamer (streamer nil), so the waveform must read the client's own level instead of flatlining at 0.
+        XCTAssertEqual(
+            SessionController.computeAIOutputLevel(isAISpeaking: true, streamerLevel: nil, clientLevel: 0.6),
+            0.6, accuracy: 0.0001, "WebRTC: fall back to the client's inbound-audio level",
+        )
+        XCTAssertEqual(
+            SessionController.computeAIOutputLevel(isAISpeaking: true, streamerLevel: nil, clientLevel: nil),
+            0, "no source → 0",
+        )
+    }
+
     private func makeController(
         backend: FakeConversationBackend? = nil,
         session: FakePersonaPlexSession = FakePersonaPlexSession(),
@@ -421,12 +505,7 @@ final class SessionControllerTests: XCTestCase {
         ConversationContext(
             localISOTime: "2025-01-01T00:00:00Z",
             timezone: "UTC",
-            lat: 0,
-            lon: 0,
-            city: nil,
-            weatherDescription: nil,
-            temperatureC: nil,
-            calendarEvents: [],
+            lat: nil, lon: nil, city: nil, calendarEvents: [],
         )
     }
 

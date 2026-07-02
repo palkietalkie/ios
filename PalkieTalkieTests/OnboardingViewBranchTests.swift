@@ -39,7 +39,8 @@ final class OnboardingViewBranchTests: XCTestCase {
             namePronunciationSuggestion: nil,
             nativeLanguages: ["Japanese"], targetLanguage: "English",
             targetAccents: ["US"], proficiency: "intermediate",
-            tutorSpeakingSpeed: "normal", goals: nil, locationCity: nil, timezone: nil,
+            tutorSpeakingSpeed: "normal", correctionFrequency: "sometimes", goals: nil, locationCity: nil,
+            timezone: nil,
         )
         try transport.enqueue(path: "/languages", data: BackendAPI.encoder.encode(languages))
         try transport.enqueue(path: "/profile", data: BackendAPI.encoder.encode(profile))
@@ -88,6 +89,22 @@ final class OnboardingViewBranchTests: XCTestCase {
         )
     }
 
+    /// Render the .getStarted primer WITH trial info set, so the first-month welcome card (trialWelcomeCard: gift label + free-until line + post-trial caps) renders.
+    func testHostsAtGetStartedWithTrialCard() async throws {
+        let model = OnboardingViewModel()
+        model.step = .getStarted
+        model.trialEndsAt = Date(timeIntervalSince1970: 1_800_000_000)
+        model.postTrialDailyMinutes = 10
+        model.postTrialWeeklyMinutes = 30
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode([LanguageDTO(name: "English", accents: ["US"])])
+        await host(
+            OnboardingView(onContinue: {}, model: model)
+                .environment(\.backendAPI, makeAPI(transport))
+                .environment(\.authing, StubAuthing()),
+        )
+    }
+
     /// Render the view at the .target step (injected model) so the second step's StepScaffold + single-select ChoiceList branch renders.
     func testHostsAtTargetStep() async throws {
         let model = OnboardingViewModel()
@@ -125,6 +142,10 @@ final class OnboardingViewBranchTests: XCTestCase {
             model.practiceOptions = PracticeOptionsDTO(
                 proficiency: ["beginner", "intermediate", "advanced"],
                 tutorSpeakingSpeed: ["slow", "normal", "fast"],
+                tutorSpeakingSpeedRates: [:],
+                correctionFrequency: [],
+                correctionFrequencyPercent: [:],
+                correctionFrequencyDefaultByProficiency: [:],
                 goals: ["travel"],
             )
             model.proficiency = "intermediate"
@@ -142,7 +163,11 @@ final class OnboardingViewBranchTests: XCTestCase {
         for step in [OnboardingViewModel.Step.goals, .getStarted] {
             let model = OnboardingViewModel()
             model.practiceOptions = PracticeOptionsDTO(
-                proficiency: [], tutorSpeakingSpeed: [], goals: ["job_interview", "travel"],
+                proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:], correctionFrequency: [],
+                correctionFrequencyPercent: [:], correctionFrequencyDefaultByProficiency: [:], goals: [
+                    "job_interview",
+                    "travel",
+                ],
             )
             model.toggleGoal("travel")
             model.otherGoal = "rapping"

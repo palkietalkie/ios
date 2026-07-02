@@ -4,7 +4,6 @@ import SwiftUI
 @MainActor
 struct ProfileView: View {
     @Environment(\.backendAPI) private var api
-    @Environment(\.authing) private var auth
     @State private var model = ProfileViewModel()
 
     var body: some View {
@@ -55,62 +54,6 @@ struct ProfileView: View {
                         }
                     }
                 }
-                Section("Knowledge Graph (read-only)") {
-                    if let kgError = model.kgError {
-                        Text("Couldn't load your knowledge graph: \(kgError)")
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                            .textSelection(.enabled)
-                    }
-                    if model.knowledgeGraph.isEmpty {
-                        Text(
-                            "No entities yet. As you talk, the AI starts recognizing the people, places, and projects.",
-                        )
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(model.knowledgeGraph, id: \.id) { entity in
-                            VStack(alignment: .leading) {
-                                Text(entity.name).font(.headline)
-                                Text(entity.type.capitalized).font(.caption).foregroundStyle(.secondary)
-                                ForEach(entity.attrs.sorted(by: { $0.key < $1.key }), id: \.key) { pair in
-                                    Text(verbatim: "\(pair.key): \(pair.value)").font(.caption2)
-                                }
-                            }
-                        }
-                    }
-                }
-                Section {
-                    Button {
-                        Task { await model.save(api: api) }
-                    } label: {
-                        HStack {
-                            if model.saving {
-                                ProgressView().controlSize(.small)
-                            }
-                            Text(model.saving ? "Saving…" : "Save changes")
-                            Spacer()
-                            if let savedAt = model.savedAt, Date().timeIntervalSince(savedAt) < 3 {
-                                Label("Saved", systemImage: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
-                                    .labelStyle(.iconOnly)
-                                    .transition(.opacity)
-                            }
-                        }
-                        // View-side animation. The VM stays SwiftUI-agnostic (no withAnimation call) so it's safe to instantiate + drive from XCTest without going through SwiftUI's animation runtime — that runtime crashes when invoked outside a real render context.
-                        .animation(.default, value: model.savedAt)
-                    }
-                    .disabled(!model.loaded || model.saving)
-                    if let saveError = model.saveError {
-                        Text(saveError).font(.footnote).foregroundStyle(.red).textSelection(.enabled)
-                    }
-                }
-                Section {
-                    Button("Sign out", role: .destructive) {
-                        let auth = auth
-                        Task { await auth.signOut() }
-                    }
-                }
             }
             .navigationTitle("Profile")
             .task {
@@ -119,6 +62,10 @@ struct ProfileView: View {
                 await model.load(api: api)
             }
             .refreshable { await model.load(api: api) }
+            // Auto-save: any edit to an editable field changes the snapshot; the model debounces + guards so only real edits persist.
+            .onChange(of: model.formSnapshot) { _, _ in
+                model.scheduleAutoSave(api: api)
+            }
         }
     }
 }

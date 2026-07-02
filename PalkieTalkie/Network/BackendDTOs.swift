@@ -82,15 +82,13 @@ struct WebFetchDTO: Codable {
     let content: String
 }
 
-/// The user's here-and-now, assembled client-side and partially sent on `/conversation/start`. Not a server payload component: only `lat`/`lon`/`topic_override` cross the wire (see `startConversation`); the rest is re-derived server-side from the stored profile + integrations.
+/// The user's here-and-now, assembled client-side and partially sent on `/conversation/start`. Carries the device GPS fix and reverse-geocoded city alongside the clock + calendar. Not a server payload component: only `topic_override` crosses the wire (see `startConversation`); the rest (including location/city) is kept client-side for a future feature and re-derived server-side from the stored profile + integrations.
 struct ConversationContext: Codable {
     let localISOTime: String
     let timezone: String
     let lat: Double?
     let lon: Double?
     let city: String?
-    let weatherDescription: String?
-    let temperatureC: Double?
     let calendarEvents: [CalendarEventDTO]
 }
 

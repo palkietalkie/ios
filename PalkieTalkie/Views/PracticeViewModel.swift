@@ -1,5 +1,8 @@
 import Foundation
 import Observation
+import OSLog
+
+private let logger = Logger(subsystem: "com.palkietalkie", category: "practice")
 
 /// View-model for `PracticeView`. Owns target / level / goals state + load/save business logic so each can be unit-tested without rendering SwiftUI.
 @MainActor
@@ -13,6 +16,7 @@ final class PracticeViewModel {
     var targetAccents: Set<String> = []
     var proficiency: String = "intermediate"
     var tutorSpeakingSpeed: String = "normal"
+    var correctionFrequency: String = "sometimes"
     // Goals: multi-select preset slugs + free-text "Other", same shape as onboarding (see GoalsCodec). Parsed from / joined into the single `users.goals` TEXT.
     var selectedGoals: Set<String> = []
     var otherGoal: String = ""
@@ -24,6 +28,28 @@ final class PracticeViewModel {
     var saveError: String?
     var didInitialLoad: Bool = false
 
+    /// Snapshot of the editable fields. Equatable so the view `.onChange`s on it and the model tells a real edit from a programmatic load/re-load (see scheduleAutoSave).
+    struct FormSnapshot: Equatable {
+        let targetLanguage: String
+        let targetAccents: Set<String>
+        let proficiency: String
+        let tutorSpeakingSpeed: String
+        let correctionFrequency: String
+        let selectedGoals: Set<String>
+        let otherGoal: String
+    }
+
+    var formSnapshot: FormSnapshot {
+        FormSnapshot(
+            targetLanguage: targetLanguage, targetAccents: targetAccents,
+            proficiency: proficiency, tutorSpeakingSpeed: tutorSpeakingSpeed,
+            correctionFrequency: correctionFrequency,
+            selectedGoals: selectedGoals, otherGoal: otherGoal,
+        )
+    }
+
+    private let autoSaver = AutoSaver<FormSnapshot>()
+
     init() {
         languages = JSONCache.load([LanguageDTO].self, key: Self.languagesKey) ?? []
         practiceOptions = JSONCache.load(PracticeOptionsDTO.self, key: Self.practiceOptionsKey)
@@ -32,9 +58,11 @@ final class PracticeViewModel {
             targetAccents = Set(cached.targetAccents)
             proficiency = cached.proficiency
             tutorSpeakingSpeed = cached.tutorSpeakingSpeed
+            correctionFrequency = cached.correctionFrequency
             applyGoals(cached.goals ?? "")
             loaded = true
         }
+        autoSaver.markSaved(formSnapshot)
     }
 
     var accentsForTargetLanguage: [String] {
@@ -78,12 +106,15 @@ final class PracticeViewModel {
             targetAccents = Set(profile.targetAccents)
             proficiency = profile.proficiency
             tutorSpeakingSpeed = profile.tutorSpeakingSpeed
+            correctionFrequency = profile.correctionFrequency
             applyGoals(profile.goals ?? "")
             JSONCache.save(profile, key: Self.profileKey)
             loaded = true
             saveError = nil
+            autoSaver.markSaved(formSnapshot)
         } catch {
-            saveError = error.localizedDescription
+            // Only the LOAD/refresh is render-then-refresh; the save path below still surfaces its errors (it's an action, not a read).
+            saveError = contentRefreshError(error, refreshing: "practice", log: logger)
         }
     }
 
@@ -98,6 +129,7 @@ final class PracticeViewModel {
             targetAccents: targetAccents.isEmpty ? nil : Array(targetAccents),
             proficiency: proficiency,
             tutorSpeakingSpeed: tutorSpeakingSpeed,
+            correctionFrequency: correctionFrequency,
             goals: joinGoals(presets: goalPresets, selected: selectedGoals, other: otherGoal),
             locationCity: nil,
             timezone: TimeZone.current.identifier,
@@ -106,9 +138,17 @@ final class PracticeViewModel {
             _ = try await api.updateProfile(update)
             saveError = nil
             savedAt = Date()
+            autoSaver.markSaved(formSnapshot)
             await load(api: api)
         } catch {
             saveError = error.localizedDescription
+        }
+    }
+
+    /// Auto-save on edit (replaces the off-screen Save button). Debounced + guarded so only a real user change persists; a programmatic load and save's own re-load leave snapshot == lastSavedSnapshot and no-op, so there's no save loop. Call from the view's `.onChange(of: model.formSnapshot)`.
+    func scheduleAutoSave(api: BackendAPI, debounce: Duration = .seconds(1)) {
+        autoSaver.schedule(current: formSnapshot, loaded: loaded, debounce: debounce) { [weak self] in
+            await self?.save(api: api)
         }
     }
 

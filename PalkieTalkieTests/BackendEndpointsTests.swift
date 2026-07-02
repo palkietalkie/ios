@@ -144,13 +144,14 @@ final class BackendEndpointsTests: XCTestCase {
     func testGetPracticeOptions() async throws {
         let transport = FakeTransport()
         let raw = """
-        {"proficiency":["beginner","intermediate","advanced"],"tutor_speaking_speed":["slow","normal","fast"],"goals":["everyday_conversation","work_meetings"]}
+        {"proficiency":["beginner","intermediate","advanced"],"tutor_speaking_speed":["slow","normal","fast"],"tutor_speaking_speed_rates":{"slow":0.85,"normal":1.0,"fast":1.15},"correction_frequency":["never","rarely","sometimes","often","always"],"correction_frequency_percent":{"never":0,"rarely":25,"sometimes":50,"often":75,"always":100},"correction_frequency_default_by_proficiency":{"intermediate":"sometimes"},"goals":["everyday_conversation","work_meetings"]}
         """
         transport.responseData = Data(raw.utf8)
         let api = makeAPI(transport: transport)
         let opts = try await api.getPracticeOptions()
         XCTAssertEqual(opts.proficiency, ["beginner", "intermediate", "advanced"])
         XCTAssertEqual(opts.tutorSpeakingSpeed, ["slow", "normal", "fast"])
+        XCTAssertEqual(opts.tutorSpeakingSpeedRates, ["slow": 0.85, "normal": 1.0, "fast": 1.15])
         XCTAssertEqual(opts.goals, ["everyday_conversation", "work_meetings"])
     }
 
@@ -183,6 +184,31 @@ final class BackendEndpointsTests: XCTestCase {
         let body = try XCTUnwrap(transport.lastRequest?.httpBody)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
         XCTAssertEqual(json["product_improvement"] as? Bool, true)
+    }
+
+    func testGetNotificationPrefs() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data(#"{"reminders_enabled":false,"reminder_hour_local":8}"#.utf8)
+        let api = makeAPI(transport: transport)
+        let prefs = try await api.getNotificationPrefs()
+        XCTAssertEqual(transport.lastRequest?.url?.path, "/notification-prefs")
+        XCTAssertFalse(prefs.remindersEnabled)
+        XCTAssertEqual(prefs.reminderHourLocal, 8)
+    }
+
+    func testSetNotificationPrefsPUT() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data(#"{"reminders_enabled":true,"reminder_hour_local":9}"#.utf8)
+        let api = makeAPI(transport: transport)
+        _ = try await api.setNotificationPrefs(
+            NotificationPrefsUpdate(remindersEnabled: true, reminderHourLocal: 9),
+        )
+        XCTAssertEqual(transport.lastRequest?.httpMethod, "PUT")
+        XCTAssertEqual(transport.lastRequest?.url?.path, "/notification-prefs")
+        let body = try XCTUnwrap(transport.lastRequest?.httpBody)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["reminders_enabled"] as? Bool, true)
+        XCTAssertEqual(json["reminder_hour_local"] as? Int, 9)
     }
 
     // MARK: - Stats
@@ -219,7 +245,7 @@ final class BackendEndpointsTests: XCTestCase {
     func testGetEntitlement() async throws {
         let transport = FakeTransport()
         let raw = """
-        {"is_premium":false,"free_minutes_remaining_today":7,"free_minutes_remaining_this_week":18,"free_minutes_per_day_cap":10,"free_minutes_per_week_cap":30,"premium_ends_at":null}
+        {"is_premium":false,"trial_active":true,"trial_ends_at":"2026-07-30T00:00:00Z","free_minutes_remaining_today":7,"free_minutes_remaining_this_week":18,"free_minutes_per_day_cap":10,"free_minutes_per_week_cap":30,"premium_ends_at":null}
         """
         transport.responseData = Data(raw.utf8)
         let api = makeAPI(transport: transport)
@@ -339,6 +365,7 @@ final class BackendEndpointsTests: XCTestCase {
             targetAccents: ["American"],
             proficiency: "intermediate",
             tutorSpeakingSpeed: "normal",
+            correctionFrequency: "sometimes",
             goals: nil,
             locationCity: nil,
             timezone: nil,
@@ -353,7 +380,7 @@ final class BackendEndpointsTests: XCTestCase {
             preferredName: "Wes", namePronunciation: nil,
             nativeLanguages: ["Japanese"], targetLanguage: "English",
             targetAccents: ["American", "British"], proficiency: nil, tutorSpeakingSpeed: nil,
-            goals: nil, locationCity: nil, timezone: nil,
+            correctionFrequency: nil, goals: nil, locationCity: nil, timezone: nil,
         )
         _ = try await api.updateProfile(update)
         XCTAssertEqual(transport.lastRequest?.httpMethod, "PATCH")
@@ -418,6 +445,48 @@ final class BackendEndpointsTests: XCTestCase {
         let props = try XCTUnwrap(json["props"] as? [String: Any])
         XCTAssertEqual(props["laugh"] as? Int, 3)
         XCTAssertEqual(props["sigh"] as? Int, 2)
+    }
+
+    func testRecordToolCallPostsNameQueryAndSession() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data("{}".utf8)
+        let api = makeAPI(transport: transport)
+        try await api.recordToolCall(sessionId: "S-12", name: "recall_facts", query: "wes")
+        XCTAssertEqual(transport.lastRequest?.url?.path, "/events")
+        let body = try XCTUnwrap(transport.lastRequest?.httpBody)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["event_type"] as? String, "tool_call")
+        let props = try XCTUnwrap(json["props"] as? [String: Any])
+        XCTAssertEqual(props["name"] as? String, "recall_facts")
+        XCTAssertEqual(props["query"] as? String, "wes")
+        XCTAssertEqual(props["session_id"] as? String, "S-12")
+    }
+
+    func testRecordToolCallWithoutQueryOmitsIt() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data("{}".utf8)
+        let api = makeAPI(transport: transport)
+        try await api.recordToolCall(sessionId: "S-13", name: "end_conversation", query: nil)
+        let body = try XCTUnwrap(transport.lastRequest?.httpBody)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["event_type"] as? String, "tool_call")
+        let props = try XCTUnwrap(json["props"] as? [String: Any])
+        XCTAssertEqual(props["name"] as? String, "end_conversation")
+        XCTAssertNil(props["query"] as? String, "end_conversation carries no query, so none is sent")
+    }
+
+    func testRecordSessionEndPostsReasonAndSession() async throws {
+        let transport = FakeTransport()
+        transport.responseData = Data("{}".utf8)
+        let api = makeAPI(transport: transport)
+        try await api.recordSessionEnd(sessionId: "S-14", reason: "tool")
+        XCTAssertEqual(transport.lastRequest?.url?.path, "/events")
+        let body = try XCTUnwrap(transport.lastRequest?.httpBody)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["event_type"] as? String, "session_ended")
+        let props = try XCTUnwrap(json["props"] as? [String: Any])
+        XCTAssertEqual(props["reason"] as? String, "tool")
+        XCTAssertEqual(props["session_id"] as? String, "S-14")
     }
 
     // MARK: - Integrations

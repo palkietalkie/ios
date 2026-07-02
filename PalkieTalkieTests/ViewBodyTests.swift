@@ -26,9 +26,8 @@ final class ViewBodyTests: XCTestCase {
         SessionController(
             context: FakeContextGatherer(context: ConversationContext(
                 localISOTime: "2026-01-01T00:00:00Z",
-                timezone: "UTC", lat: nil, lon: nil,
-                city: nil, weatherDescription: nil, temperatureC: nil,
-                calendarEvents: [],
+                timezone: "UTC",
+                lat: nil, lon: nil, city: nil, calendarEvents: [],
             )),
             backend: FakeConversationBackend(
                 startResponse: StartResponse(
@@ -57,6 +56,17 @@ final class ViewBodyTests: XCTestCase {
 
     func testConversationViewBody() {
         host(ConversationView().environment(makeSessionController()))
+    }
+
+    /// Drive the `.task` rating-gate branch: with enough cumulative conversation and no prior prompt, opening Talk should take the "show the rating prompt" path (and defer the session) rather than immediately starting a session.
+    func testConversationViewTakesRatingPromptBranchAfterEnoughMinutes() async {
+        let key = "totalConversationSeconds"
+        let prev = UserDefaults.standard.integer(forKey: key)
+        UserDefaults.standard.set(4000, forKey: key) // ~66 min, over RatingPolicy.firstAskMinutes
+        UserDefaults.standard.set(0.0, forKey: "ratingLastPromptedAt")
+        await hostAndPump(ConversationView().environment(makeSessionController()))
+        UserDefaults.standard.set(prev, forKey: key)
+        UserDefaults.standard.removeObject(forKey: "ratingLastPromptedAt")
     }
 
     func testTalkAboutTodayViewBody() {
@@ -119,6 +129,17 @@ final class ViewBodyTests: XCTestCase {
 
     func testOnboardingViewBody() {
         host(OnboardingView(onContinue: {}))
+    }
+
+    func testRatingPromptViewBody() {
+        host(RatingPromptView(onRate: { _, _ in }, onDismiss: {}))
+    }
+
+    func testRatingPromptViewCommentBoxBody() {
+        // Pre-pick a star so the comment box + Send branch renders during the body walk.
+        let model = RatingPromptViewModel(onRate: { _, _ in }, onDismiss: {})
+        model.selectStar(2)
+        host(RatingPromptView(model: model))
     }
 
     func testPersonaCustomizeViewCreateBody() {

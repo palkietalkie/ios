@@ -9,21 +9,34 @@ final class MorePanelViewTests: XCTestCase {
     /// Every expected sub-screen entry must be reachable as a `NavigationLink` whose label contains the expected text. We use `find(navigationLink:)` per label rather than `findAll` because findAll recurses into the destination subtrees (e.g. IntegrationsView's inner rows), polluting any structural count.
     func testMorePanelHasNavigationLinkForEachExpectedLabel() throws {
         let sut = MorePanelView()
-        let expectedLabels = [
+        var expectedLabels = [
             "Profile",
             "Practice",
             "Integrations",
             "Privacy & Data",
             "Display language",
             "Past conversations",
-            "Subscription",
         ]
+        // Subscription is gated on the IAP flag — only advertised when paid tiers are live.
+        if FeatureFlags.subscriptionsEnabled {
+            expectedLabels.append("Subscription")
+        }
         for label in expectedLabels {
             XCTAssertNoThrow(
                 try sut.inspect().find(navigationLink: label),
                 "expected a NavigationLink labeled '\(label)' in MorePanelView. If this fails, a sub-screen entry was removed, its label changed, or its NavigationLink wrapping was lost — which is the bug pattern that broke taps twice before.",
             )
         }
+    }
+
+    /// When subscriptions are gated off, the Subscription entry must NOT appear — a visible link to purchasable tiers that StoreKit can't load is exactly the App Review 2.1(b) failure we're avoiding.
+    func testSubscriptionLinkHiddenWhenSubscriptionsDisabled() throws {
+        try XCTSkipIf(FeatureFlags.subscriptionsEnabled, "only meaningful while subscriptions are gated off")
+        let sut = MorePanelView()
+        XCTAssertThrowsError(
+            try sut.inspect().find(navigationLink: "Subscription"),
+            "Subscription link must be absent while subscriptions are disabled",
+        )
     }
 
     /// Sign out is a Button, not a NavigationLink. Lock it in separately so a future refactor can't quietly drop it.

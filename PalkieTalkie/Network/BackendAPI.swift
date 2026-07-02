@@ -53,9 +53,11 @@ final class BackendAPI: @unchecked Sendable {
 
     // MARK: - Public transport surface (used by BackendEndpoints)
 
-    func get<T: Decodable>(_ path: String) async throws -> T {
+    func get<T: Decodable>(_ path: String, timeout: TimeInterval? = nil) async throws -> T {
         var request = URLRequest(url: urlForPath(path))
         request.httpMethod = "GET"
+        // Per-request override of the session's default (15s). A few reads sit behind a service that scales to zero (AuraDB for /kg) and legitimately need longer to wait out a cold start rather than surface a "request timed out".
+        if let timeout { request.timeoutInterval = timeout }
         try await attachAuth(&request)
         return try await execute(request)
     }
@@ -70,10 +72,12 @@ final class BackendAPI: @unchecked Sendable {
     }
 
     /// Raw-bytes POST. Used by session-audio upload: the body is a gzipped wav, not JSON. Caller sets Content-Type (e.g. "audio/wav+gzip") so the backend can record the format for later decode.
-    func postRaw(_ path: String, body: Data, contentType: String) async throws {
+    func postRaw(_ path: String, body: Data, contentType: String, timeout: TimeInterval? = nil) async throws {
         var request = URLRequest(url: urlForPath(path))
         request.httpMethod = "POST"
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        // Raises this request's STALL timeout (max gap between bytes) above the 15s hot-path default so a brief pause on a flaky uplink doesn't kill a long audio upload. The TOTAL-duration ceiling is a separate session-level setting (timeoutIntervalForResource in AppEnvironment) that can't be overridden per request — that's the one that actually has to clear a multi-MB upload.
+        if let timeout { request.timeoutInterval = timeout }
         try await attachAuth(&request)
         request.httpBody = body
         _ = try await executeRaw(request)

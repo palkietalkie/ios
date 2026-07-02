@@ -51,9 +51,8 @@ final class ViewSuccessPathTests: XCTestCase {
         SessionController(
             context: FakeContextGatherer(context: ConversationContext(
                 localISOTime: "2026-01-01T00:00:00Z",
-                timezone: "UTC", lat: nil, lon: nil,
-                city: nil, weatherDescription: nil, temperatureC: nil,
-                calendarEvents: [],
+                timezone: "UTC",
+                lat: nil, lon: nil, city: nil, calendarEvents: [],
             )),
             backend: FakeConversationBackend(
                 startResponse: StartResponse(
@@ -212,6 +211,7 @@ final class ViewSuccessPathTests: XCTestCase {
             targetAccents: ["US"],
             proficiency: "intermediate",
             tutorSpeakingSpeed: "normal",
+            correctionFrequency: "sometimes",
             goals: "casual fluency",
             locationCity: "SF",
             timezone: "America/Los_Angeles",
@@ -220,6 +220,10 @@ final class ViewSuccessPathTests: XCTestCase {
         let practiceOptions = PracticeOptionsDTO(
             proficiency: ["beginner", "intermediate", "advanced"],
             tutorSpeakingSpeed: ["slow", "normal", "fast"],
+            tutorSpeakingSpeedRates: [:],
+            correctionFrequency: [],
+            correctionFrequencyPercent: [:],
+            correctionFrequencyDefaultByProficiency: [:],
             goals: ["travel", "job_interview"],
         )
         let kg = KGGraphDTO(
@@ -347,6 +351,7 @@ final class ViewSuccessPathTests: XCTestCase {
             targetAccents: ["US"],
             proficiency: "intermediate",
             tutorSpeakingSpeed: "normal",
+            correctionFrequency: "sometimes",
             goals: nil,
             locationCity: nil,
             timezone: nil,
@@ -384,6 +389,7 @@ final class ViewSuccessPathTests: XCTestCase {
             targetAccents: [],
             proficiency: "intermediate",
             tutorSpeakingSpeed: "normal",
+            correctionFrequency: "sometimes",
             goals: nil,
             locationCity: nil,
             timezone: nil,

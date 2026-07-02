@@ -35,6 +35,8 @@ extension SessionController {
         endedOnFreeCapLimit = true
         reviewLastTranscript = true
         freeCapLimitKind = kind
+        // Speak the "nice work" line exactly once — here, at the moment the cap fires. The limit screen re-appears every time the user returns to the Talk tab while still capped; gating the announcement on this one-shot flag (consumed by FreeCapLimitView on first appear) stops it replaying on every revisit.
+        freeCapAnnouncementPending = true
         // Local notification covers the backgrounded case (screen off on a walk), where the in-app card is invisible.
         notifyFreeCapReached(isWeekly: kind == "weekly")
         await end()

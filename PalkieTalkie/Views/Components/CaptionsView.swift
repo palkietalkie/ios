@@ -60,9 +60,34 @@ struct CaptionsToggle: View {
     }
 }
 
-/// Scrolling transcript area. Auto-scrolls to the latest line when new chunks arrive.
+/// CC-style toggle for romanizing non-Latin captions (romaji for Japanese, pinyin for Chinese, etc.). Shown only when the transcript actually contains a non-Latin script, so a Spanish learner never sees a control that would do nothing. "ABC" letters mirror the CC button's literal-glyph styling; the meaning ("show captions in Latin letters") is carried by the accessibility label, which localizes.
+struct CaptionsRomanizeToggle: View {
+    @Binding var romanized: Bool
+
+    var body: some View {
+        Button {
+            romanized.toggle()
+        } label: {
+            Text(verbatim: "ABC")
+                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                .tracking(0.5)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .foregroundStyle(CaptionsToggle.foreground(enabled: romanized))
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(CaptionsToggle.fill(enabled: romanized)),
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(romanized ? "Show captions in the original script" : "Show captions in Latin letters")
+    }
+}
+
+/// Scrolling transcript area. Auto-scrolls to the latest line when new chunks arrive. When `romanized` is on, each line is transliterated to Latin (romaji / pinyin) on the fly; the underlying transcript is untouched.
 struct CaptionsScroll: View {
     let transcript: [TranscriptChunk]
+    var romanized: Bool = false
 
     var body: some View {
         let merged = mergedCaptions(transcript)
@@ -70,7 +95,7 @@ struct CaptionsScroll: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12) {
                     ForEach(merged) { line in
-                        Text(line.text)
+                        Text(romanized ? romanize(line.text) : line.text)
                             .font(.body)
                             .foregroundStyle(line.speaker == .user ? .blue : .primary)
                             .frame(maxWidth: .infinity, alignment: .leading)

@@ -59,14 +59,10 @@ final class SessionCollaboratorsTests: XCTestCase {
         XCTAssertNotNil(first, "DefaultNetworkPathMonitor must yield at least one path status within 3s")
     }
 
-    /// The provider factories must produce working clients so SessionController's per-provider wiring compiles and runs. Construct each and assert it yields a usable instance.
+    /// The PersonaPlex session factory must produce a working session so SessionController's wiring compiles and runs. (OpenAI is constructed directly as a WebRTC client, no factory.)
     func testProviderFactoriesProduceClients() {
         let plex: any PersonaPlexSessionFactory = DefaultPersonaPlexSessionFactory()
         let session: PersonaPlexSessionType = plex.makeSession()
         _ = session
-
-        let openai: any OpenAIRealtimeClientFactory = DefaultOpenAIRealtimeClientFactory()
-        let client: RealtimeClient = openai.makeClient(instructions: "be a friend")
-        _ = client
     }
 }

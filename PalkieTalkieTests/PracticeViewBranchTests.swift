@@ -37,6 +37,10 @@ final class PracticeViewBranchTests: XCTestCase {
         try transport.enqueue(path: "/practice/options", data: Self.encode(PracticeOptionsDTO(
             proficiency: ["beginner", "lower_intermediate", "intermediate", "upper_intermediate", "advanced"],
             tutorSpeakingSpeed: ["very_slow", "slow", "normal", "fast", "very_fast"],
+            tutorSpeakingSpeedRates: ["very_slow": 0.7, "slow": 0.85, "normal": 1.0, "fast": 1.15, "very_fast": 1.3],
+            correctionFrequency: [],
+            correctionFrequencyPercent: [:],
+            correctionFrequencyDefaultByProficiency: [:],
             goals: ["everyday_conversation", "travel", "dating_relationships"],
         )))
         let api = makeAPI(transport)
@@ -56,6 +60,7 @@ final class PracticeViewBranchTests: XCTestCase {
             targetAccents: [], // empty → "Choose…" branch
             proficiency: p.proficiency,
             tutorSpeakingSpeed: p.tutorSpeakingSpeed,
+            correctionFrequency: p.correctionFrequency,
             goals: p.goals,
             locationCity: p.locationCity,
             timezone: p.timezone,
@@ -69,6 +74,10 @@ final class PracticeViewBranchTests: XCTestCase {
             data: Self.encode(PracticeOptionsDTO(
                 proficiency: ["intermediate"],
                 tutorSpeakingSpeed: ["normal"],
+                tutorSpeakingSpeedRates: [:],
+                correctionFrequency: [],
+                correctionFrequencyPercent: [:],
+                correctionFrequencyDefaultByProficiency: [:],
                 goals: [],
             )),
         )
@@ -86,6 +95,7 @@ final class PracticeViewBranchTests: XCTestCase {
         targetAccents: ["US General"],
         proficiency: "intermediate",
         tutorSpeakingSpeed: "normal",
+        correctionFrequency: "sometimes",
         goals: "Job interview prep",
         locationCity: "San Francisco",
         timezone: TimeZone.current.identifier,

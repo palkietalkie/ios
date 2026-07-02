@@ -1,8 +1,8 @@
 import Foundation
 
-/// Provider-agnostic realtime client surface. Both `PersonaPlexSession` (binary Ogg-Opus frames over WS to Modal) and `OpenAIRealtimeClient` (JSON event frames over WS to api.openai.com) conform to this.
+/// Provider-agnostic realtime client surface. Both `PersonaPlexSession` (binary Ogg-Opus frames over WS to Modal) and `OpenAIWebRTCClient` (Opus media over WebRTC to OpenAI, JSON events on a data channel) conform to this.
 ///
-/// The audio bytes flowing through `send(audio:)` and `inboundAudio` are protocol-specific (wrapped Ogg-Opus pages for PersonaPlex, raw 24kHz mono PCM16 samples for OpenAI). `SessionController` keeps the audio path provider-aware via the protocol implementation; the orchestrator itself only sees the unified surface.
+/// Audio is provider-specific: PersonaPlex pushes/pulls wrapped Ogg-Opus pages through `send(audio:)` / `inboundAudio`, while the OpenAI WebRTC client carries media on its own peer connection and leaves those byte methods as no-ops. `SessionController` keeps the audio path provider-aware via the protocol implementation; the orchestrator itself only sees the unified surface.
 protocol RealtimeClient: AnyObject, Sendable {
     func open(wsUrl: String, ephemeralToken: String?) async throws
     func close() async
@@ -14,6 +14,8 @@ protocol RealtimeClient: AnyObject, Sendable {
     var inboundAudio: AsyncStream<Data> { get async }
     var transcript: AsyncStream<TranscriptChunk> { get async }
     var errors: AsyncStream<String> { get async }
+    /// Emits the error description when the transport dies UNEXPECTEDLY — the recv loop caught a socket/network error (e.g. NSPOSIXErrorDomain 57 "Socket is not connected", NSURLErrorDomain -1009 offline), as opposed to a clean `close()`. SessionController treats this as RECOVERABLE and reconnects, unlike `errors` (server-side app errors) which are terminal. NWPathMonitor alone misses this: a wifi→cellular handoff drops the socket while the path stays "online". Default is a no-op stream for providers/doubles that don't surface it.
+    var disconnected: AsyncStream<String> { get async }
     /// Emits when the server reports the user has started speaking — iOS should stop playing queued AI audio so the cancellation feels immediate. PersonaPlex handles barge-in server-side via Inner Monologue (its WS just stops sending audio frames); for that path this stream is silent.
     var bargeIn: AsyncStream<Void> { get async }
 
@@ -28,6 +30,9 @@ protocol RealtimeClient: AnyObject, Sendable {
 
     /// Cumulative realtime token usage for the session so far, summed from the provider's usage reports (OpenAI `response.done`). SessionController reads this at session end and reports it to the backend for cost analysis. Zero for providers that don't expose token usage (PersonaPlex bills through Modal).
     var usage: RealtimeUsage { get async }
+
+    /// Live tutor output amplitude (0…1) for the Talk-view waveform, read synchronously per frame. The WS/PersonaPlex paths measure it in the AudioStreamer; the WebRTC path (which bypasses AudioStreamer) surfaces it here from its own inbound-audio stats. Default 0 for doubles / providers that don't measure it.
+    var outputLevel: Float { get }
 }
 
 /// Summed realtime token usage across one session (OpenAI `response.done.usage`). Reported to the backend at session end; the backend stores it on the session row.
@@ -60,8 +65,12 @@ struct TranscriptChunk: Identifiable {
     }
 }
 
-/// Defaults so providers without function calling (PersonaPlex) and test doubles don't each need to implement the tool surface. OpenAIRealtimeClient overrides both.
+/// Defaults so providers without function calling (PersonaPlex) and test doubles don't each need to implement the tool surface. OpenAIWebRTCClient overrides both.
 extension RealtimeClient {
+    var disconnected: AsyncStream<String> {
+        get async { AsyncStream { $0.finish() } }
+    }
+
     var toolCalls: AsyncStream<ToolCall> {
         get async { AsyncStream { $0.finish() } }
     }
@@ -70,5 +79,9 @@ extension RealtimeClient {
 
     var usage: RealtimeUsage {
         get async { .zero }
+    }
+
+    var outputLevel: Float {
+        0
     }
 }

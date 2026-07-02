@@ -1,12 +1,17 @@
 import AVFoundation
 import SwiftUI
 
-/// Full-screen cover shown over the Talk view when a session ended on the free-plan cap. It names which window ran out (today vs this week, because the weekly block lasts until Monday and must read differently), speaks the same line aloud, and offers an upgrade. "Not now" dismisses it back to the Talk view, where the last transcript stays visible (the controller keeps showing it after a cap).
+/// Full-screen cover shown over the Talk view when a session ended on the free-plan cap. It names which window ran out (today vs this week, because the weekly block lasts until Monday and must read differently), speaks the same line aloud, and offers an upgrade when one is available. "Not now" dismisses it back to the Talk view, where the last transcript stays visible (the controller keeps showing it after a cap).
 @MainActor
 struct FreeCapLimitView: View {
     /// "daily" or "weekly" from the backend; anything else falls back to the daily wording.
     let limitKind: String?
-    let onUpgrade: () -> Void
+    /// True only the FIRST time the cover is shown for a given cap. The cover re-appears every time the user returns to the Talk tab while still capped; speaking the line on every appear was the bug, so the one-shot lives on the controller and the view speaks only when told to.
+    let shouldAnnounce: Bool
+    /// Called right after the line is spoken so the controller can clear its one-shot flag.
+    let onAnnounced: () -> Void
+    /// nil when there's no paid tier to upgrade to (subscriptions gated off): the cover then just celebrates + states the reset, with no upgrade button or upgrade copy. Non-nil wires the "Upgrade" button.
+    let onUpgrade: (() -> Void)?
     let onDismiss: () -> Void
 
     private var isWeekly: Bool {
@@ -36,9 +41,14 @@ struct FreeCapLimitView: View {
     }
 
     private var detail: LocalizedStringKey {
-        isWeekly
-            ? "You've made the most of this week's free practice. It refreshes Monday, or upgrade for unlimited anytime."
-            : "You've made the most of today's free practice. It refreshes tomorrow, or upgrade for unlimited anytime."
+        if onUpgrade == nil {
+            return isWeekly
+                ? "That's your free practice for this week. Come back Monday, I'll be here!"
+                : "That's your free practice for today. Come back tomorrow, I'll be here!"
+        }
+        return isWeekly
+            ? "That's your free practice for this week. Come back Monday, or go unlimited anytime."
+            : "That's your free practice for today. Come back tomorrow, or go unlimited anytime."
     }
 
     var body: some View {
@@ -53,17 +63,23 @@ struct FreeCapLimitView: View {
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            Button(action: onUpgrade) {
-                Text("Upgrade").frame(maxWidth: .infinity)
+            if let onUpgrade {
+                Button(action: onUpgrade) {
+                    Text("Upgrade").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
             Button("Not now", action: onDismiss)
                 .font(.subheadline)
         }
         .padding(32)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.ultraThinMaterial)
-        .onAppear { Self.announce(isWeekly: isWeekly) }
+        .onAppear {
+            guard shouldAnnounce else { return }
+            Self.announce(isWeekly: isWeekly)
+            onAnnounced()
+        }
     }
 }

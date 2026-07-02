@@ -201,31 +201,44 @@ struct OnboardingView: View {
                 }
             }
         case .proficiency:
-            StepScaffold(
-                title: "What's your level?",
+            refinementStep(
+                "What's your level?",
                 why: "So your tutor pitches the conversation to the right level.",
-            ) {
-                ChoiceList(
-                    options: model.practiceOptions?.proficiency ?? [],
-                    isSelected: { model.proficiency == $0 },
-                    display: formatSlugLabel,
-                ) {
-                    model.pickProficiency($0)
-                }
-            }
+                options: model.practiceOptions?.proficiency ?? [],
+                isSelected: { model.proficiency == $0 },
+                display: formatSlugLabel,
+                onPick: model.pickProficiency,
+            )
         case .speed:
-            StepScaffold(
-                title: "How fast should your tutor speak?",
+            refinementStep(
+                "How fast should your tutor speak?",
                 why: "Slower is easier to follow; faster pushes you.",
-            ) {
-                ChoiceList(
-                    options: model.practiceOptions?.tutorSpeakingSpeed ?? [],
-                    isSelected: { model.tutorSpeakingSpeed == $0 },
-                    display: formatSlugLabel,
-                ) {
-                    model.pickSpeed($0)
-                }
-            }
+                options: model.practiceOptions?.tutorSpeakingSpeed ?? [],
+                isSelected: { model.tutorSpeakingSpeed == $0 },
+                // Append the backend-sourced rate ("Slow · 0.85×") so the concrete number disambiguates slow vs very slow.
+                display: { slug in
+                    guard let rate = model.practiceOptions?.tutorSpeakingSpeedRates[slug] else {
+                        return formatSlugLabel(slug)
+                    }
+                    return "\(formatSlugLabel(slug)) · \(formatSpeedRate(rate))"
+                },
+                onPick: model.pickSpeed,
+            )
+        case .correction:
+            refinementStep(
+                "How often should your tutor correct you?",
+                why: "More correction sharpens accuracy; less keeps the conversation flowing.",
+                options: model.practiceOptions?.correctionFrequency ?? [],
+                isSelected: { model.correctionFrequency == $0 },
+                // Append the backend-sourced % ("Sometimes · 50%") so the level's density is concrete.
+                display: { slug in
+                    guard let pct = model.practiceOptions?.correctionFrequencyPercent[slug] else {
+                        return formatSlugLabel(slug)
+                    }
+                    return "\(formatSlugLabel(slug)) · \(pct)%"
+                },
+                onPick: model.pickCorrection,
+            )
         case .goals:
             StepScaffold(
                 title: "What are you practicing for?",
@@ -249,20 +262,62 @@ struct OnboardingView: View {
                 why: "Here's how your first conversation works.",
             ) {
                 VStack(alignment: .leading, spacing: 16) {
-                    Label(
-                        "Your tutor speaks first, you don't need to say anything to begin.",
-                        systemImage: "speaker.wave.2.fill",
-                    )
-                    Label("Listen, then reply out loud whenever you're ready.", systemImage: "mic.fill")
-                    Label(
-                        "No buttons to press, just talk, like a real conversation.",
-                        systemImage: "bubble.left.and.bubble.right.fill",
-                    )
+                    if let trialEndsAt = model.trialEndsAt {
+                        trialWelcomeCard(
+                            endsAt: trialEndsAt,
+                            dailyMinutes: model.postTrialDailyMinutes,
+                            weeklyMinutes: model.postTrialWeeklyMinutes,
+                        )
+                    }
+                    VStack(alignment: .leading, spacing: 16) {
+                        Label(
+                            "Your tutor speaks first, you don't need to say anything to begin.",
+                            systemImage: "speaker.wave.2.fill",
+                        )
+                        Label("Listen, then reply out loud whenever you're ready.", systemImage: "mic.fill")
+                        Label(
+                            "No buttons to press, just talk, like a real conversation.",
+                            systemImage: "bubble.left.and.bubble.right.fill",
+                        )
+                    }
+                    .font(.body)
+                    .padding(.top, 8)
                 }
-                .font(.body)
-                .padding(.top, 8)
             }
         }
+    }
+
+    /// A single-select refinement step (proficiency / speed / correction): each is a StepScaffold wrapping a ChoiceList over a practiceOptions list, differing only in copy, the option list, the per-row display formatter, and the pick handler.
+    private func refinementStep(
+        _ title: LocalizedStringKey,
+        why: LocalizedStringKey,
+        options: [String],
+        isSelected: @escaping (String) -> Bool,
+        display: @escaping (String) -> String,
+        onPick: @escaping (String) -> Void,
+    ) -> some View {
+        StepScaffold(title: title, why: why) {
+            ChoiceList(options: options, isSelected: isSelected, display: display) { onPick($0) }
+        }
+    }
+
+    /// First-month free-trial welcome, atop the getStarted primer. Achievement framing: the month is a gift, celebrate it, then state when it ends so the user expects the switch to the free plan rather than being surprised by the caps. The end date + daily cap come from /entitlement (the backend owns them) and are interpolated so the localized copy can't drift from what's enforced.
+    private func trialWelcomeCard(endsAt: Date, dailyMinutes: Int?, weeklyMinutes: Int?) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Your first month is on us", systemImage: "gift.fill")
+                .font(.headline)
+                .foregroundStyle(.tint)
+            Text("Talk as much as you want, with every feature, free until \(endsAt, format: .dateTime.month().day()).")
+                .font(.subheadline)
+            if let dailyMinutes, let weeklyMinutes {
+                Text("After that, the free plan is \(dailyMinutes) minutes a day, \(weeklyMinutes) a week.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(Color.brandCoral.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Footer: error + primary button
@@ -312,6 +367,8 @@ struct OnboardingView: View {
             Task {
                 await model.save(api: api)
                 if model.didSaveSuccessfully {
+                    // Load the trial card's date + caps before sliding the primer in, so it's populated when the step renders.
+                    await model.loadTrialInfo(api: api)
                     withAnimation(.easeInOut(duration: 0.3)) { _ = model.advanceStep() }
                 }
             }

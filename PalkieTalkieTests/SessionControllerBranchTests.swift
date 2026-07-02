@@ -12,9 +12,8 @@ final class SessionControllerBranchTests: XCTestCase {
     private func makeContext() -> ConversationContext {
         ConversationContext(
             localISOTime: "2026-01-01T00:00:00Z",
-            timezone: "UTC", lat: 0, lon: 0,
-            city: nil, weatherDescription: nil, temperatureC: nil,
-            calendarEvents: [],
+            timezone: "UTC",
+            lat: nil, lon: nil, city: nil, calendarEvents: [],
         )
     }
 
@@ -164,5 +163,35 @@ final class SessionControllerBranchTests: XCTestCase {
         controller.selectedPersonaId = stale
         await controller.start()
         XCTAssertEqual(controller.phase, .idle)
+    }
+
+    /// A 402 (free cap spent) must surface the limit screen, not a raw "HTTP 402" error. Bug: re-entering Talk after the cap dropped into .error with the raw body, which read as a dev error. It must go .idle + flag endedOnFreeCapLimit (so ConversationView shows FreeCapLimitView) and read free_limit_kind from the structured detail.
+    func testFreeCap402ShowsLimitScreenNotError() async {
+        let body = #"{"detail": {"free_limit_kind": "weekly", "message": "weekly free limit reached (30 min)."}}"#
+        let backend = FakeConversationBackend(
+            startResponse: StartResponse(
+                sessionId: "s", textPrompt: "", voiceId: "", wsUrl: "",
+                provider: "personaplex", ephemeralToken: nil,
+                freeSecondsRemaining: nil,
+                freeLimitKind: nil,
+            ),
+            endResponse: EndResponse(sessionId: "s", durationSeconds: 0),
+            startError: BackendError.http(402, body),
+        )
+        let controller = SessionController(
+            context: FakeContextGatherer(context: makeContext()),
+            backend: backend,
+            micPermission: StubMicPermission(shouldThrow: false),
+            streamerFactory: StubAudioStreamerFactory(streamer: FakeAudioStreamer()),
+            sessionFactory: StubSessionFactory(session: FakePersonaPlexSession()),
+        )
+        await controller.start()
+        XCTAssertEqual(controller.phase, .idle)
+        XCTAssertTrue(controller.endedOnFreeCapLimit)
+        XCTAssertEqual(controller.freeCapLimitKind, "weekly")
+        // Mark the window spent so returning to Talk re-shows the limit screen from local state (fixing the blank, silent idle mic the user hit after dismissing the cover) instead of firing another doomed /start.
+        XCTAssertTrue(controller.reviewLastTranscript)
+        // And arm the one-shot so the spoken line plays once, not on every revisit.
+        XCTAssertTrue(controller.freeCapAnnouncementPending)
     }
 }

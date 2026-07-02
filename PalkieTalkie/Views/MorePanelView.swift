@@ -20,9 +20,19 @@ struct MorePanelView: View {
                     Label("Practice", systemImage: "graduationcap.fill")
                 }
                 NavigationLink {
+                    KnowledgeGraphView()
+                } label: {
+                    Label("Knowledge Graph", systemImage: "brain")
+                }
+                NavigationLink {
                     IntegrationsView()
                 } label: {
                     Label("Integrations", systemImage: "link")
+                }
+                NavigationLink {
+                    NotificationSettingsView()
+                } label: {
+                    Label("Notifications", systemImage: "bell")
                 }
                 NavigationLink {
                     PrivacyDataView()
@@ -39,10 +49,12 @@ struct MorePanelView: View {
                 } label: {
                     Label("Past conversations", systemImage: "bubble.left.and.bubble.right")
                 }
-                NavigationLink {
-                    SubscriptionView()
-                } label: {
-                    Label("Subscription", systemImage: "creditcard")
+                if FeatureFlags.subscriptionsEnabled {
+                    NavigationLink {
+                        SubscriptionView()
+                    } label: {
+                        Label("Subscription", systemImage: "creditcard")
+                    }
                 }
                 Section {
                     Button(role: .destructive) {

@@ -98,7 +98,8 @@ final class OnboardingViewModelTests: XCTestCase {
                 email: nil, preferredName: "Wes", namePronunciation: nil,
                 namePronunciationSuggestion: nil, nativeLanguages: ["Japanese"],
                 targetLanguage: "English", targetAccents: ["US"], proficiency: "intermediate",
-                tutorSpeakingSpeed: "normal", goals: nil, locationCity: nil, timezone: nil,
+                tutorSpeakingSpeed: "normal", correctionFrequency: "sometimes", goals: nil, locationCity: nil,
+                timezone: nil,
             ),
         )
         let api = makeAPI(transport)
@@ -137,7 +138,8 @@ final class OnboardingViewModelTests: XCTestCase {
                 email: nil, preferredName: "Wes", namePronunciation: nil,
                 namePronunciationSuggestion: nil, nativeLanguages: ["Japanese"],
                 targetLanguage: "English", targetAccents: ["US"], proficiency: "advanced",
-                tutorSpeakingSpeed: "fast", goals: "travel", locationCity: nil, timezone: nil,
+                tutorSpeakingSpeed: "fast", correctionFrequency: "sometimes", goals: "travel", locationCity: nil,
+                timezone: nil,
             ),
         )
         let api = makeAPI(transport)
@@ -147,7 +149,15 @@ final class OnboardingViewModelTests: XCTestCase {
         vm.targetAccents = ["US"]
         vm.proficiency = "advanced"
         vm.tutorSpeakingSpeed = "fast"
-        vm.practiceOptions = PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: ["travel"])
+        vm.practiceOptions = PracticeOptionsDTO(
+            proficiency: [],
+            tutorSpeakingSpeed: [],
+            tutorSpeakingSpeedRates: [:],
+            correctionFrequency: [],
+            correctionFrequencyPercent: [:],
+            correctionFrequencyDefaultByProficiency: [:],
+            goals: ["travel"],
+        )
         vm.toggleGoal("travel")
         await vm.save(api: api)
         let sent = try decodeProfileUpdate(transport.lastRequest?.httpBody)
@@ -182,6 +192,7 @@ final class OnboardingViewModelTests: XCTestCase {
             targetAccents: ["US"],
             proficiency: "intermediate",
             tutorSpeakingSpeed: "normal",
+            correctionFrequency: "sometimes",
             goals: nil,
             locationCity: nil,
             timezone: nil,
@@ -208,6 +219,7 @@ final class OnboardingViewModelTests: XCTestCase {
             targetAccents: ["US"],
             proficiency: "advanced",
             tutorSpeakingSpeed: "fast",
+            correctionFrequency: "sometimes",
             goals: "work",
             locationCity: nil,
             timezone: nil,
@@ -220,7 +232,15 @@ final class OnboardingViewModelTests: XCTestCase {
         vm.proficiency = "advanced"
         vm.tutorSpeakingSpeed = "fast"
         // Goals: a preset chip + a free-text "Other" fold into one comma-joined string.
-        vm.practiceOptions = PracticeOptionsDTO(proficiency: [], tutorSpeakingSpeed: [], goals: ["job_interview"])
+        vm.practiceOptions = PracticeOptionsDTO(
+            proficiency: [],
+            tutorSpeakingSpeed: [],
+            tutorSpeakingSpeedRates: [:],
+            correctionFrequency: [],
+            correctionFrequencyPercent: [:],
+            correctionFrequencyDefaultByProficiency: [:],
+            goals: ["job_interview"],
+        )
         vm.toggleGoal("job_interview")
         vm.otherGoal = "chatting with my barista"
         await vm.save(api: api)
@@ -242,6 +262,7 @@ final class OnboardingViewModelTests: XCTestCase {
             targetAccents: ["US"],
             proficiency: "intermediate",
             tutorSpeakingSpeed: "normal",
+            correctionFrequency: "sometimes",
             goals: nil,
             locationCity: nil,
             timezone: nil,
@@ -275,6 +296,38 @@ final class OnboardingViewModelTests: XCTestCase {
         await vm.save(api: api)
         XCTAssertFalse(vm.didSaveSuccessfully)
         XCTAssertNotNil(vm.saveError)
+    }
+
+    func testLoadTrialInfoPopulatesCardFromEntitlement() async throws {
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode(
+            EntitlementResponse(
+                isPremium: false, trialActive: true,
+                trialEndsAt: Date(timeIntervalSince1970: 1_800_000_000),
+                freeMinutesRemainingToday: 10, freeMinutesRemainingThisWeek: 30,
+                freeMinutesPerDayCap: 10, freeMinutesPerWeekCap: 30, premiumEndsAt: nil,
+            ),
+        )
+        let vm = OnboardingViewModel()
+        await vm.loadTrialInfo(api: makeAPI(transport))
+        XCTAssertNotNil(vm.trialEndsAt, "a trial user gets the card's end date")
+        XCTAssertEqual(vm.postTrialDailyMinutes, 10)
+        XCTAssertEqual(vm.postTrialWeeklyMinutes, 30)
+    }
+
+    func testLoadTrialInfoSkipsNonTrialUser() async throws {
+        let transport = FakeTransport()
+        transport.responseData = try BackendAPI.encoder.encode(
+            EntitlementResponse(
+                isPremium: true, trialActive: false, trialEndsAt: nil,
+                freeMinutesRemainingToday: 10, freeMinutesRemainingThisWeek: 30,
+                freeMinutesPerDayCap: 10, freeMinutesPerWeekCap: 30, premiumEndsAt: nil,
+            ),
+        )
+        let vm = OnboardingViewModel()
+        await vm.loadTrialInfo(api: makeAPI(transport))
+        XCTAssertNil(vm.trialEndsAt, "no card for a non-trial user")
+        XCTAssertNil(vm.postTrialDailyMinutes)
     }
 }
 
@@ -367,6 +420,12 @@ final class OnboardingWizardLogicTests: XCTestCase {
         vm.pickSpeed("normal")
         XCTAssertTrue(vm.stepValid)
 
+        vm.step = .correction
+        // practiceOptions is nil in loadedModel, so pickProficiency above seeded nothing — the step starts empty and must enforce a choice.
+        XCTAssertFalse(vm.stepValid, "must pick a correction level to advance")
+        vm.pickCorrection("sometimes")
+        XCTAssertTrue(vm.stepValid)
+
         vm.step = .goals
         XCTAssertFalse(vm.stepValid, "must pick or type a goal to advance")
         vm.otherGoal = "   "
@@ -378,10 +437,29 @@ final class OnboardingWizardLogicTests: XCTestCase {
         XCTAssertTrue(vm.stepValid, "free-text Other alone satisfies it")
     }
 
+    func testCorrectionPreSeededFromProficiencyDefault() {
+        let vm = loadedModel()
+        vm.practiceOptions = PracticeOptionsDTO(
+            proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:],
+            correctionFrequency: [], correctionFrequencyPercent: [:],
+            correctionFrequencyDefaultByProficiency: ["beginner": "rarely", "advanced": "always"],
+            goals: [],
+        )
+        vm.pickProficiency("beginner")
+        XCTAssertEqual(
+            vm.correctionFrequency,
+            "rarely",
+            "correction seeds from the proficiency default so its step opens pre-selected",
+        )
+        vm.pickProficiency("advanced")
+        XCTAssertEqual(vm.correctionFrequency, "always", "re-picking proficiency re-seeds the correction default")
+    }
+
     func testGoalsForSaveJoinsSelectedPresetsInOrderThenOther() {
         let vm = loadedModel()
         vm.practiceOptions = PracticeOptionsDTO(
-            proficiency: [], tutorSpeakingSpeed: [],
+            proficiency: [], tutorSpeakingSpeed: [], tutorSpeakingSpeedRates: [:],
+            correctionFrequency: [], correctionFrequencyPercent: [:], correctionFrequencyDefaultByProficiency: [:],
             goals: ["everyday_conversation", "dating_relationships", "travel"],
         )
         vm.toggleGoal("travel")

@@ -25,12 +25,16 @@ final class SessionController {
     var phase: Phase = .idle
     /// Flipped true when the model calls the `end_conversation` tool (the user said goodbye). `MainTabView` watches this to leave the Talk tab; switching tabs makes `ConversationView` disappear, which tears the session down. Reset by the navigator after it acts.
     var endRequestedByTool = false
+    /// Durable twin of `endRequestedByTool` for the `session_ended` end-reason telemetry. The navigator clears `endRequestedByTool` the instant it acts, BEFORE the tab switch makes ConversationView disappear and run `end()`, so reading that flag in `end()` would mislabel a model hang-up as `user_left`. This one survives until `end()` consumes it. Reset at the next `start()`. Internal (not private) so the tool handler in SessionController+Recall.swift can set it.
+    var modelRequestedEnd = false
     /// Set true when the session ended because the user hit their free-plan time limit (not a tab switch or normal goodbye). ConversationView shows the "out of free time" screen with an upgrade CTA instead of going silently idle. Reset at the start of the next session.
     var endedOnFreeCapLimit = false
     /// Which cap was hit, "daily" or "weekly", so the limit screen says the right thing ("back tomorrow" vs the longer "back Monday"). nil until a cap actually ends a session.
     var freeCapLimitKind: String?
     /// True from a cap-end until the next start, even after the limit overlay is dismissed — so the Talk view keeps showing the last transcript (the user dismisses the overlay to read what they just said). Separate from `endedOnFreeCapLimit`, which only drives the overlay and clears on dismiss.
     var reviewLastTranscript = false
+    /// One-shot: the spoken "nice work" line should play on the NEXT presentation of the limit screen, then never again until the next session. Set when a cap ends a session (or a /start 402); FreeCapLimitView consumes it on first appear. Without it the announcement replayed every time the user returned to the Talk tab and the overlay re-appeared. Reset at the next `start()`.
+    var freeCapAnnouncementPending = false
     var transcript: [TranscriptChunk] = []
     /// True while the tutor is actively speaking. Drives the mic's swell/glow animation in ConversationView. Set when an AI (`.persona`) transcript chunk arrives, cleared after a short gap with no new AI chunk. This is the conversation-level "is it the AI's turn" signal — distinct from `phase == .live`, which stays true for the whole session.
     var isAISpeaking: Bool = false
@@ -47,10 +51,10 @@ final class SessionController {
 
     private let context: ContextGathering
     let backend: ConversationBackend
+    let outbox: AudioUploadOutbox
     private let micPermission: MicrophonePermissionRequesting
     private let streamerFactory: AudioStreamerFactory
     private let sessionFactory: PersonaPlexSessionFactory
-    private let openAIFactory: OpenAIRealtimeClientFactory
     /// Test seam: forces the server-ready timeout (seconds) for both providers. nil in production, where OpenAI gets 20s and PersonaPlex 90s (cold start). Tests set a tiny value to exercise the timeout path without a 90s wait.
     private let serverReadyTimeoutOverride: Double?
     /// Internal (not private) so SessionController+NetworkRecovery.swift can reach it — same cross-file-extension reason as serverReadyContinuation.
@@ -58,9 +62,11 @@ final class SessionController {
 
     // MARK: - Live state
 
-    private var audioStreamer: AudioStreamerType?
+    // Internal (not private) so SessionController+AISpeaking.swift can poll isOutputPlaying() to hold off teardown until a goodbye finishes.
+    var audioStreamer: AudioStreamerType?
     private var personaPlex: PersonaPlexSessionType?
-    private var openAIClient: RealtimeClient?
+    /// Internal (not private) so SessionController+AISpeaking.swift can read its outputLevel for the waveform — the WebRTC client measures tutor amplitude, since it bypasses AudioStreamer.
+    var openAIClient: RealtimeClient?
     private var pump: AudioPump?
     private var sessionStartedAt: Date?
     var serverSessionId: String?
@@ -71,6 +77,8 @@ final class SessionController {
     var freeCapTasks: [Task<Void, Never>] = []
     /// Lives for the whole session (across reconnects), not per-WS — so it can still observe the path coming back after a drop. Started lazily by `start()`, cancelled only by `end()` (never by `teardown()`, which runs on every drop). Internal so the NetworkRecovery extension can manage it.
     var networkTask: Task<Void, Never>?
+    /// Monotonic lifecycle epoch, bumped at the top of `start()` and `end()`. An in-flight `start()` captures it and bails at its checkpoints once it no longer matches, so when the user leaves the Talk tab mid-start (which runs `end()`, whose teardown `close()` un-parks `start()`'s `awaitServerReady`), the resumed `start()` does not march on to `.live` over the transport `end()` just closed.
+    private var lifecycleGeneration = 0
 
     /// In-progress turn buffer. Stream emissions from the same speaker accumulate here; flush as one `transcripts` row on speaker switch or session end. Per CLAUDE.md, a transcripts row = one TURN, not one realtime-stream fragment.
     /// Internal (not private) so the buffering logic in SessionController+Transcript.swift can read and flush it. Stored state must live on the type itself; only the behavior moves to the extension.
@@ -88,25 +96,29 @@ final class SessionController {
         micPermission: MicrophonePermissionRequesting = DefaultMicrophonePermission(),
         streamerFactory: AudioStreamerFactory = DefaultAudioStreamerFactory(),
         sessionFactory: PersonaPlexSessionFactory = DefaultPersonaPlexSessionFactory(),
-        openAIFactory: OpenAIRealtimeClientFactory = DefaultOpenAIRealtimeClientFactory(),
         serverReadyTimeoutOverride: Double? = nil,
         pathMonitor: NetworkPathMonitoring = DefaultNetworkPathMonitor(),
+        outbox: AudioUploadOutbox = .default,
     ) {
         self.context = context
         self.backend = backend
+        self.outbox = outbox
         self.micPermission = micPermission
         self.streamerFactory = streamerFactory
         self.sessionFactory = sessionFactory
-        self.openAIFactory = openAIFactory
         self.serverReadyTimeoutOverride = serverReadyTimeoutOverride
         self.pathMonitor = pathMonitor
     }
 
     func start() async {
+        lifecycleGeneration += 1
+        let generation = lifecycleGeneration
         startNetworkMonitoringIfNeeded()
         endedOnFreeCapLimit = false
         reviewLastTranscript = false
         freeCapLimitKind = nil
+        freeCapAnnouncementPending = false
+        modelRequestedEnd = false
         let t0 = Date()
         phase = .gatheringContext
         let gatherInterval = signposter.beginInterval("conversation.gatherContext")
@@ -153,64 +165,60 @@ final class SessionController {
                     "/start returned: provider=\(response.provider, privacy: .public) wsUrl=\(response.wsUrl, privacy: .public) tokenLen=\(response.ephemeralToken?.count ?? 0, privacy: .public)",
                 )
 
+            // If the user left the Talk tab during the backend call, end() already ran; bail before opening a WS it can't tear down.
+            guard generation == lifecycleGeneration else { return }
             phase = .connecting
             let connectInterval = signposter.beginInterval("conversation.websocketConnect")
-            let realtime: RealtimeClient
-            if response.provider == "openai" {
-                let client = openAIFactory.makeClient(instructions: response.textPrompt)
-                try await client.open(wsUrl: response.wsUrl, ephemeralToken: response.ephemeralToken)
-                openAIClient = client
-                realtime = client
-            } else {
-                let session = sessionFactory.makeSession()
-                // Backend bakes an HMAC ticket into response.wsUrl. Open it as-is.
-                try await session.open(wsUrl: response.wsUrl)
-                personaPlex = session
-                realtime = session
-            }
+            let realtime = try await openRealtimeClient(
+                provider: response.provider, wsUrl: response.wsUrl, ephemeralToken: response.ephemeralToken,
+            )
             signposter.endInterval("conversation.websocketConnect", connectInterval)
 
             // Wait for the server's ready signal before pumping audio — sending earlier drops frames. PersonaPlex emits a `\x00` handshake byte (its recv_loop only starts after step_system_prompts_async); OpenAI emits a session.created event.
             // Bounded so a never-arriving signal (dead WS after a persona switch, exhausted quota, cold-start crash) can't hang on "Loading your tutor…" forever; tests pass serverReadyTimeoutOverride to shorten it.
             // 20s for OpenAI: no cold start, session.created is sub-second, so this ceiling only trips on a genuine failure.
             // 90s for PersonaPlex: Modal scale-to-zero boots a container + loads weights to VRAM (~10-20s) then runs the first system-prompt pass (~15-30s), so a cold start legitimately reaches ~30-60s before the handshake byte.
-            let readyTimeout = serverReadyTimeoutOverride ?? (response.provider == "openai" ? 20 : 90)
+            let readyTimeout = serverReadyTimeoutOverride ?? (response.provider == "openai_webrtc" ? 20 : 90)
             guard await awaitServerReady(realtime, timeoutSeconds: readyTimeout) else {
                 throw SessionStartError.serverReadyTimeout
             }
+            // end() during the server-ready park closes the transport, which un-parks the wait above; if that happened, don't build the audio path or go .live over a session end() already tore down.
+            guard generation == lifecycleGeneration else { return }
             let tConnectEnd = Date()
 
-            let streamer = try await streamerFactory.makeStreamer()
+            // WebRTC owns mic capture + playback via its own peer connection, so the AVAudioEngine-based AudioStreamer + PCM16 pump are skipped for that provider (they'd fight WebRTC for the mic). The custom-ADM re-plumbing that restores our DSP (near-field gate, output-amplitude waveform, recording) onto WebRTC's pipeline is #45's remaining work.
+            let streamer: AudioStreamerType? = response.provider == "openai_webrtc"
+                ? nil
+                : try await streamerFactory.makeStreamer()
             audioStreamer = streamer
 
             sessionStartedAt = Date()
             phase = .live
             await startObserversForRealtime(client: realtime)
-            self.pump = await startAudioPump(streamer: streamer, realtime: realtime, provider: response.provider)
+            if let streamer {
+                self.pump = await startAudioPump(streamer: streamer, realtime: realtime)
+            }
 
             // Cold-start telemetry: time from start() until the first inbound audio chunk lands. Posted to backend
             // /events for percentile tracking across users — confirms the "5-8s hidden by tips" target.
-            let inboundAudio = await realtime.inboundAudio
-            ColdStartReporter.scheduleReport(
-                backend: backend,
-                inboundAudio: inboundAudio,
-                sessionId: response.sessionId,
-                t0: t0,
-                tGatherEnd: tGatherEnd,
-                tStartEnd: tStartEnd,
-                tConnectEnd: tConnectEnd,
+            await scheduleStartTelemetry(
+                realtime: realtime, response: response,
+                t0: t0, tGatherEnd: tGatherEnd, tStartEnd: tStartEnd, tConnectEnd: tConnectEnd,
             )
-
-            // Free-cap mid-session enforcement, driven by the precise seconds /start returned. nil (premium) schedules nothing.
-            scheduleFreeCapWrapUp(
-                realtime: realtime,
-                freeSecondsRemaining: response.freeSecondsRemaining,
-                freeLimitKind: response.freeLimitKind,
-            )
+        } catch let BackendError.http(402, body) {
+            // Free cap spent (opening Talk while already out of time): show the limit screen, not a raw "HTTP 402" that reads as a dev error. No server session was created, so nothing to end. Mark the window spent (reviewLastTranscript) just like a mid-session cap, so returning to Talk re-shows the limit screen from local state instead of firing another doomed /start, AND announce once so the spoken line doesn't replay on every revisit.
+            logger.info("conversation/start 402 — free cap reached, showing limit screen")
+            freeCapLimitKind = parseFreeCapKind(from: body)
+            endedOnFreeCapLimit = true
+            reviewLastTranscript = true
+            freeCapAnnouncementPending = true
+            phase = .idle
+            await teardown()
         } catch {
             // Logs keep the full diagnostic; the UI shows the friendly message for errors that provide one (BackendError, SessionStartError), falling back to the raw describe otherwise.
             logger.error("conversation start failed: \(String(describing: error), privacy: .public)")
             let userMessage = (error as? LocalizedError)?.errorDescription ?? String(describing: error)
+            await markServerSessionEnded()
             phase = .error(userMessage)
             await teardown()
         }
@@ -218,22 +226,59 @@ final class SessionController {
         startContextOverride = nil
     }
 
-    /// Pick and start the provider-correct audio pump: OpenAI streams PCM16 both directions; PersonaPlex drives the Ogg-Opus session. Returns the started pump so the caller retains it for teardown.
+    /// Wire the cold-start telemetry (fires once first audio lands) and the free-cap mid-session wrap-up. Pulled out of start() to keep that function within the body-length budget.
+    private func scheduleStartTelemetry(
+        realtime: RealtimeClient, response: StartResponse,
+        t0: Date, tGatherEnd: Date, tStartEnd: Date, tConnectEnd: Date,
+    ) async {
+        let inboundAudio = await realtime.inboundAudio
+        ColdStartReporter.scheduleReport(
+            backend: backend, inboundAudio: inboundAudio, sessionId: response.sessionId,
+            t0: t0, tGatherEnd: tGatherEnd, tStartEnd: tStartEnd, tConnectEnd: tConnectEnd,
+        )
+        // Free-cap mid-session enforcement, driven by the precise seconds /start returned. nil (premium) schedules nothing.
+        scheduleFreeCapWrapUp(
+            realtime: realtime,
+            freeSecondsRemaining: response.freeSecondsRemaining,
+            freeLimitKind: response.freeLimitKind,
+        )
+    }
+
+    /// Pull `free_limit_kind` ("daily"/"weekly") out of the 402 body so the limit screen says the right thing. The backend sends a structured detail (`{"detail": {"free_limit_kind": ...}}`); nil if absent so FreeCapLimitView falls back to a generic message.
+    private func parseFreeCapKind(from body: String) -> String? {
+        struct Detail: Decodable { let freeLimitKind: String? }
+        struct Wrapper: Decodable { let detail: Detail }
+        guard let data = body.data(using: .utf8) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return (try? decoder.decode(Wrapper.self, from: data))?.detail.freeLimitKind
+    }
+
+    /// Open the provider's realtime transport and retain it for teardown. WebRTC is the only OpenAI path this build speaks — it carries media on its own peer connection (ws_url holds the /v1/realtime/calls URL); PersonaPlex opens its Ogg-Opus WS with the HMAC ticket the backend baked into ws_url.
+    private func openRealtimeClient(provider: String, wsUrl: String,
+                                    ephemeralToken: String?) async throws -> RealtimeClient
+    {
+        if provider == "openai_webrtc" {
+            let client = OpenAIWebRTCClient()
+            try await client.open(wsUrl: wsUrl, ephemeralToken: ephemeralToken)
+            openAIClient = client
+            return client
+        }
+        let session = sessionFactory.makeSession()
+        try await session.open(wsUrl: wsUrl)
+        personaPlex = session
+        return session
+    }
+
+    /// Start the PersonaPlex Ogg-Opus audio pump. OpenAI now runs over WebRTC (which owns its own media capture/playback and has no pump), so this path is reached only for PersonaPlex. Returns the started pump so the caller retains it for teardown.
     private func startAudioPump(
-        streamer: AudioStreamerType, realtime: RealtimeClient, provider: String,
+        streamer: AudioStreamerType, realtime: RealtimeClient,
     ) async -> AudioPump {
         let pump = AudioPump()
-        if provider == "openai", let pcmStreamer = streamer as? PCM16AudioStreamerType {
-            logger.error("audio pump → startPCM16 (OpenAI)")
-            await pump.startPCM16(streamer: pcmStreamer, client: realtime)
-        } else if let pSession = realtime as? PersonaPlexSessionType {
-            logger.error("audio pump → start (PersonaPlex)")
+        if let pSession = realtime as? PersonaPlexSessionType {
             await pump.start(streamer: streamer, session: pSession)
         } else {
-            logger
-                .error(
-                    "audio pump → NO MATCH provider=\(provider, privacy: .public) streamerIsPCM16=\(streamer is PCM16AudioStreamerType, privacy: .public) realtimeIsPersonaPlex=\(realtime is PersonaPlexSessionType, privacy: .public)",
-                )
+            logger.error("audio pump → NO MATCH: expected a PersonaPlexSessionType for the Opus pump path")
         }
         return pump
     }
@@ -244,11 +289,19 @@ final class SessionController {
     // Cold-start telemetry moved to `ColdStartReporter.swift` so the orchestrator stays focused on phase machine + collaborator wiring.
 
     func end() async {
+        // Supersede any in-flight start(): it captured the prior generation and bails at its next checkpoint instead of marching to .live over the transport this teardown closes.
+        lifecycleGeneration += 1
         // Explicit end (user left the Talk tab) — stop watching the path. A drop-driven teardown does NOT come through here, so the monitor keeps running to catch the path returning.
         cancelNetworkMonitoring()
         phase = .ending
         // Flush any in-progress turn buffer before tearing down so the last utterance lands in transcripts. Without this, the final turn (often the AI's closing line, or whatever the user said before tapping end) is lost.
         flushPendingTurn(endedAt: Date())
+        // Accumulate conversation time for the rating-prompt trigger (engagement is measured in cumulative minutes, not session count). sessionStartedAt is set once we go .live and is nilled in teardown just below, so this is real conversation time; a never-live session adds nothing.
+        if let startedAt = sessionStartedAt {
+            let key = "totalConversationSeconds"
+            let elapsed = Int(Date().timeIntervalSince(startedAt))
+            UserDefaults.standard.set(UserDefaults.standard.integer(forKey: key) + elapsed, forKey: key)
+        }
         let id = serverSessionId
         let streamer = audioStreamer
         if let id {
@@ -277,11 +330,14 @@ final class SessionController {
                 inputTokens: usage?.inputTokens,
                 outputTokens: usage?.outputTokens,
             )
+            // Record WHY the session ended so the backend can measure the abnormal-end ratio. /end alone looks identical no matter the trigger; this is the only place the client's reason is known.
+            let endReason = endedOnFreeCapLimit ? "free_cap" : (modelRequestedEnd ? "tool" : "user_left")
+            _ = try? await backend.recordSessionEnd(sessionId: id, reason: endReason)
         }
         await teardown()
         // Audio upload AFTER teardown so the wav file is closed/finalized. Best-effort: a failed upload doesn't reopen the session — we just lose retention for that session. File is deleted whether upload succeeded or not so we don't accumulate local copies.
         if let id, let streamer {
-            await uploadMicAudioIfAny(sessionId: id, streamer: streamer)
+            await uploadSessionAudio(sessionId: id, streamer: streamer)
         }
         phase = .idle
     }

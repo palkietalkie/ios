@@ -2,6 +2,7 @@
 @preconcurrency import AVFoundation
 import Foundation
 import Opus
+import os
 import OSLog
 
 private let signposter = OSSignposter(subsystem: "com.palkietalkie", category: "audio")
@@ -19,9 +20,8 @@ enum AudioStreamerError: Error {
 actor AudioStreamer {
     static let sampleRate: Double = 24000
     static let frameSamples: AVAudioFrameCount = 480 // 20ms @ 24kHz
-
-    /// Noise-gate cutoff in dBFS. Frames quieter than this get zeroed before encoding so OpenAI's server VAD doesn't trip on room tone. -45 ≈ between room tone (-50) and a whisper (-35). Tunable per real-world data.
-    static let noiseGateDbfs: Float = -45
+    /// Per-buffer release coefficient for the output-level peak meter that drives the Talk-view waveform: attack is instant (jump to a louder peak), release multiplies the held level by this each buffer so the bars fall smoothly instead of flickering. Hand-tuned for a pleasant fall (~150ms at OpenAI's typical ~20-40ms chunks); empirical, and rate-dependent (faster chunk cadence = faster fall), which is acceptable for a visual meter.
+    private static let outputLevelRelease: Float = 0.82
 
     private let engine: AudioEngineProtocol
     private let playerNode: AudioPlayerNodeProtocol
@@ -50,6 +50,9 @@ actor AudioStreamer {
     /// The 0-or-1 leftover byte from the previous OpenAI audio chunk that didn't complete a 2-byte sample; prepended to the next chunk so a sample straddling the boundary isn't dropped. `Data()` = empty = nothing carried. See JARGON: PCM16 (streaming note) and Data. Reset at start().
     private var pcm16Carry = Data()
 
+    /// Per-frame near-field gate: silences anything that isn't the close, primary speaker so the provider VAD never opens a turn off far voices or ambient noise. Reset each session so a previous environment's floor doesn't carry over.
+    private var nearFieldGate = NearFieldGate()
+
     /// URL of the wav file containing the user-side audio from the most-recently-finished session. Cleared on next start(). Returned for upload + local cleanup by SessionController.end(). Nil if no session has finished yet.
     var recordedSessionAudioURL: URL? {
         sessionAudioRecorder.url
@@ -64,6 +67,10 @@ actor AudioStreamer {
     private var pcm16InputContinuation: AsyncStream<Data>.Continuation?
     private var pcm16InputStreamCache: AsyncStream<Data>?
     private var pendingMicSamples: [Float] = []
+    /// Tutor-audio buffers scheduled but not yet played out. Decremented from each buffer's completion, which fires off-actor on the audio thread, hence a lock rather than actor-isolated state. isOutputPlaying reads it so end() can let a goodbye finish instead of cutting it off.
+    private let pendingOutputLock = OSAllocatedUnfairLock(initialState: 0)
+    // Smoothed peak of the tutor's OUTPUT audio (0…1), written per playback buffer, read nonisolated by the Talk-view waveform indicator each frame. A lock (not actor-isolated state) so the view can read it synchronously without awaiting the actor, same reason as pendingOutputLock.
+    private let outputLevelLock = OSAllocatedUnfairLock(initialState: Float(0))
     nonisolated let pitchTracker = PitchTracker()
     /// Live emotion counter on the AI's OUTPUT audio. Per-session (created in start(), released in stop()) because the classifier carries a running frame cursor that must reset each conversation.
     private var emotionDetector: EmotionDetector?
@@ -141,6 +148,7 @@ actor AudioStreamer {
         sessionAudioRecorder.open()
         modelAudioRecorder.open()
         pcm16Carry = Data()
+        nearFieldGate.reset()
 
         // The tap block must be @Sendable — capture only the actor + raw Float32 bytes. Samples are converted off-actor (in the audio thread) so we never block AVAudio's real-time path.
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: inputFormat) { [weak self] buffer, _ in
@@ -222,20 +230,36 @@ actor AudioStreamer {
         }
         playPCM16Count += 1
         let n = playPCM16Count
+        // Fast attack, slow release so the Talk-view waveform tracks the tutor's voice envelope smoothly. Computed every buffer (not just when logging) so `outputLevel` stays current for the indicator.
+        let peak = AudioMath.peakAmplitude(of: buffer)
+        outputLevelLock.withLock { $0 = max(peak, $0 * Self.outputLevelRelease) }
         if n <= 3 || n % 50 == 0 {
-            let p = AudioMath.peakAmplitude(of: buffer)
             logger
                 .error(
-                    "playPCM16 sched #\(n, privacy: .public): \(pcm16Bytes.count, privacy: .public)B → frames=\(samples.count, privacy: .public) peak=\(p, privacy: .public) engineRunning=\(self.engine.isRunning, privacy: .public) playerPlaying=\(self.playerNode.isPlaying, privacy: .public)",
+                    "playPCM16 sched #\(n, privacy: .public): \(pcm16Bytes.count, privacy: .public)B → frames=\(samples.count, privacy: .public) peak=\(peak, privacy: .public) engineRunning=\(self.engine.isRunning, privacy: .public) playerPlaying=\(self.playerNode.isPlaying, privacy: .public)",
                 )
         }
-        playerNode.scheduleBuffer(buffer, completionHandler: nil)
+        pendingOutputLock.withLock { $0 += 1 }
+        playerNode.scheduleBuffer(buffer) { [weak self] in
+            self?.pendingOutputLock.withLock { if $0 > 0 { $0 -= 1 } }
+        }
+    }
+
+    nonisolated func isOutputPlaying() -> Bool {
+        pendingOutputLock.withLock { $0 > 0 }
+    }
+
+    /// Latest smoothed peak of the tutor's output audio (0…1), for the Talk-view waveform indicator. Nonisolated + lock-backed so the view reads it per frame without awaiting the actor.
+    nonisolated var outputLevel: Float {
+        outputLevelLock.withLock { $0 }
     }
 
     /// Drop everything queued and resume — caller (AudioPump) hooks this to the realtime client's `bargeIn` stream so user-speech-detected stops AI audio mid-sentence. `playerNode.stop()` cancels scheduled buffers; immediately `play()` again so the next AI turn's audio plays without re-entering the start() bring-up.
     func interruptPlayback() {
         playerNode.stop()
         playerNode.play()
+        // Barge-in flushed the queued tutor audio; those buffers will never finish playing, so clear the count.
+        pendingOutputLock.withLock { $0 = 0 }
     }
 
     /// Server frames carry Ogg-Opus bytes (encoded by sphn). Demux into raw Opus packets, decode each, schedule for playback. Loudness handled server-side (see `patch_moshi_server.py`).
@@ -304,8 +328,8 @@ actor AudioStreamer {
             var chunk = Array(pendingMicSamples.prefix(frameLen))
             pendingMicSamples.removeFirst(frameLen)
 
-            // Noise gate: zero out frames whose RMS sits at room-tone level. Cuts the chances of OpenAI's server VAD misfiring on wind / scooter rattle / AirPod-bleed of our own TTS. -45 dBFS is conservative — clear speech runs ~ -20 dBFS, room tone ~ -50 to -45. Adjust upward if false positives persist (raise gate), downward if real soft speech is being eaten (lower gate). AEC + voice processing still apply earlier in the chain; this is the final defense.
-            if AudioMath.rmsDbfs(chunk) < Self.noiseGateDbfs {
+            // Near-field gate: silence any frame that isn't the close primary speaker (the user) so the provider's server VAD only ever sees the user's own voice and can't open a phantom turn off far voices, a TV, wind, or scooter rattle. A fixed level gate can't do this (it can't tell a loud scooter from speech, and a single threshold is wrong in both a quiet office and a noisy street); NearFieldGate tracks the ambient floor and checks voicedness instead. AEC + voice processing still run earlier in the chain; this is the final, environment-adaptive defense.
+            if !nearFieldGate.shouldPass(frame: chunk) {
                 for i in chunk.indices {
                     chunk[i] = 0
                 }
