@@ -55,7 +55,6 @@ final class SessionController {
     private let micPermission: MicrophonePermissionRequesting
     private let streamerFactory: AudioStreamerFactory
     private let sessionFactory: PersonaPlexSessionFactory
-    private let openAIFactory: OpenAIRealtimeClientFactory
     /// Test seam: forces the server-ready timeout (seconds) for both providers. nil in production, where OpenAI gets 20s and PersonaPlex 90s (cold start). Tests set a tiny value to exercise the timeout path without a 90s wait.
     private let serverReadyTimeoutOverride: Double?
     /// Internal (not private) so SessionController+NetworkRecovery.swift can reach it — same cross-file-extension reason as serverReadyContinuation.
@@ -66,7 +65,8 @@ final class SessionController {
     // Internal (not private) so SessionController+AISpeaking.swift can poll isOutputPlaying() to hold off teardown until a goodbye finishes.
     var audioStreamer: AudioStreamerType?
     private var personaPlex: PersonaPlexSessionType?
-    private var openAIClient: RealtimeClient?
+    /// Internal (not private) so SessionController+AISpeaking.swift can read its outputLevel for the waveform — the WebRTC client measures tutor amplitude, since it bypasses AudioStreamer.
+    var openAIClient: RealtimeClient?
     private var pump: AudioPump?
     private var sessionStartedAt: Date?
     var serverSessionId: String?
@@ -96,7 +96,6 @@ final class SessionController {
         micPermission: MicrophonePermissionRequesting = DefaultMicrophonePermission(),
         streamerFactory: AudioStreamerFactory = DefaultAudioStreamerFactory(),
         sessionFactory: PersonaPlexSessionFactory = DefaultPersonaPlexSessionFactory(),
-        openAIFactory: OpenAIRealtimeClientFactory = DefaultOpenAIRealtimeClientFactory(),
         serverReadyTimeoutOverride: Double? = nil,
         pathMonitor: NetworkPathMonitoring = DefaultNetworkPathMonitor(),
         outbox: AudioUploadOutbox = .default,
@@ -107,7 +106,6 @@ final class SessionController {
         self.micPermission = micPermission
         self.streamerFactory = streamerFactory
         self.sessionFactory = sessionFactory
-        self.openAIFactory = openAIFactory
         self.serverReadyTimeoutOverride = serverReadyTimeoutOverride
         self.pathMonitor = pathMonitor
     }
@@ -171,26 +169,16 @@ final class SessionController {
             guard generation == lifecycleGeneration else { return }
             phase = .connecting
             let connectInterval = signposter.beginInterval("conversation.websocketConnect")
-            let realtime: RealtimeClient
-            if response.provider == "openai" {
-                let client = openAIFactory.makeClient(instructions: response.textPrompt)
-                try await client.open(wsUrl: response.wsUrl, ephemeralToken: response.ephemeralToken)
-                openAIClient = client
-                realtime = client
-            } else {
-                let session = sessionFactory.makeSession()
-                // Backend bakes an HMAC ticket into response.wsUrl. Open it as-is.
-                try await session.open(wsUrl: response.wsUrl)
-                personaPlex = session
-                realtime = session
-            }
+            let realtime = try await openRealtimeClient(
+                provider: response.provider, wsUrl: response.wsUrl, ephemeralToken: response.ephemeralToken,
+            )
             signposter.endInterval("conversation.websocketConnect", connectInterval)
 
             // Wait for the server's ready signal before pumping audio — sending earlier drops frames. PersonaPlex emits a `\x00` handshake byte (its recv_loop only starts after step_system_prompts_async); OpenAI emits a session.created event.
             // Bounded so a never-arriving signal (dead WS after a persona switch, exhausted quota, cold-start crash) can't hang on "Loading your tutor…" forever; tests pass serverReadyTimeoutOverride to shorten it.
             // 20s for OpenAI: no cold start, session.created is sub-second, so this ceiling only trips on a genuine failure.
             // 90s for PersonaPlex: Modal scale-to-zero boots a container + loads weights to VRAM (~10-20s) then runs the first system-prompt pass (~15-30s), so a cold start legitimately reaches ~30-60s before the handshake byte.
-            let readyTimeout = serverReadyTimeoutOverride ?? (response.provider == "openai" ? 20 : 90)
+            let readyTimeout = serverReadyTimeoutOverride ?? (response.provider == "openai_webrtc" ? 20 : 90)
             guard await awaitServerReady(realtime, timeoutSeconds: readyTimeout) else {
                 throw SessionStartError.serverReadyTimeout
             }
@@ -198,13 +186,18 @@ final class SessionController {
             guard generation == lifecycleGeneration else { return }
             let tConnectEnd = Date()
 
-            let streamer = try await streamerFactory.makeStreamer()
+            // WebRTC owns mic capture + playback via its own peer connection, so the AVAudioEngine-based AudioStreamer + PCM16 pump are skipped for that provider (they'd fight WebRTC for the mic). The custom-ADM re-plumbing that restores our DSP (near-field gate, output-amplitude waveform, recording) onto WebRTC's pipeline is #45's remaining work.
+            let streamer: AudioStreamerType? = response.provider == "openai_webrtc"
+                ? nil
+                : try await streamerFactory.makeStreamer()
             audioStreamer = streamer
 
             sessionStartedAt = Date()
             phase = .live
             await startObserversForRealtime(client: realtime)
-            self.pump = await startAudioPump(streamer: streamer, realtime: realtime, provider: response.provider)
+            if let streamer {
+                self.pump = await startAudioPump(streamer: streamer, realtime: realtime)
+            }
 
             // Cold-start telemetry: time from start() until the first inbound audio chunk lands. Posted to backend
             // /events for percentile tracking across users — confirms the "5-8s hidden by tips" target.
@@ -261,22 +254,31 @@ final class SessionController {
         return (try? decoder.decode(Wrapper.self, from: data))?.detail.freeLimitKind
     }
 
-    /// Pick and start the provider-correct audio pump: OpenAI streams PCM16 both directions; PersonaPlex drives the Ogg-Opus session. Returns the started pump so the caller retains it for teardown.
+    /// Open the provider's realtime transport and retain it for teardown. WebRTC is the only OpenAI path this build speaks — it carries media on its own peer connection (ws_url holds the /v1/realtime/calls URL); PersonaPlex opens its Ogg-Opus WS with the HMAC ticket the backend baked into ws_url.
+    private func openRealtimeClient(provider: String, wsUrl: String,
+                                    ephemeralToken: String?) async throws -> RealtimeClient
+    {
+        if provider == "openai_webrtc" {
+            let client = OpenAIWebRTCClient()
+            try await client.open(wsUrl: wsUrl, ephemeralToken: ephemeralToken)
+            openAIClient = client
+            return client
+        }
+        let session = sessionFactory.makeSession()
+        try await session.open(wsUrl: wsUrl)
+        personaPlex = session
+        return session
+    }
+
+    /// Start the PersonaPlex Ogg-Opus audio pump. OpenAI now runs over WebRTC (which owns its own media capture/playback and has no pump), so this path is reached only for PersonaPlex. Returns the started pump so the caller retains it for teardown.
     private func startAudioPump(
-        streamer: AudioStreamerType, realtime: RealtimeClient, provider: String,
+        streamer: AudioStreamerType, realtime: RealtimeClient,
     ) async -> AudioPump {
         let pump = AudioPump()
-        if provider == "openai", let pcmStreamer = streamer as? PCM16AudioStreamerType {
-            logger.error("audio pump → startPCM16 (OpenAI)")
-            await pump.startPCM16(streamer: pcmStreamer, client: realtime)
-        } else if let pSession = realtime as? PersonaPlexSessionType {
-            logger.error("audio pump → start (PersonaPlex)")
+        if let pSession = realtime as? PersonaPlexSessionType {
             await pump.start(streamer: streamer, session: pSession)
         } else {
-            logger
-                .error(
-                    "audio pump → NO MATCH provider=\(provider, privacy: .public) streamerIsPCM16=\(streamer is PCM16AudioStreamerType, privacy: .public) realtimeIsPersonaPlex=\(realtime is PersonaPlexSessionType, privacy: .public)",
-                )
+            logger.error("audio pump → NO MATCH: expected a PersonaPlexSessionType for the Opus pump path")
         }
         return pump
     }

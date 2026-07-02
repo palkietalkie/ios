@@ -54,26 +54,6 @@ struct ProfileView: View {
                         }
                     }
                 }
-                Section {
-                    // No Save button — edits auto-save (the button sat off-screen at the bottom and users forgot it). This row is passive status only.
-                    HStack {
-                        if model.saving {
-                            ProgressView().controlSize(.small)
-                            Text("Saving…").font(.footnote).foregroundStyle(.secondary)
-                        } else if let savedAt = model.savedAt, Date().timeIntervalSince(savedAt) < 3 {
-                            Label("Saved", systemImage: "checkmark.circle.fill")
-                                .font(.footnote).foregroundStyle(.green)
-                        } else {
-                            Text("Changes save automatically").font(.footnote).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                    }
-                    // View-side animation. The VM stays SwiftUI-agnostic (no withAnimation call) so it's safe to drive from XCTest without the animation runtime, which crashes outside a real render context.
-                    .animation(.default, value: model.savedAt)
-                    if let saveError = model.saveError {
-                        Text(saveError).font(.footnote).foregroundStyle(.red).textSelection(.enabled)
-                    }
-                }
             }
             .navigationTitle("Profile")
             .task {

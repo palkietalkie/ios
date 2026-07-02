@@ -80,17 +80,6 @@ struct DefaultPersonaPlexSessionFactory: PersonaPlexSessionFactory {
     }
 }
 
-/// Factory for the OpenAI Realtime client. Separate from `PersonaPlexSessionFactory` so the orchestrator wiring stays explicit per provider.
-protocol OpenAIRealtimeClientFactory: Sendable {
-    func makeClient(instructions: String?) -> RealtimeClient
-}
-
-struct DefaultOpenAIRealtimeClientFactory: OpenAIRealtimeClientFactory {
-    func makeClient(instructions: String?) -> RealtimeClient {
-        OpenAIRealtimeClient(instructions: instructions)
-    }
-}
-
 /// Connectivity seam. Emits `true` when a usable network path exists and `false` when it's gone, starting with the current status. Backs SessionController's mid-call drop detection + auto-reconnect (elevator / tunnel / dead zone). Tests inject a fake to drive transitions deterministically without a real radio.
 protocol NetworkPathMonitoring: Sendable {
     func statuses() -> AsyncStream<Bool>

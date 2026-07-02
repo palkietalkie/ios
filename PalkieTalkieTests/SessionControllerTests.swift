@@ -446,6 +446,26 @@ final class SessionControllerTests: XCTestCase {
         )
     }
 
+    func testComputeAIOutputLevelFallsBackToClientLevelOnWebRTC() {
+        XCTAssertEqual(
+            SessionController.computeAIOutputLevel(isAISpeaking: false, streamerLevel: 0.9, clientLevel: 0.9),
+            0, "not speaking → no bars",
+        )
+        XCTAssertEqual(
+            SessionController.computeAIOutputLevel(isAISpeaking: true, streamerLevel: 0.7, clientLevel: nil),
+            0.7, accuracy: 0.0001, "WS/PersonaPlex: use the streamer's measured level",
+        )
+        // WebRTC bug repro: WebRTC bypasses AudioStreamer (streamer nil), so the waveform must read the client's own level instead of flatlining at 0.
+        XCTAssertEqual(
+            SessionController.computeAIOutputLevel(isAISpeaking: true, streamerLevel: nil, clientLevel: 0.6),
+            0.6, accuracy: 0.0001, "WebRTC: fall back to the client's inbound-audio level",
+        )
+        XCTAssertEqual(
+            SessionController.computeAIOutputLevel(isAISpeaking: true, streamerLevel: nil, clientLevel: nil),
+            0, "no source → 0",
+        )
+    }
+
     private func makeController(
         backend: FakeConversationBackend? = nil,
         session: FakePersonaPlexSession = FakePersonaPlexSession(),

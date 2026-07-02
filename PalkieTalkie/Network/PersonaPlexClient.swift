@@ -202,6 +202,7 @@ actor PersonaPlexClient {
         }
     }
 
+    // coverage:ignore-start: WebSocket lifecycle + IO (connect/send/receive/pong), needs a live socket; the pure frame codec and dispatchFrame stay tested.
     /// Opens the WebSocket to PersonaPlex and sends the binary handshake frame.
     ///
     /// Backend (`POST /conversation/start`) returns a fully-built `ws_url` that already includes `text_prompt`, `voice_prompt`, `auth_token`, and sampling defaults as query params. Open it as-is — no client-side URL construction.
@@ -249,6 +250,8 @@ actor PersonaPlexClient {
         try await sendControl(.endTurn)
     }
 
+    // coverage:ignore-end
+
     func close() async {
         isClosing = true
         task?.cancel(with: .goingAway, reason: nil)
@@ -266,6 +269,7 @@ actor PersonaPlexClient {
         }
     }
 
+    // coverage:ignore-start: WebSocket receive loop, needs a live socket; frames route to the tested dispatchFrame.
     private func readLoop() async {
         guard let task else { return }
         var frameCount = 0
@@ -306,6 +310,8 @@ actor PersonaPlexClient {
         errorContinuation?.finish()
         disconnectedContinuation?.finish()
     }
+
+    // coverage:ignore-end
 
     /// Internal so the test bundle can feed synthetic frames at the unit-test layer. Production goes through
     /// `readLoop()` which receives frames from the WebSocket task and forwards them here.

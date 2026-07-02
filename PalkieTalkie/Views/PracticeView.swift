@@ -84,26 +84,6 @@ struct PracticeView: View {
             } footer: {
                 Text("What you're working toward. The AI uses this to steer conversation topics.")
             }
-            Section {
-                // No Save button — edits auto-save (the button sat off-screen at the bottom and users forgot it). Passive status only.
-                HStack {
-                    if model.saving {
-                        ProgressView().controlSize(.small)
-                        Text("Saving…").font(.footnote).foregroundStyle(.secondary)
-                    } else if let savedAt = model.savedAt, Date().timeIntervalSince(savedAt) < 3 {
-                        Label("Saved", systemImage: "checkmark.circle.fill")
-                            .font(.footnote).foregroundStyle(.green)
-                    } else {
-                        Text("Changes save automatically").font(.footnote).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                }
-                // View-side animation so the VM stays SwiftUI-agnostic and safe to unit-test outside a render context.
-                .animation(.default, value: model.savedAt)
-                if let saveError = model.saveError {
-                    Text(saveError).font(.footnote).foregroundStyle(.red).textSelection(.enabled)
-                }
-            }
         }
         .navigationTitle("Practice")
         .task {

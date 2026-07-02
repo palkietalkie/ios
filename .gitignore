@@ -15,6 +15,8 @@ TestResults
 # SPM dependency cache
 .build/
 .swiftpm/
+# Resolved SPM packages when a build is pointed at an in-repo clone dir (e.g. -clonedSourcePackagesDirPath); holds the fetched xcframeworks (WebRTC etc.), never committed.
+.swiftpm-cache/
 
 # sourcekit-lsp ↔ Xcode bridge (xcode-build-server). Absolute paths, machine-local.
 buildServer.json

@@ -44,6 +44,10 @@ packages:
   ViewInspector:
     url: https://github.com/nalexn/ViewInspector
     from: "0.10.3"
+  # stasel/WebRTC — Google's libwebrtc as a prebuilt SPM binary target. Powers the OpenAI Realtime WebRTC transport (Opus over SRTP/UDP): ~15x less bandwidth than base64-PCM16 and graceful under packet loss vs the TCP WebSocket path. App-target only.
+  WebRTC:
+    url: https://github.com/stasel/WebRTC
+    from: "149.0.0"
 
 targets:
   PalkieTalkie:
@@ -122,6 +126,8 @@ targets:
         product: ClerkKit
       - package: Opus
         product: Opus
+      - package: WebRTC
+        product: WebRTC
 
   PalkieTalkieTests:
     type: bundle.unit-test
